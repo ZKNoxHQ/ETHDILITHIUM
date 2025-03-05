@@ -42,7 +42,7 @@ class PolynomialRingDilithium(PolynomialRing):
 
         # Initialise the XOF
         xof = _xof(seed)
-
+        xof.flip()
         # Set the first 8 bytes for the sign, and leave the rest for
         # sampling.
         sign_bytes = xof.read(8)
