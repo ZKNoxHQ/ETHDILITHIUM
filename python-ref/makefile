@@ -6,7 +6,7 @@ AUX = *.pyc *.cprof */*.pyc
 
 install:
 	$(PY) -m venv $(VENV)
-	$(PIP) install requirements.txt
+	$(PIP) install -r requirements.txt
 	$(PIP) install -e "git+https://github.com/ZKNoxHQ/NTT.git@main#egg=polyntt&subdirectory=assets/pythonref/"
 
 test:
