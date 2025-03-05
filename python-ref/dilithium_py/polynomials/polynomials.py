@@ -12,6 +12,7 @@ try:
     from xoflib import shake128, shake256
 except ImportError:
     from ..shake.shake_wrapper import shake128, shake256
+from polyntt.ntt_iterative import NTTIterative
 
 
 class PolynomialRingDilithium(PolynomialRing):
@@ -22,9 +23,9 @@ class PolynomialRingDilithium(PolynomialRing):
         self.element_ntt = PolynomialDilithiumNTT
 
         root_of_unity = 1753
-        self.ntt_zetas = [
-            pow(root_of_unity, self.br(i, 8), 8380417) for i in range(256)
-        ]
+        # self.ntt_zetas = [
+        #     pow(root_of_unity, self.br(i, 8), 8380417) for i in range(256)
+        # ]
         self.ntt_f = pow(256, -1, 8380417)
 
     @staticmethod
@@ -244,26 +245,29 @@ class PolynomialDilithium(Polynomial):
     def to_ntt(self):
         """
         Convert a polynomial to number-theoretic transform (NTT)
+        ZKNox implementation
         """
-        k, l = 0, 128
-        coeffs = self.coeffs[:]
-        zetas = self.parent.ntt_zetas
-        while l > 0:
-            start = 0
-            while start < 256:
-                k = k + 1
-                zeta = zetas[k]
-                for j in range(start, start + l):
-                    t = zeta * coeffs[j + l]
-                    coeffs[j + l] = coeffs[j] - t
-                    coeffs[j] = coeffs[j] + t
-                start = l + (j + 1)
-            l >>= 1
+        coeffs_ntt = NTTIterative(self.parent.q).ntt(self.coeffs)
+        return self.parent(coeffs_ntt, is_ntt=True)
+        # k, l = 0, 128
+        # coeffs = self.coeffs[:]
+        # zetas = self.parent.ntt_zetas
+        # while l > 0:
+        #     start = 0
+        #     while start < 256:
+        #         k = k + 1
+        #         zeta = zetas[k]
+        #         for j in range(start, start + l):
+        #             t = zeta * coeffs[j + l]
+        #             coeffs[j + l] = coeffs[j] - t
+        #             coeffs[j] = coeffs[j] + t
+        #         start = l + (j + 1)
+        #     l >>= 1
 
-        for j in range(256):
-            coeffs[j] = coeffs[j] % 8380417
+        # for j in range(256):
+        #     coeffs[j] = coeffs[j] % 8380417
 
-        return self.parent(coeffs, is_ntt=True)
+        # return self.parent(coeffs, is_ntt=True)
 
     def from_ntt(self):
         raise TypeError(f"Polynomial is of type: {type(self)}")
@@ -399,27 +403,10 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
         """
         Convert a polynomial from number-theoretic transform (NTT) form in place
         The input is in bit-reversed order, the output is in standard order.
+        ZKNOX implementation
         """
-        l, k = 1, 256
-        coeffs = self.coeffs[:]
-        zetas = self.parent.ntt_zetas
-        while l < 256:
-            start = 0
-            while start < 256:
-                k = k - 1
-                zeta = -zetas[k]
-                for j in range(start, start + l):
-                    t = coeffs[j]
-                    coeffs[j] = t + coeffs[j + l]
-                    coeffs[j + l] = t - coeffs[j + l]
-                    coeffs[j + l] = zeta * coeffs[j + l]
-                start = j + l + 1
-            l = l << 1
-
-        for j in range(256):
-            coeffs[j] = (coeffs[j] * self.parent.ntt_f) % 8380417
-
-        return self.parent(coeffs, is_ntt=False)
+        coeffs_intt = NTTIterative(self.parent.q).intt(self.coeffs)
+        return self.parent(coeffs_intt, is_ntt=False)
 
     def ntt_coefficient_multiplication(self, f_coeffs, g_coeffs):
         return [(c1 * c2) % 8380417 for c1, c2 in zip(f_coeffs, g_coeffs)]
