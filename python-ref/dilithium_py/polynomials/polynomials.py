@@ -8,10 +8,7 @@ from ..utilities.utils import (
 )
 from ..utilities.utils import make_hint, make_hint_optimised, use_hint
 
-try:
-    from xoflib import shake128, shake256
-except ImportError:
-    from ..shake.shake_wrapper import shake128, shake256
+from ..shake.shake_wrapper import shake128, shake256
 from polyntt.ntt_iterative import NTTIterative
 
 
@@ -22,21 +19,7 @@ class PolynomialRingDilithium(PolynomialRing):
         self.element = PolynomialDilithium
         self.element_ntt = PolynomialDilithiumNTT
 
-        root_of_unity = 1753
-        # self.ntt_zetas = [
-        #     pow(root_of_unity, self.br(i, 8), 8380417) for i in range(256)
-        # ]
-        self.ntt_f = pow(256, -1, 8380417)
-
-    @staticmethod
-    def br(i, k):
-        """
-        bit reversal of an unsigned k-bit integer
-        """
-        bin_i = bin(i & (2**k - 1))[2:].zfill(k)
-        return int(bin_i[::-1], 2)
-
-    def sample_in_ball(self, seed, tau):
+    def sample_in_ball(self, seed, tau, _xof=shake256):
         """
         Figure 2 (Sample in Ball)
             https://pq-crystals.org/dilithium/data/dilithium-specification-round3-20210208.pdf
@@ -58,7 +41,7 @@ class PolynomialRingDilithium(PolynomialRing):
                     return j
 
         # Initialise the XOF
-        xof = shake256(seed)
+        xof = _xof(seed)
 
         # Set the first 8 bytes for the sign, and leave the rest for
         # sampling.
@@ -77,7 +60,8 @@ class PolynomialRingDilithium(PolynomialRing):
 
         return self(coeffs)
 
-    def rejection_sample_ntt_poly(self, rho, i, j):
+    # TODO WHY 128 and not 256 here??
+    def rejection_sample_ntt_poly(self, rho, i, j, _xof=shake128):
         """
         Samples an element in the NTT domain of R^q using rejection sampling
         """
@@ -98,11 +82,13 @@ class PolynomialRingDilithium(PolynomialRing):
 
         # Initialise the XOF
         seed = rho + bytes([j, i])
-        xof = shake128(seed)
+        xof = _xof(seed)
+        # SIMON ADDED THIS
+        xof.flip()
         coeffs = [rejection_sample(xof) for _ in range(256)]
         return self(coeffs, is_ntt=True)
 
-    def rejection_bounded_poly(self, rho_prime, i, eta):
+    def rejection_bounded_poly(self, rho_prime, i, eta, _xof=shake256):
         """
         Computes an element of the polynomial ring with coefficients between
         -eta and eta using rejection sampling from an XOF
@@ -121,7 +107,7 @@ class PolynomialRingDilithium(PolynomialRing):
 
         # Initialise the XOF
         seed = rho_prime + int.to_bytes(i, 2, "little")
-        xof = shake256(seed)
+        xof = _xof(seed)
 
         # Sample bytes for all n coeffs
         i = 0
@@ -142,7 +128,7 @@ class PolynomialRingDilithium(PolynomialRing):
 
         return self(coeffs)
 
-    def sample_mask_polynomial(self, rho_prime, i, kappa, gamma_1):
+    def sample_mask_polynomial(self, rho_prime, i, kappa, gamma_1, _xof=shake256):
         """
         Samples an element in the polynomial ring with elements bounded
         between -gamma_1 + 1 and gamma_1.
@@ -156,7 +142,7 @@ class PolynomialRingDilithium(PolynomialRing):
 
         # Initialise the XOF
         seed = rho_prime + int.to_bytes(kappa + i, 2, "little")
-        xof_bytes = shake256(seed).read(total_bytes)
+        xof_bytes = _xof(seed).read(total_bytes)
         r = int.from_bytes(xof_bytes, "little")
         mask = (1 << bit_count) - 1
         coeffs = [gamma_1 - ((r >> bit_count * i) & mask)
@@ -245,29 +231,10 @@ class PolynomialDilithium(Polynomial):
     def to_ntt(self):
         """
         Convert a polynomial to number-theoretic transform (NTT)
-        ZKNox implementation
+        ZKNOX implementation
         """
         coeffs_ntt = NTTIterative(self.parent.q).ntt(self.coeffs)
         return self.parent(coeffs_ntt, is_ntt=True)
-        # k, l = 0, 128
-        # coeffs = self.coeffs[:]
-        # zetas = self.parent.ntt_zetas
-        # while l > 0:
-        #     start = 0
-        #     while start < 256:
-        #         k = k + 1
-        #         zeta = zetas[k]
-        #         for j in range(start, start + l):
-        #             t = zeta * coeffs[j + l]
-        #             coeffs[j + l] = coeffs[j] - t
-        #             coeffs[j] = coeffs[j] + t
-        #         start = l + (j + 1)
-        #     l >>= 1
-
-        # for j in range(256):
-        #     coeffs[j] = coeffs[j] % 8380417
-
-        # return self.parent(coeffs, is_ntt=True)
 
     def from_ntt(self):
         raise TypeError(f"Polynomial is of type: {type(self)}")

@@ -3,6 +3,9 @@ import os
 from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5
 from dilithium_py.drbg.aes256_ctr_drbg import AES256_CTR_DRBG
 
+from ..shake.shake_wrapper import shake128, shake256
+from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
+
 
 def parse_kat_data(data):
     """
@@ -34,18 +37,19 @@ class TestDilithium(unittest.TestCase):
     and verifying them!
     """
 
-    def generic_test_dilithium(self, Dilithium):
+    def generic_test_dilithium(self, Dilithium, xof, xof2):
         msg = b"Signed by dilithium" + os.urandom(16)
 
         # Perform signature process
-        pk, sk = Dilithium.keygen()
-        sig = Dilithium.sign(sk, msg)
-        check_verify = Dilithium.verify(pk, msg, sig)
+        pk, sk = Dilithium.keygen(_xof=xof2)
+        sig = Dilithium.sign(sk, msg, _xof=xof, _xof2=xof2)
+        check_verify = Dilithium.verify(pk, msg, sig, _xof=xof, _xof2=xof2)
 
         # Generate some fail cases
-        pk_bad, _ = Dilithium.keygen()
-        check_wrong_pk = Dilithium.verify(pk_bad, msg, sig)
-        check_wrong_msg = Dilithium.verify(pk, b"", sig)
+        pk_bad, _ = Dilithium.keygen(_xof=xof2)
+        check_wrong_pk = Dilithium.verify(
+            pk_bad, msg, sig, _xof=xof, _xof2=xof2)
+        check_wrong_msg = Dilithium.verify(pk, b"", sig, _xof=xof, _xof2=xof2)
 
         # Check that signature works
         self.assertTrue(check_verify)
@@ -55,16 +59,29 @@ class TestDilithium(unittest.TestCase):
         self.assertFalse(check_wrong_msg)
 
     def test_dilithium2(self):
-        for _ in range(5):
-            self.generic_test_dilithium(Dilithium2)
+        for _ in range(3):
+            self.generic_test_dilithium(Dilithium2, shake256, shake128)
+
+    def test_dilithium2_keccak_prng(self):
+        for _ in range(3):
+            self.generic_test_dilithium(
+                Dilithium2, shake256, Keccak256PRNG)
 
     def test_dilithium3(self):
-        for _ in range(5):
-            self.generic_test_dilithium(Dilithium3)
+        for _ in range(3):
+            self.generic_test_dilithium(Dilithium3, shake256, shake128)
+
+    # def test_dilithium3_keccak_prng(self):
+    #     for _ in range(3):
+    #         self.generic_test_dilithium(Dilithium3, KeccakPRNG, KeccakPRNG)
 
     def test_dilithium5(self):
-        for _ in range(5):
-            self.generic_test_dilithium(Dilithium5)
+        for _ in range(3):
+            self.generic_test_dilithium(Dilithium5, shake256, shake128)
+
+    # def test_dilithium5_keccak_prng(self):
+    #     for _ in range(3):
+    #         self.generic_test_dilithium(Dilithium5, KeccakPRNG, KeccakPRNG)
 
 
 class TestDilithiumDRBG(unittest.TestCase):

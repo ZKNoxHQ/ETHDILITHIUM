@@ -12,7 +12,8 @@ class TestShakeHashlib(unittest.TestCase):
         absorb_bytes = b"testing_shake_long"
         for l in [1, 100, 1000, 2000, 5000, 1_000_000]:
             Shake.absorb(absorb_bytes)
-            self.assertEqual(shake_hashlib(absorb_bytes).digest(l), Shake.read(l))
+            self.assertEqual(shake_hashlib(
+                absorb_bytes).digest(l), Shake.read(l))
 
     def hashlib_test_many_calls(self, Shake, shake_hashlib):
         absorb_bytes = b"testing_shake_one"

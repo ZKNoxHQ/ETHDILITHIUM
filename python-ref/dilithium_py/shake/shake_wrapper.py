@@ -45,12 +45,16 @@ class Shake:
             self.buf = self.xof_read(self.len_buf)
 
         # Read from the buffer data the bytes requested
-        send = self.buf[self.index : self.index + n]
+        send = self.buf[self.index: self.index + n]
 
         # Shift the index along the buffer
         self.index += n
 
         return send
+
+    # SIMON ADDED THIS
+    def flip(self):
+        return
 
     def __call__(self, input_bytes):
         self.absorb(input_bytes)
