@@ -124,7 +124,8 @@ class Polynomial:
             new_coeffs = self.coeffs.copy()
             new_coeffs[0] = self._add_mod_q(new_coeffs[0], other)
         else:
-            raise NotImplementedError("Polynomials can only be added to each other")
+            raise NotImplementedError(
+                "Polynomials can only be added to each other")
         return new_coeffs
 
     def __add__(self, other):
