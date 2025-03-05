@@ -45,7 +45,7 @@ class Dilithium:
             self._drbg = AES256_CTR_DRBG(seed)
             self.random_bytes = self._drbg.random_bytes
         except ImportError as e:  # pragma: no cover
-            print(f"Error importing AES from pycryptodome: {e = }")
+            print(f"Error importing AES from pycryptodome: {e=}")
             raise Warning(
                 "Cannot set DRBG seed due to missing dependencies, try installing requirements: pip -r install requirements"
             )
@@ -150,7 +150,7 @@ class Dilithium:
 
         # Unpack vector bytes
         s1_bytes = sk_vec_bytes[:s1_len]
-        s2_bytes = sk_vec_bytes[s1_len : s1_len + s2_len]
+        s2_bytes = sk_vec_bytes[s1_len: s1_len + s2_len]
         t0_bytes = sk_vec_bytes[-t0_len:]
 
         # Unpack bytes to vectors
@@ -161,9 +161,9 @@ class Dilithium:
         return rho, K, tr, s1, s2, t0
 
     def _unpack_h(self, h_bytes):
-        offsets = [0] + list(h_bytes[-self.k :])
+        offsets = [0] + list(h_bytes[-self.k:])
         non_zero_positions = [
-            list(h_bytes[offsets[i] : offsets[i + 1]]) for i in range(self.k)
+            list(h_bytes[offsets[i]: offsets[i + 1]]) for i in range(self.k)
         ]
 
         matrix = []
@@ -176,8 +176,8 @@ class Dilithium:
 
     def _unpack_sig(self, sig_bytes):
         c_tilde = sig_bytes[:32]
-        z_bytes = sig_bytes[32 : -(self.k + self.omega)]
-        h_bytes = sig_bytes[-(self.k + self.omega) :]
+        z_bytes = sig_bytes[32: -(self.k + self.omega)]
+        h_bytes = sig_bytes[-(self.k + self.omega):]
 
         z = self.M.bit_unpack_z(z_bytes, self.l, 1, self.gamma_1)
         h = self._unpack_h(h_bytes)
