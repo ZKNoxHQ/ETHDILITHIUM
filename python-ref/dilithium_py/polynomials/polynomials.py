@@ -158,7 +158,8 @@ class PolynomialRingDilithium(PolynomialRing):
         xof_bytes = shake256(seed).read(total_bytes)
         r = int.from_bytes(xof_bytes, "little")
         mask = (1 << bit_count) - 1
-        coeffs = [gamma_1 - ((r >> bit_count * i) & mask) for i in range(self.n)]
+        coeffs = [gamma_1 - ((r >> bit_count * i) & mask)
+                  for i in range(self.n)]
 
         return self(coeffs)
 
@@ -187,7 +188,7 @@ class PolynomialRingDilithium(PolynomialRing):
             altered_coeffs = self.__bit_unpack(input_bytes, 3)
         # Level 3 parameter set
         else:
-            assert eta == 4, f"Expected eta to be either 2 or 4, got {eta = }"
+            assert eta == 4, f"Expected eta to be either 2 or 4, got {eta =}"
             altered_coeffs = self.__bit_unpack(input_bytes, 4)
 
         coefficients = [eta - c for c in altered_coeffs]
@@ -201,7 +202,7 @@ class PolynomialRingDilithium(PolynomialRing):
         else:
             assert (
                 gamma_2 == 261888
-            ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 = }"
+            ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 =}"
             coefficients = self.__bit_unpack(input_bytes, 4)
 
         return self(coefficients)
@@ -214,7 +215,7 @@ class PolynomialRingDilithium(PolynomialRing):
         else:
             assert gamma_1 == (
                 1 << 19
-            ), f"Expected gamma_1 to be either 2^17 or 2^19, got {gamma_1 = }"
+            ), f"Expected gamma_1 to be either 2^17 or 2^19, got {gamma_1 =}"
             altered_coeffs = self.__bit_unpack(input_bytes, 20)
 
         coefficients = [gamma_1 - c for c in altered_coeffs]
@@ -342,7 +343,7 @@ class PolynomialDilithium(Polynomial):
         if eta == 2:
             return self.__bit_pack(altered_coeffs, 3, 96)
         # Level 3 parameter set
-        assert eta == 4, f"Expected eta to be either 2 or 4, got {eta = }"
+        assert eta == 4, f"Expected eta to be either 2 or 4, got {eta =}"
         return self.__bit_pack(altered_coeffs, 4, 128)
 
     def bit_pack_w(self, gamma_2):
@@ -352,7 +353,7 @@ class PolynomialDilithium(Polynomial):
         # Level 3 and 5 parameter set
         assert (
             gamma_2 == 261888
-        ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 = }"
+        ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 =}"
         return self.__bit_pack(self.coeffs, 4, 128)
 
     def bit_pack_z(self, gamma_1):
@@ -363,7 +364,7 @@ class PolynomialDilithium(Polynomial):
         # Level 3 and 5 parameter set
         assert gamma_1 == (
             1 << 19
-        ), f"Expected gamma_1 to be either 2^17 or 2^19, got: {gamma_1 = }"
+        ), f"Expected gamma_1 to be either 2^17 or 2^19, got: {gamma_1 =}"
         return self.__bit_pack(altered_coeffs, 20, 640)
 
     def make_hint(self, other, alpha):
@@ -430,7 +431,8 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
         if not isinstance(other, type(self)):
             raise ValueError
 
-        new_coeffs = self.ntt_coefficient_multiplication(self.coeffs, other.coeffs)
+        new_coeffs = self.ntt_coefficient_multiplication(
+            self.coeffs, other.coeffs)
         return new_coeffs
 
     def __add__(self, other):
@@ -448,6 +450,6 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
             new_coeffs = [(c * other) % 8380417 for c in self.coeffs]
         else:
             raise NotImplementedError(
-                f"Polynomials can only be multiplied by each other, or scaled by integers, {type(other) = }, {type(self) = }"
+                f"Polynomials can only be multiplied by each other, or scaled by integers, {type(other)=}, {type(self)=}"
             )
         return self.parent(new_coeffs, is_ntt=True)
