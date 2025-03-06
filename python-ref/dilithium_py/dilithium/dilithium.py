@@ -57,7 +57,7 @@ class Dilithium:
         """
         H: B^*  -> B^*
         """
-        if _xof != shake256:
+        if _xof != shake256:  # keccak_prng
             h = _xof()
             h.inject(input_bytes)
         else:
