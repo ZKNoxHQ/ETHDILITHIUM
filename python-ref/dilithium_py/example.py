@@ -5,7 +5,7 @@ from .dilithium import Dilithium2
 msg = b"We are ZKNox."
 
 # Perform signature process
-pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG)
+pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
 sig = Dilithium2.sign(sk, msg, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
 assert Dilithium2.verify(
     pk, msg, sig, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
