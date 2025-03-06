@@ -41,12 +41,12 @@ class TestDilithium(unittest.TestCase):
         msg = b"Signed by dilithium" + os.urandom(16)
 
         # Perform signature process
-        pk, sk = Dilithium.keygen(_xof=xof2)
+        pk, sk = Dilithium.keygen(_xof=xof, _xof2=xof2)
         sig = Dilithium.sign(sk, msg, _xof=xof, _xof2=xof2)
         check_verify = Dilithium.verify(pk, msg, sig, _xof=xof, _xof2=xof2)
 
         # Generate some fail cases
-        pk_bad, _ = Dilithium.keygen(_xof=xof2)
+        pk_bad, _ = Dilithium.keygen(_xof=xof, _xof2=xof2)
         check_wrong_pk = Dilithium.verify(
             pk_bad, msg, sig, _xof=xof, _xof2=xof2)
         check_wrong_msg = Dilithium.verify(pk, b"", sig, _xof=xof, _xof2=xof2)

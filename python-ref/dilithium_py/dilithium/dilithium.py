@@ -53,11 +53,17 @@ class Dilithium:
     """
 
     @staticmethod
-    def _h(input_bytes, length):
+    def _h(input_bytes, length, _xof=shake256):
         """
         H: B^*  -> B^*
         """
-        return shake256(input_bytes).read(length)
+        if _xof != shake256:
+            h = _xof()
+            h.inject(input_bytes)
+        else:
+            h = _xof(input_bytes)
+        h.flip()
+        return h.read(length)
 
     def _expand_matrix_from_seed(self, rho, _xof=shake128):
         """
@@ -181,7 +187,7 @@ class Dilithium:
         h = self._unpack_h(h_bytes)
         return c_tilde, z, h
 
-    def keygen(self, _xof=shake128):
+    def keygen(self, _xof=shake256, _xof2=shake128):
         """
         Generates a public-private keyair
         """
@@ -189,13 +195,13 @@ class Dilithium:
         zeta = self.random_bytes(32)
 
         # Expand with an XOF (SHAKE256)
-        seed_bytes = self._h(zeta, 128)
+        seed_bytes = self._h(zeta, 128, _xof=_xof)
 
         # Split bytes into suitable chunks
         rho, rho_prime, K = seed_bytes[:32], seed_bytes[32:96], seed_bytes[96:]
 
         # Generate matrix A ∈ R^(kxl) in the NTT domain
-        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
 
         # Generate the error vectors s1 ∈ R^l, s2 ∈ R^k
         s1, s2 = self._expand_vector_from_seed(rho_prime)
@@ -208,7 +214,7 @@ class Dilithium:
 
         # Pack up the bytes
         pk = self._pack_pk(rho, t1)
-        tr = self._h(pk, 32)
+        tr = self._h(pk, 32, _xof=_xof)
 
         sk = self._pack_sk(rho, K, tr, s1, s2, t0)
         return pk, sk
@@ -224,9 +230,9 @@ class Dilithium:
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
 
         # Set seeds and nonce (kappa)
-        mu = self._h(tr + m, 64)
+        mu = self._h(tr + m, 64, _xof=_xof)
         kappa = 0
-        rho_prime = self._h(K + mu, 64)
+        rho_prime = self._h(K + mu, 64, _xof=_xof)
 
         # Precompute NTT representation
         s1 = s1.to_ntt()
@@ -248,7 +254,7 @@ class Dilithium:
 
             # Create challenge polynomial
             w1_bytes = w1.bit_pack_w(self.gamma_2)
-            c_tilde = self._h(mu + w1_bytes, 32)
+            c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
             # Store c in NTT form
@@ -290,8 +296,8 @@ class Dilithium:
 
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
 
-        tr = self._h(pk_bytes, 32)
-        mu = self._h(tr + m, 64)
+        tr = self._h(pk_bytes, 32, _xof=_xof)
+        mu = self._h(tr + m, 64, _xof=_xof)
         c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
         # Convert to NTT for computation
@@ -307,4 +313,4 @@ class Dilithium:
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
 
-        return c_tilde == self._h(mu + w_prime_bytes, 32)
+        return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
