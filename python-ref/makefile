@@ -15,6 +15,9 @@ test:
 example:
 	$(PYTHON) -m dilithium_py.example
 	
+generate_test_vectors:
+	$(PYTHON) -m dilithium_py.generate_test_vectors
+	
 clean:
 	rm -f $(AUX)
 	rm -rf __pycache__ */__pycache__

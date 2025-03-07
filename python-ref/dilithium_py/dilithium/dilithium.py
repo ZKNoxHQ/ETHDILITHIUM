@@ -48,8 +48,8 @@ class Dilithium:
             )
 
     """
-    H() uses Shake256 to hash data to 32 and 64 bytes in a 
-    few places in the code 
+    H() uses Shake256 to hash data to 32 and 64 bytes in a
+    few places in the code
     """
 
     @staticmethod
