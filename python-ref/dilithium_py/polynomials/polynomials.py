@@ -83,7 +83,6 @@ class PolynomialRingDilithium(PolynomialRing):
         # Initialise the XOF
         seed = rho + bytes([j, i])
         xof = _xof(seed)
-        # SIMON ADDED THIS
         xof.flip()
         coeffs = [rejection_sample(xof) for _ in range(256)]
         return self(coeffs, is_ntt=True)

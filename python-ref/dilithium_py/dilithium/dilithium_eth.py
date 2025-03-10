@@ -41,7 +41,6 @@ class ETHDilithium(Dilithium):
 
         z = self.M.bit_unpack_z(z_bytes, self.l, 1, self.gamma_1)
         h = self._unpack_h(h_bytes)
-        # c_ntt = self.M.bit_unpack_c_ntt(c_ntt_bytes, 1, 1)
         c_ntt = self.R.bit_unpack_c_ntt(c_ntt_bytes)
         return c_tilde, z, h, c_ntt
 
@@ -89,7 +88,6 @@ class ETHDilithium(Dilithium):
 
         # Generate matrix A ∈ R^(kxl) in the NTT domain
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
-
         # Set seeds and nonce (kappa)
         mu = self._h(tr + m, 64, _xof=_xof)
         kappa = 0
@@ -107,7 +105,6 @@ class ETHDilithium(Dilithium):
 
             # increment the nonce
             kappa += self.l
-
             w = (A_hat @ y_hat).from_ntt()
 
             # Extract out both the high and low bits

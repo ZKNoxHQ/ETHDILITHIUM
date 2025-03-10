@@ -31,6 +31,11 @@ class Keccak256PRNG:
         self.out_buffer_pos = 0
         self.out_buffer_len = 0
 
+        if b == None:
+            # Keccak256PRNG case, we inject a if it is not None
+            if a != None:
+                self.inject(a)
+
     @classmethod
     def new(self):
         return self()
