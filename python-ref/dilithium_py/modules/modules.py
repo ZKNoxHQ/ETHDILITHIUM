@@ -9,7 +9,7 @@ class ModuleDilithium(Module):
 
     def __bit_unpack(self, input_bytes, m, n, alg, packed_len, *args):
         poly_bytes = [
-            input_bytes[i : i + packed_len]
+            input_bytes[i: i + packed_len]
             for i in range(0, len(input_bytes), packed_len)
         ]
         matrix = [
@@ -47,7 +47,8 @@ class ModuleDilithium(Module):
         elif gamma_2 == 261888:
             packed_len = 128
         else:
-            raise ValueError("Expected gamma_2 to be either (q-1)/88 or (q-1)/32")
+            raise ValueError(
+                "Expected gamma_2 to be either (q-1)/88 or (q-1)/32")
         algorithm = self.ring.bit_unpack_w
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_2)
 
@@ -62,6 +63,22 @@ class ModuleDilithium(Module):
             raise ValueError("Expected gamma_1 to be either 2^17 or 2^19")
         algorithm = self.ring.bit_unpack_z
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_1)
+
+    def bit_unpack_a_hat(self, input_bytes, m, n):
+        packed_len = 1024
+        algorithm = self.ring.bit_unpack_a_hat
+        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
+
+    def bit_unpack_c_ntt(self, input_bytes, m, n):
+        packed_len = 1024
+        algorithm = self.ring.bit_unpack_c_ntt
+        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
+
+    def bit_unpack_t1_new(self, input_bytes, m, n):
+        packed_len = 1024
+        algorithm = self.ring.bit_unpack_t1_new
+        ret = self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
+        return ret
 
 
 class MatrixDilithium(Matrix):
@@ -136,6 +153,14 @@ class MatrixDilithium(Matrix):
     def bit_pack_z(self, gamma_1):
         algorithm = self.parent.ring.element.bit_pack_z
         return self.__bit_pack(algorithm, gamma_1)
+
+    def bit_pack_a_hat(self):
+        algorithm = self.parent.ring.element_ntt.bit_pack_a_hat
+        return self.__bit_pack(algorithm)
+
+    def bit_pack_t1_new(self):
+        algorithm = self.parent.ring.element_ntt.bit_pack_t1_new
+        return self.__bit_pack(algorithm)
 
     def to_ntt(self):
         """

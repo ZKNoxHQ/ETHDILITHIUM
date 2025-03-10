@@ -208,6 +208,19 @@ class PolynomialRingDilithium(PolynomialRing):
         coefficients = [gamma_1 - c for c in altered_coeffs]
         return self(coefficients)
 
+    def bit_unpack_a_hat(self, input_bytes):
+        coefficients = self.__bit_unpack(input_bytes, 32)
+        return self(coefficients, is_ntt=True)
+
+    def bit_unpack_t1_new(self, input_bytes):
+        coefficients = self.__bit_unpack(input_bytes, 32)
+        return self(coefficients, is_ntt=True)
+
+    def bit_unpack_c_ntt(self, input_bytes):
+        # Same as above, TODO FACTOR CODE HERE
+        coefficients = self.__bit_unpack(input_bytes, 32)
+        return self(coefficients, is_ntt=True)
+
     def __call__(self, coefficients, is_ntt=False):
         if not is_ntt:
             element = self.element
@@ -308,6 +321,9 @@ class PolynomialDilithium(Polynomial):
         # 320 = 256 * 10 // 8
         return self.__bit_pack(self.coeffs, 10, 320)
 
+    def bit_pack_t1_new(self):
+        return self.__bit_pack(self.coeffs, 32, 1024)
+
     def bit_pack_s(self, eta):
         altered_coeffs = [self._sub_mod_q(eta, c) for c in self.coeffs]
         # Level 2 and 5 parameter set
@@ -362,6 +378,23 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
     def __init__(self, parent, coefficients):
         self.parent = parent
         self.coeffs = self._parse_coefficients(coefficients)
+
+    @staticmethod
+    def __bit_pack(coeffs, n_bits, n_bytes):
+        r = 0
+        for c in reversed(coeffs):
+            r <<= n_bits
+            r |= c
+        return r.to_bytes(n_bytes, "little")
+
+    def bit_pack_a_hat(self):
+        # a bad packing but realistic for ZKNOX (Solidity considers uint256).
+        return self.__bit_pack(self.coeffs, 32, 1024)
+
+    def bit_pack_c_ntt(self):
+        # a bad packing but realistic for ZKNOX (Solidity considers uint256).
+        # same as a_hat. TODO FACTORIZE THIS FUNCTION
+        return self.__bit_pack(self.coeffs, 32, 1024)
 
     def to_ntt(self):
         raise TypeError(f"Polynomial is of type: {type(self)}")
