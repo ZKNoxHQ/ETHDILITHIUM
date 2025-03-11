@@ -18,7 +18,7 @@ class ETHDilithium(Dilithium):
         return c_ntt.bit_pack_c_ntt()
 
     def _pack_sig(self, c_tilde, z, h, c_ntt):
-        return c_tilde + z.bit_pack_z(self.gamma_1) + self._pack_h(h) + self._pack_c_ntt(c_ntt)
+        return c_tilde + z.bit_pack_z_32(self.gamma_1) + self._pack_h(h) + self._pack_c_ntt(c_ntt)
 
     def _unpack_pk(self, pk_bytes):
         # A_hat is a matrix 4x4 of elements of 256 coefficients of 32 bits
@@ -35,11 +35,11 @@ class ETHDilithium(Dilithium):
 
     def _unpack_sig(self, sig_bytes):
         c_tilde = sig_bytes[:32]
-        z_bytes = sig_bytes[32: -(self.k + self.omega)-1024]
-        h_bytes = sig_bytes[-(self.k + self.omega)-1024:-1024]
+        z_bytes = sig_bytes[32: 32 + 4 * 1024]
+        h_bytes = sig_bytes[32 + 4 * 1024: -1024]
         c_ntt_bytes = sig_bytes[-1024:]
 
-        z = self.M.bit_unpack_z(z_bytes, self.l, 1, self.gamma_1)
+        z = self.M.bit_unpack_z_32(z_bytes, self.l, 1, self.gamma_1)
         h = self._unpack_h(h_bytes)
         c_ntt = self.R.bit_unpack_c_ntt(c_ntt_bytes)
         return c_tilde, z, h, c_ntt
@@ -161,5 +161,4 @@ class ETHDilithium(Dilithium):
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
-
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
