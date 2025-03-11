@@ -14,7 +14,7 @@ class ETHDilithium(Dilithium):
         return A_hat.bit_pack_a_hat() + tr + t1_new.bit_pack_t1_new()
 
     def _pack_c_ntt(self, c_ntt):
-        return c_ntt.bit_pack_c_ntt_32()
+        return c_ntt.bit_pack_ntt_32()
 
     def _pack_sig(self, c_tilde, z, h, c_ntt):
         return c_tilde + z.bit_pack_z_32(self.gamma_1) + self._pack_h(h) + self._pack_c_ntt(c_ntt)
@@ -40,7 +40,7 @@ class ETHDilithium(Dilithium):
 
         z = self.M.bit_unpack_z_32(z_bytes, self.l, 1, self.gamma_1)
         h = self._unpack_h(h_bytes)
-        c_ntt = self.R.bit_unpack_c_ntt_32(c_ntt_bytes)
+        c_ntt = self.R.bit_unpack_ntt_32(c_ntt_bytes)
         return c_tilde, z, h, c_ntt
 
     def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
@@ -110,7 +110,7 @@ class ETHDilithium(Dilithium):
             w1, w0 = w.decompose(alpha)
 
             # Create challenge polynomial
-            w1_bytes = w1.bit_pack_w_32(self.gamma_2)
+            w1_bytes = w1.bit_pack_w_32()
             c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
@@ -159,5 +159,5 @@ class ETHDilithium(Dilithium):
         Az_minus_ct1 = Az_minus_ct1.from_ntt()
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
-        w_prime_bytes = w_prime.bit_pack_w_32(self.gamma_2)
+        w_prime_bytes = w_prime.bit_pack_w_32()
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
