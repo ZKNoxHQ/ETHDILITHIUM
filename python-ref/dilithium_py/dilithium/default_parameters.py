@@ -39,5 +39,3 @@ Dilithium3 = Dilithium(DEFAULT_PARAMETERS["dilithium3"])
 Dilithium5 = Dilithium(DEFAULT_PARAMETERS["dilithium5"])
 
 ETHDilithium2 = ETHDilithium(DEFAULT_PARAMETERS["dilithium2"])
-ETHDilithium3 = ETHDilithium(DEFAULT_PARAMETERS["dilithium3"])
-ETHDilithium5 = ETHDilithium(DEFAULT_PARAMETERS["dilithium5"])

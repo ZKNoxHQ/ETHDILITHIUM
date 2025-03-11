@@ -1,9 +1,8 @@
 import os
 
 from dilithium_py.dilithium.dilithium import Dilithium
-from ..modules.modules import ModuleDilithium
 
-from ..shake.shake_wrapper import shake128, shake256
+from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
 
 class ETHDilithium(Dilithium):
@@ -44,7 +43,7 @@ class ETHDilithium(Dilithium):
         c_ntt = self.R.bit_unpack_c_ntt(c_ntt_bytes)
         return c_tilde, z, h, c_ntt
 
-    def keygen(self, _xof=shake256, _xof2=shake128):
+    def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
         """
         Generates a public-private keyair
         """
@@ -79,7 +78,7 @@ class ETHDilithium(Dilithium):
         sk = self._pack_sk(rho, K, tr, s1, s2, t0)
         return pk, sk
 
-    def sign(self, sk_bytes, m, _xof=shake256, _xof2=shake128):
+    def sign(self, sk_bytes, m, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
         """
         Generates a signature for a message m from a byte-encoded private key
         """
@@ -111,7 +110,7 @@ class ETHDilithium(Dilithium):
             w1, w0 = w.decompose(alpha)
 
             # Create challenge polynomial
-            w1_bytes = w1.bit_pack_w(self.gamma_2)
+            w1_bytes = w1.bit_pack_w_32(self.gamma_2)
             c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
@@ -138,7 +137,7 @@ class ETHDilithium(Dilithium):
 
             return self._pack_sig(c_tilde, z, h, c_ntt)
 
-    def verify(self, pk_bytes, m, sig_bytes, _xof=shake256, _xof2=shake128):
+    def verify(self, pk_bytes, m, sig_bytes, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
         """
         Verifies a signature for a message m from a byte encoded public key and
         signature
@@ -160,5 +159,5 @@ class ETHDilithium(Dilithium):
         Az_minus_ct1 = Az_minus_ct1.from_ntt()
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
-        w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
+        w_prime_bytes = w_prime.bit_pack_w_32(self.gamma_2)
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)

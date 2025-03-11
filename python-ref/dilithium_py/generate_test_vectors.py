@@ -1,14 +1,15 @@
 from dilithium_py.dilithium.default_parameters import ETHDilithium2 as ETHDilithium
-from .keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
-# An example of Dilithium with Keccak256PRNG everywhere. This uses ZKNOX's NTT
+# An example of ETHDilithium.
+# XOF: Keccak256PRNG
+# NTT: ZKNOX
 msg = b"We are ZKNox."
 
 # Perform signature process
-pk, sk = ETHDilithium.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
-sig = ETHDilithium.sign(sk, msg, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+pk, sk = ETHDilithium.keygen()
+sig = ETHDilithium.sign(sk, msg)
 assert ETHDilithium.verify(
-    pk, msg, sig, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+    pk, msg, sig)
 
 A_hat, tr, t1_new = ETHDilithium._unpack_pk(pk)
 print("PK:")

@@ -1,6 +1,6 @@
 import unittest
 import os
-from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5
+from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5, ETHDilithium2
 from dilithium_py.drbg.aes256_ctr_drbg import AES256_CTR_DRBG
 
 from ..shake.shake_wrapper import shake128, shake256
@@ -62,28 +62,33 @@ class TestDilithium(unittest.TestCase):
         for _ in range(3):
             self.generic_test_dilithium(Dilithium2, shake256, shake128)
 
+    def test_dilithium3(self):
+        for _ in range(3):
+            self.generic_test_dilithium(Dilithium3, shake256, shake128)
+
+    def test_dilithium5(self):
+        for _ in range(3):
+            self.generic_test_dilithium(Dilithium5, shake256, shake128)
+
     def test_dilithium2_keccak_prng(self):
         for _ in range(3):
             self.generic_test_dilithium(
                 Dilithium2, Keccak256PRNG, Keccak256PRNG)
-
-    def test_dilithium3(self):
-        for _ in range(3):
-            self.generic_test_dilithium(Dilithium3, shake256, shake128)
 
     def test_dilithium3_keccak_prng(self):
         for _ in range(3):
             self.generic_test_dilithium(
                 Dilithium3, Keccak256PRNG, Keccak256PRNG)
 
-    def test_dilithium5(self):
-        for _ in range(3):
-            self.generic_test_dilithium(Dilithium5, shake256, shake128)
-
     def test_dilithium5_keccak_prng(self):
         for _ in range(3):
             self.generic_test_dilithium(
                 Dilithium5, Keccak256PRNG, Keccak256PRNG)
+
+    def test_ethdilithium2_keccak_prng(self):
+        for _ in range(3):
+            self.generic_test_dilithium(
+                ETHDilithium2, Keccak256PRNG, Keccak256PRNG)
 
 
 class TestDilithiumDRBG(unittest.TestCase):

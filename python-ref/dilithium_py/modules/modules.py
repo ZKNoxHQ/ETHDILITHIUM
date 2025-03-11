@@ -52,6 +52,11 @@ class ModuleDilithium(Module):
         algorithm = self.ring.bit_unpack_w
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_2)
 
+    def bit_unpack_w_32(self, input_bytes, m, n, gamma_2):
+        packed_len = 1024
+        algorithm = self.ring.bit_unpack_w_32
+        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_2)
+
     def bit_unpack_z(self, input_bytes, m, n, gamma_1):
         # Level 2 parameter set
         if gamma_1 == (1 << 17):
@@ -153,6 +158,10 @@ class MatrixDilithium(Matrix):
 
     def bit_pack_w(self, gamma_2):
         algorithm = self.parent.ring.element.bit_pack_w
+        return self.__bit_pack(algorithm, gamma_2)
+
+    def bit_pack_w_32(self, gamma_2):
+        algorithm = self.parent.ring.element.bit_pack_w_32
         return self.__bit_pack(algorithm, gamma_2)
 
     def bit_pack_z(self, gamma_1):

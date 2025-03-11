@@ -77,7 +77,7 @@ class PolynomialRingDilithium(PolynomialRing):
                 j_bytes = xof.read(3)
                 j = int.from_bytes(j_bytes, "little")
                 j &= 0x7FFFFF
-                if j < 8380417:
+                if j < self.q:
                     return j
 
         # Initialise the XOF
@@ -193,6 +193,10 @@ class PolynomialRingDilithium(PolynomialRing):
 
         return self(coefficients)
 
+    def bit_unpack_w_32(self, input_bytes, gamma_2):
+        coefficients = self.__bit_unpack(input_bytes, 32)
+        return self(coefficients)
+
     def bit_unpack_z(self, input_bytes, gamma_1):
         # Level 2 parameter set
         if gamma_1 == (1 << 17):
@@ -208,7 +212,7 @@ class PolynomialRingDilithium(PolynomialRing):
 
     def bit_unpack_z_32(self, input_bytes, gamma_1):
         altered_coeffs = self.__bit_unpack(input_bytes, 32)
-        coefficients = [(gamma_1 - c) % 8380417 for c in altered_coeffs]
+        coefficients = [(gamma_1 - c) % self.q for c in altered_coeffs]
         return self(coefficients)
 
     def bit_unpack_a_hat(self, input_bytes):
@@ -346,6 +350,9 @@ class PolynomialDilithium(Polynomial):
         ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 =}"
         return self.__bit_pack(self.coeffs, 4, 128)
 
+    def bit_pack_w_32(self, gamma_2):
+        return self.__bit_pack(self.coeffs, 4, 1024)
+
     def bit_pack_z(self, gamma_1):
         altered_coeffs = [self._sub_mod_q(gamma_1, c) for c in self.coeffs]
         # Level 2 parameter set
@@ -360,25 +367,26 @@ class PolynomialDilithium(Polynomial):
     def bit_pack_z_32(self, gamma_1):
         altered_coeffs = [self._sub_mod_q(gamma_1, c) for c in self.coeffs]
         for i in range(len(self.coeffs)):
-            assert altered_coeffs[i] == (gamma_1 - self.coeffs[i]) % 8380417
+            assert altered_coeffs[i] == (
+                gamma_1 - self.coeffs[i]) % self.parent.q
         return self.__bit_pack(altered_coeffs, 32, 1024)
 
     def make_hint(self, other, alpha):
         coeffs = [
-            make_hint(r, z, alpha, 8380417) for r, z in zip(self.coeffs, other.coeffs)
+            make_hint(r, z, alpha, self.parent.q) for r, z in zip(self.coeffs, other.coeffs)
         ]
         return self.parent(coeffs)
 
     def make_hint_optimised(self, other, alpha):
         coeffs = [
-            make_hint_optimised(r, z, alpha, 8380417)
+            make_hint_optimised(r, z, alpha, self.parent.q)
             for r, z in zip(self.coeffs, other.coeffs)
         ]
         return self.parent(coeffs)
 
     def use_hint(self, other, alpha):
         coeffs = [
-            use_hint(h, r, alpha, 8380417) for h, r in zip(self.coeffs, other.coeffs)
+            use_hint(h, r, alpha, self.parent.q) for h, r in zip(self.coeffs, other.coeffs)
         ]
         return self.parent(coeffs)
 
@@ -418,7 +426,7 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
         return self.parent(coeffs_intt, is_ntt=False)
 
     def ntt_coefficient_multiplication(self, f_coeffs, g_coeffs):
-        return [(c1 * c2) % 8380417 for c1, c2 in zip(f_coeffs, g_coeffs)]
+        return [(c1 * c2) % self.parent.q for c1, c2 in zip(f_coeffs, g_coeffs)]
 
     def ntt_multiplication(self, other):
         """
@@ -443,7 +451,7 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
         if isinstance(other, type(self)):
             new_coeffs = self.ntt_multiplication(other)
         elif isinstance(other, int):
-            new_coeffs = [(c * other) % 8380417 for c in self.coeffs]
+            new_coeffs = [(c * other) % self.parent.q for c in self.coeffs]
         else:
             raise NotImplementedError(
                 f"Polynomials can only be multiplied by each other, or scaled by integers, {type(other)=}, {type(self)=}"
