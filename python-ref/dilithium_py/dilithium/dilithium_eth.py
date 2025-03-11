@@ -14,7 +14,7 @@ class ETHDilithium(Dilithium):
         return A_hat.bit_pack_a_hat() + tr + t1_new.bit_pack_t1_new()
 
     def _pack_c_ntt(self, c_ntt):
-        return c_ntt.bit_pack_c_ntt()
+        return c_ntt.bit_pack_c_ntt_32()
 
     def _pack_sig(self, c_tilde, z, h, c_ntt):
         return c_tilde + z.bit_pack_z_32(self.gamma_1) + self._pack_h(h) + self._pack_c_ntt(c_ntt)
@@ -40,7 +40,7 @@ class ETHDilithium(Dilithium):
 
         z = self.M.bit_unpack_z_32(z_bytes, self.l, 1, self.gamma_1)
         h = self._unpack_h(h_bytes)
-        c_ntt = self.R.bit_unpack_c_ntt(c_ntt_bytes)
+        c_ntt = self.R.bit_unpack_c_ntt_32(c_ntt_bytes)
         return c_tilde, z, h, c_ntt
 
     def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):

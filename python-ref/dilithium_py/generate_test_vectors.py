@@ -23,3 +23,5 @@ print("\tc_tilde:\t{} bytes".format(len(c_tilde)))
 print("\tz:\t\tdimension {}".format(z.dim()))
 print("\th:\t\tdimension {}".format(h.dim()))
 print("\tc_ntt:\t\tdimension {}".format((1, 1)))
+
+print(h)

@@ -223,7 +223,7 @@ class PolynomialRingDilithium(PolynomialRing):
         coefficients = self.__bit_unpack(input_bytes, 32)
         return self(coefficients, is_ntt=True)
 
-    def bit_unpack_c_ntt(self, input_bytes):
+    def bit_unpack_c_ntt_32(self, input_bytes):
         # Same as above, TODO FACTOR CODE HERE
         coefficients = self.__bit_unpack(input_bytes, 32)
         return self(coefficients, is_ntt=True)
@@ -408,7 +408,7 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
         # a bad packing but realistic for ZKNOX (Solidity considers uint256).
         return self.__bit_pack(self.coeffs, 32, 1024)
 
-    def bit_pack_c_ntt(self):
+    def bit_pack_c_ntt_32(self):
         # a bad packing but realistic for ZKNOX (Solidity considers uint256).
         # same as a_hat. TODO FACTORIZE THIS FUNCTION
         return self.__bit_pack(self.coeffs, 32, 1024)
