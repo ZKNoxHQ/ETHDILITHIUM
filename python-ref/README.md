@@ -19,12 +19,12 @@ make test
 
 We provide an example of keygen/signature/verification in [this file](dilithium_py/example.py):
 ```python
-from .dilithium import ETHDilithium2 as Dilithium
+from .dilithium import ETHDilithium2
 
 msg = b"We are ZKNox."
-pk, sk = Dilithium.keygen()
-sig = Dilithium.sign(sk, msg)
-assert Dilithium.verify(pk, msg, sig)
+pk, sk = ETHDilithium2.keygen()
+sig = ETHDilithium2.sign(sk, msg)
+assert ETHDilithium2.verify(pk, msg, sig)
 ```
 This can be run using
 ```bask
