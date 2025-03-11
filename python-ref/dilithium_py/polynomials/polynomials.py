@@ -310,9 +310,6 @@ class PolynomialDilithium(Polynomial):
         # 320 = 256 * 10 // 8
         return self.__bit_pack(self.coeffs, 10, 320)
 
-    def bit_pack_t1_new(self):
-        return self.__bit_pack(self.coeffs, 32, 1024)
-
     def bit_pack_s(self, eta):
         altered_coeffs = [self._sub_mod_q(eta, c) for c in self.coeffs]
         # Level 2 and 5 parameter set
@@ -332,9 +329,6 @@ class PolynomialDilithium(Polynomial):
         ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 =}"
         return self.__bit_pack(self.coeffs, 4, 128)
 
-    def bit_pack_32(self):
-        return self.__bit_pack(self.coeffs, 32, 1024)
-
     def bit_pack_z(self, gamma_1):
         altered_coeffs = [self._sub_mod_q(gamma_1, c) for c in self.coeffs]
         # Level 2 parameter set
@@ -345,6 +339,9 @@ class PolynomialDilithium(Polynomial):
             1 << 19
         ), f"Expected gamma_1 to be either 2^17 or 2^19, got: {gamma_1 =}"
         return self.__bit_pack(altered_coeffs, 20, 640)
+
+    def bit_pack_32(self):
+        return self.__bit_pack(self.coeffs, 32, 1024)
 
     def make_hint(self, other, alpha):
         coeffs = [
@@ -379,7 +376,7 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
             r |= c
         return r.to_bytes(n_bytes, "little")
 
-    def bit_pack_ntt_32(self):
+    def bit_pack_32(self):
         return self.__bit_pack(self.coeffs, 32, 1024)
 
     def to_ntt(self):

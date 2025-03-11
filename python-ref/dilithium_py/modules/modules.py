@@ -52,11 +52,6 @@ class ModuleDilithium(Module):
         algorithm = self.ring.bit_unpack_w
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_2)
 
-    def bit_unpack_w_32(self, input_bytes, m, n, gamma_2):
-        packed_len = 1024
-        algorithm = self.ring.bit_unpack_w_32
-        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_2)
-
     def bit_unpack_z(self, input_bytes, m, n, gamma_1):
         # Level 2 parameter set
         if gamma_1 == (1 << 17):
@@ -70,6 +65,9 @@ class ModuleDilithium(Module):
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_1)
 
     def bit_unpack_32(self, input_bytes, m, n, is_ntt=False):
+        """
+        Unpack a Module element by unpacking all field elements by 32 bits.
+        """
         packed_len = 1024
         def algorithm(x): return self.ring.bit_unpack_32(x, is_ntt=True)
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
@@ -144,20 +142,18 @@ class MatrixDilithium(Matrix):
         algorithm = self.parent.ring.element.bit_pack_w
         return self.__bit_pack(algorithm, gamma_2)
 
-    def bit_pack_32(self):
-        algorithm = self.parent.ring.element.bit_pack_32
-        return self.__bit_pack(algorithm)
-
     def bit_pack_z(self, gamma_1):
         algorithm = self.parent.ring.element.bit_pack_z
         return self.__bit_pack(algorithm, gamma_1)
 
-    def bit_pack_a_hat(self):
-        algorithm = self.parent.ring.element_ntt.bit_pack_ntt_32
-        return self.__bit_pack(algorithm)
-
-    def bit_pack_t1_new(self):
-        algorithm = self.parent.ring.element_ntt.bit_pack_t1_new
+    def bit_pack_32(self, is_ntt=False):
+        """
+        Pack a Module element by packing all its field element by 32 bits
+        """
+        if is_ntt:
+            algorithm = self.parent.ring.element_ntt.bit_pack_32
+        else:
+            algorithm = self.parent.ring.element.bit_pack_32
         return self.__bit_pack(algorithm)
 
     def to_ntt(self):

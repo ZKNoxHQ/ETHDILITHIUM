@@ -11,12 +11,12 @@ class ETHDilithium(Dilithium):
 
     @staticmethod
     def _pack_pk(A_hat, tr, t1_new):
-        return A_hat.bit_pack_a_hat() + tr + t1_new.bit_pack_t1_new()
+        return A_hat.bit_pack_32(is_ntt=True) + tr + t1_new.bit_pack_32(is_ntt=True)
 
     def _pack_sig(self, c_tilde, z, h, c_ntt):
         gamma_1_minus_z = self.M(
             [[(self.gamma_1 - elt) for elt in row] for row in z._data])
-        return c_tilde + gamma_1_minus_z.bit_pack_32() + self._pack_h(h) + c_ntt.bit_pack_ntt_32()
+        return c_tilde + gamma_1_minus_z.bit_pack_32() + self._pack_h(h) + c_ntt.bit_pack_32()
 
     def _unpack_pk(self, pk_bytes):
         # A_hat is a matrix 4x4 of elements of 256 coefficients of 32 bits
