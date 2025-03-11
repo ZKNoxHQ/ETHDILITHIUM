@@ -337,7 +337,7 @@ class PolynomialDilithium(Polynomial):
         ), f"Expected gamma_2 to be either (q-1)/88 or (q-1)/32, got {gamma_2 =}"
         return self.__bit_pack(self.coeffs, 4, 128)
 
-    def bit_pack_w_32(self):
+    def bit_pack_32(self):
         return self.__bit_pack(self.coeffs, 32, 1024)
 
     def bit_pack_z(self, gamma_1):

@@ -149,8 +149,8 @@ class MatrixDilithium(Matrix):
         algorithm = self.parent.ring.element.bit_pack_w
         return self.__bit_pack(algorithm, gamma_2)
 
-    def bit_pack_w_32(self):
-        algorithm = self.parent.ring.element.bit_pack_w_32
+    def bit_pack_32(self):
+        algorithm = self.parent.ring.element.bit_pack_32
         return self.__bit_pack(algorithm)
 
     def bit_pack_z(self, gamma_1):

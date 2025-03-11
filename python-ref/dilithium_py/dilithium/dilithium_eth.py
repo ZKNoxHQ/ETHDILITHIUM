@@ -13,21 +13,17 @@ class ETHDilithium(Dilithium):
     def _pack_pk(A_hat, tr, t1_new):
         return A_hat.bit_pack_a_hat() + tr + t1_new.bit_pack_t1_new()
 
-    def _pack_c_ntt(self, c_ntt):
-        return c_ntt.bit_pack_ntt_32()
-
     def _pack_sig(self, c_tilde, z, h, c_ntt):
-        return c_tilde + z.bit_pack_z_32(self.gamma_1) + self._pack_h(h) + self._pack_c_ntt(c_ntt)
+        return c_tilde + z.bit_pack_z_32(self.gamma_1) + self._pack_h(h) + c_ntt.bit_pack_ntt_32()
 
     def _unpack_pk(self, pk_bytes):
         # A_hat is a matrix 4x4 of elements of 256 coefficients of 32 bits
         # 4 * 4 * 256 * 32/8  = 16384 bytes
         a_hat_bytes = pk_bytes[:16384]
-        # TODO CHANGE `4, 4` FOR OTHER LEVEL OF SECURITY
-        a_hat = self.M.bit_unpack_32(a_hat_bytes, 4, 4, is_ntt=True)
-
+        a_hat = self.M.bit_unpack_32(a_hat_bytes, self.k, self.l, is_ntt=True)
+        # tr is 32 bytes
         tr = pk_bytes[16384:16384+32]
-
+        # t1_new is 4 * 256 * 32/8 = 4096B
         t1_new_bytes = pk_bytes[16384+32:]
         t1_new = self.M.bit_unpack_32(t1_new_bytes, self.k, 1, is_ntt=True)
         return a_hat, tr, t1_new
@@ -110,7 +106,7 @@ class ETHDilithium(Dilithium):
             w1, w0 = w.decompose(alpha)
 
             # Create challenge polynomial
-            w1_bytes = w1.bit_pack_w_32()
+            w1_bytes = w1.bit_pack_32()
             c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
@@ -159,5 +155,5 @@ class ETHDilithium(Dilithium):
         Az_minus_ct1 = Az_minus_ct1.from_ntt()
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
-        w_prime_bytes = w_prime.bit_pack_w_32()
+        w_prime_bytes = w_prime.bit_pack_32()
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
