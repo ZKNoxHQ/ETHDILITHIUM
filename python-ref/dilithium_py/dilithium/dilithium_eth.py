@@ -6,8 +6,8 @@ from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
 
 class ETHDilithium(Dilithium):
-    def __init__(self, parameter_set):
-        super().__init__(parameter_set)
+    def __init__(self, parameter_set, q=8380417, n=256):
+        super().__init__(parameter_set, q, n)
 
     @staticmethod
     def _pack_pk(A_hat, tr, t1_new):
@@ -69,7 +69,7 @@ class ETHDilithium(Dilithium):
         t1, t0 = t.power_2_round(self.d)
         t1_new = t1.scale(1 << self.d).to_ntt()
 
-        in_for_tr = rho + t1.bit_pack_t1()
+        in_for_tr = rho + t1.bit_pack_32()
         tr = self._h(in_for_tr, 32, _xof=_xof)
 
         # Pack up the bytes

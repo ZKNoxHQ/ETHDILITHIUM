@@ -5,7 +5,7 @@ from ..shake.shake_wrapper import shake128, shake256
 
 
 class Dilithium:
-    def __init__(self, parameter_set):
+    def __init__(self, parameter_set, q=8380417, n=256):
         self.d = parameter_set["d"]
         self.k = parameter_set["k"]
         self.l = parameter_set["l"]
@@ -16,7 +16,7 @@ class Dilithium:
         self.gamma_2 = parameter_set["gamma_2"]
         self.beta = self.tau * self.eta
 
-        self.M = ModuleDilithium()
+        self.M = ModuleDilithium(q, n)
         self.R = self.M.ring
 
         # Use system randomness by default, for deterministic randomness

@@ -3,8 +3,8 @@ from ..polynomials.polynomials import PolynomialRingDilithium
 
 
 class ModuleDilithium(Module):
-    def __init__(self):
-        self.ring = PolynomialRingDilithium()
+    def __init__(self, q=8380417, n=256):
+        self.ring = PolynomialRingDilithium(q, n)
         self.matrix = MatrixDilithium
 
     def __bit_unpack(self, input_bytes, m, n, alg, packed_len, *args):
