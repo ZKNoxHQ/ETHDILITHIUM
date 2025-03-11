@@ -210,11 +210,6 @@ class PolynomialRingDilithium(PolynomialRing):
         coefficients = [gamma_1 - c for c in altered_coeffs]
         return self(coefficients)
 
-    def bit_unpack_z_32(self, input_bytes, gamma_1):
-        altered_coeffs = self.__bit_unpack(input_bytes, 32)
-        coefficients = [(gamma_1 - c) % self.q for c in altered_coeffs]
-        return self(coefficients)
-
     def __call__(self, coefficients, is_ntt=False):
         if not is_ntt:
             element = self.element
@@ -350,13 +345,6 @@ class PolynomialDilithium(Polynomial):
             1 << 19
         ), f"Expected gamma_1 to be either 2^17 or 2^19, got: {gamma_1 =}"
         return self.__bit_pack(altered_coeffs, 20, 640)
-
-    def bit_pack_z_32(self, gamma_1):
-        altered_coeffs = [self._sub_mod_q(gamma_1, c) for c in self.coeffs]
-        for i in range(len(self.coeffs)):
-            assert altered_coeffs[i] == (
-                gamma_1 - self.coeffs[i]) % self.parent.q
-        return self.__bit_pack(altered_coeffs, 32, 1024)
 
     def make_hint(self, other, alpha):
         coeffs = [
