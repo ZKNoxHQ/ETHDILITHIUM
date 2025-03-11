@@ -74,21 +74,10 @@ class ModuleDilithium(Module):
         algorithm = self.ring.bit_unpack_z_32
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_1)
 
-    def bit_unpack_a_hat(self, input_bytes, m, n):
+    def bit_unpack_32(self, input_bytes, m, n, is_ntt=False):
         packed_len = 1024
-        algorithm = self.ring.bit_unpack_ntt_32
+        def algorithm(x): return self.ring.bit_unpack_32(x, is_ntt=True)
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
-
-    def bit_unpack_c_ntt_32(self, input_bytes, m, n):
-        packed_len = 1024
-        algorithm = self.ring.bit_unpack_ntt_32
-        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
-
-    def bit_unpack_t1_new(self, input_bytes, m, n):
-        packed_len = 1024
-        algorithm = self.ring.bit_unpack_ntt_32
-        ret = self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
-        return ret
 
 
 class MatrixDilithium(Matrix):

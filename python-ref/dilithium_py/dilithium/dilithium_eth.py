@@ -24,12 +24,12 @@ class ETHDilithium(Dilithium):
         # 4 * 4 * 256 * 32/8  = 16384 bytes
         a_hat_bytes = pk_bytes[:16384]
         # TODO CHANGE `4, 4` FOR OTHER LEVEL OF SECURITY
-        a_hat = self.M.bit_unpack_a_hat(a_hat_bytes, 4, 4)
+        a_hat = self.M.bit_unpack_32(a_hat_bytes, 4, 4, is_ntt=True)
 
         tr = pk_bytes[16384:16384+32]
 
         t1_new_bytes = pk_bytes[16384+32:]
-        t1_new = self.M.bit_unpack_t1_new(t1_new_bytes, self.k, 1)
+        t1_new = self.M.bit_unpack_32(t1_new_bytes, self.k, 1, is_ntt=True)
         return a_hat, tr, t1_new
 
     def _unpack_sig(self, sig_bytes):
@@ -40,7 +40,7 @@ class ETHDilithium(Dilithium):
 
         z = self.M.bit_unpack_z_32(z_bytes, self.l, 1, self.gamma_1)
         h = self._unpack_h(h_bytes)
-        c_ntt = self.R.bit_unpack_ntt_32(c_ntt_bytes)
+        c_ntt = self.R.bit_unpack_32(c_ntt_bytes, is_ntt=True)
         return c_tilde, z, h, c_ntt
 
     def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):

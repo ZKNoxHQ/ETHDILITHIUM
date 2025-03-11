@@ -193,9 +193,9 @@ class PolynomialRingDilithium(PolynomialRing):
 
         return self(coefficients)
 
-    def bit_unpack_w_32(self, input_bytes):
+    def bit_unpack_32(self, input_bytes, is_ntt=False):
         coefficients = self.__bit_unpack(input_bytes, 32)
-        return self(coefficients)
+        return self(coefficients, is_ntt=is_ntt)
 
     def bit_unpack_z(self, input_bytes, gamma_1):
         # Level 2 parameter set
@@ -214,10 +214,6 @@ class PolynomialRingDilithium(PolynomialRing):
         altered_coeffs = self.__bit_unpack(input_bytes, 32)
         coefficients = [(gamma_1 - c) % self.q for c in altered_coeffs]
         return self(coefficients)
-
-    def bit_unpack_ntt_32(self, input_bytes):
-        coefficients = self.__bit_unpack(input_bytes, 32)
-        return self(coefficients, is_ntt=True)
 
     def __call__(self, coefficients, is_ntt=False):
         if not is_ntt:
@@ -342,7 +338,7 @@ class PolynomialDilithium(Polynomial):
         return self.__bit_pack(self.coeffs, 4, 128)
 
     def bit_pack_w_32(self):
-        return self.__bit_pack(self.coeffs, 4, 1024)
+        return self.__bit_pack(self.coeffs, 32, 1024)
 
     def bit_pack_z(self, gamma_1):
         altered_coeffs = [self._sub_mod_q(gamma_1, c) for c in self.coeffs]
@@ -396,13 +392,7 @@ class PolynomialDilithiumNTT(PolynomialDilithium):
         return r.to_bytes(n_bytes, "little")
 
     def bit_pack_ntt_32(self):
-        # a bad packing but realistic for ZKNOX (Solidity considers uint256).
         return self.__bit_pack(self.coeffs, 32, 1024)
-
-    # def bit_pack_c_ntt_32(self):
-    #     # a bad packing but realistic for ZKNOX (Solidity considers uint256).
-    #     # same as a_hat. TODO FACTORIZE THIS FUNCTION
-    #     return self.__bit_pack(self.coeffs, 32, 1024)
 
     def to_ntt(self):
         raise TypeError(f"Polynomial is of type: {type(self)}")
