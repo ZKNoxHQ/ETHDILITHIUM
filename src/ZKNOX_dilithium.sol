@@ -69,16 +69,16 @@ contract ZKNOX_dilithium {
     function CheckKey(DilithiumPubKey memory Pubkey) public pure returns (bool) {
         bool isKnownID = false;
 
-        if (Pubkey.is_compact) {
-            if (Pubkey.value.length != _DILITHIUM_WORD256_S) return false;
-        } else {
-            if (Pubkey.value.length != _DILITHIUM_WORD32_S) return false;
-        }
+        // if (Pubkey.is_compact) {
+        //     if (Pubkey.value.length != _DILITHIUM_WORD256_S) return false;
+        // } else {
+        //     if (Pubkey.value.length != _DILITHIUM_WORD32_S) return false;
+        // }
 
-        if (falcon_checkPolynomialRange(Pubkey.value, Pubkey.is_compact) != true) return false;
+        // if (falcon_checkPolynomialRange(Pubkey.value, Pubkey.is_compact) != true) return false;
 
-        if (Pubkey.hashID == ID_keccak) isKnownID = true;
-        if (Pubkey.hashID == ID_tetration) isKnownID = true;
+        // if (Pubkey.hashID == ID_keccak) isKnownID = true;
+        // if (Pubkey.hashID == ID_tetration) isKnownID = true;
 
         return isKnownID;
     }
@@ -93,7 +93,7 @@ contract ZKNOX_dilithium {
         uint256[] memory hashed;
         if (CheckKey(pk) == false) return false;
 
-        // TODO IMPLEMENT (SIMILAR TO WHAT IS DONE IN FALCON) 
+        // TODO IMPLEMENT (SIMILAR TO WHAT IS DONE IN FALCON)
         // if (pk.hashID == ID_keccak) {
         //     hashed = hashToPointRIP(signature.salt, msgs);
         // } else {
