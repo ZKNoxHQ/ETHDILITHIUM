@@ -40,4 +40,17 @@ Dilithium5 = Dilithium(DEFAULT_PARAMETERS["dilithium5"])
 
 ETHDilithium2 = ETHDilithium(DEFAULT_PARAMETERS["dilithium2"])
 ETHDilithium2BabyBear = ETHDilithium(
-    DEFAULT_PARAMETERS["dilithium2"], q=2013265921, n=256)
+    {
+        "d": 13,
+        "k": 4,
+        "l": 4,
+        "eta": 2,
+        "tau": 39,
+        "omega": 80,
+        "gamma_1": 131072,  # 2^17
+        "gamma_2": 22878021,  # (q-1)/88
+        # CHECK SECURITY NOW!!!
+    },
+    q=2013265921,
+    n=256
+)
