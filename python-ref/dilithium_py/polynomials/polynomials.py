@@ -14,8 +14,8 @@ from polyntt.ntt_iterative import NTTIterative
 
 class PolynomialRingDilithium(PolynomialRing):
     def __init__(self, q, n):
-        self.q = q  # 8380417
-        self.n = n  # 256
+        self.q = q
+        self.n = n
         self.element = PolynomialDilithium
         self.element_ntt = PolynomialDilithiumNTT
 

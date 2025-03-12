@@ -59,6 +59,15 @@ class Module:
         """
         return self.matrix(self, [elements], transpose=True)
 
+    def uncompact_256(self, mat, m):
+        result = []
+        for row in mat:
+            res0 = []
+            for elt in row:
+                res0.append(self.ring.uncompact_256(elt, m))
+            result.append(res0)
+        return result
+
 
 class Matrix:
     def __init__(self, parent, matrix_data, transpose=False):
@@ -234,3 +243,12 @@ class Matrix:
             ]
         )
         return f"[{info}]"
+
+    def compact_256(self, m):
+        res = []
+        for row in self._data:
+            res0 = []
+            for p in row:
+                res0.append(p.compact_256(m))
+            res.append(res0)
+        return res

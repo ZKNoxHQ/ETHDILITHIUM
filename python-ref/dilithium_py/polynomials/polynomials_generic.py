@@ -39,6 +39,22 @@ class PolynomialRing:
     def __repr__(self):
         return f"Univariate Polynomial Ring in x over Finite Field of size {self.q} with modulus x^{self.n} + 1"
 
+    def uncompact_256(self, lst, m):
+        # splits the elements of lst (of 256 bits) into lists of m bits
+        if not (1 <= m <= 256) or (256 % m != 0):
+            raise ValueError(
+                "b must be a divisor of 256 and in the range 1-256.")
+
+        chunk_count = 256 // m
+        mask = (1 << m) - 1  # Mask to extract b-bit chunks
+        result = []
+        for num in lst:
+            chunk = []
+            for i in range(chunk_count):
+                chunk.append(num >> (i*m) & mask)
+            result.extend(chunk)
+        return result
+
 
 class Polynomial:
     def __init__(self, parent, coefficients):
@@ -236,3 +252,16 @@ class Polynomial:
 
     def __str__(self):
         return self.__repr__()
+
+    def compact_256(self, m):
+        # compact a list of n small element of m bits into n*m/256 elements of 256 bits
+        # (assuming 2^log_m = m is a divisor of n)
+        a = self.coeffs
+        assert m < 256
+        assert len(a) % m == 0
+        for elt in a:
+            assert elt < (1 << m)
+        b = [0] * (len(a) * m // 256)
+        for i in range(len(a)):
+            b[(i * m) // 256] |= a[i] << ((i % (256//m)) * m)
+        return b

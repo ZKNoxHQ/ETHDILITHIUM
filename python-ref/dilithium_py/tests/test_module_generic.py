@@ -29,8 +29,10 @@ class TestModule(unittest.TestCase):
         one = self.R(1)
         self.assertRaises(TypeError, lambda: self.M([one, "2", "3"]))
         self.assertRaises(TypeError, lambda: self.M(["2", one, "3"]))
-        self.assertRaises(TypeError, lambda: self.M([[one, "2", "3"], [one, "2", "3"]]))
-        self.assertRaises(TypeError, lambda: self.M([["1", one, "3"], [one, "2", "3"]]))
+        self.assertRaises(TypeError, lambda: self.M(
+            [[one, "2", "3"], [one, "2", "3"]]))
+        self.assertRaises(TypeError, lambda: self.M(
+            [["1", one, "3"], [one, "2", "3"]]))
 
     def test_non_rectangular(self):
         one = self.R(1)
@@ -42,6 +44,8 @@ class TestMatrix(unittest.TestCase):
     R_prime = PolynomialRing(11, 2)
     M = Module(R)
     M_prime = Module(R)
+    R_dilithium = PolynomialRing(8380417, 256)
+    M_dilithium = Module(R_dilithium)
 
     def test_equality(self):
         for _ in range(100):
@@ -178,3 +182,22 @@ class TestMatrix(unittest.TestCase):
         su = "[1 + 2*x, 3 + 4*x + 5*x^2 + 6*x^3]"
         self.assertEqual(str(A), sA)
         self.assertEqual(str(u), su)
+
+    def test_compact_256(self):
+        from random import randint
+
+        A = self.M_dilithium(
+            [[self.R_dilithium([randint(0, 2**32-1) for i in range(256)])
+             for j in range(4)],
+             [self.R_dilithium([randint(0, 2**32-1) for i in range(256)])
+             for j in range(4)],
+             [self.R_dilithium([randint(0, 2**32-1) for i in range(256)])
+             for j in range(4)],
+             [self.R_dilithium([randint(0, 2**32-1) for i in range(256)])
+             for j in range(4)]]
+        )
+        A_compact = A.compact_256(32)
+        A_back = A.parent.uncompact_256(A_compact, 32)
+        for i in range(4):
+            for j in range(4):
+                assert A_back[i][j] == A[i, j].coeffs
