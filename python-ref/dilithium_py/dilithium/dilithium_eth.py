@@ -130,7 +130,6 @@ class ETHDilithium(Dilithium):
                 continue
 
             w0_minus_cs2_plus_ct0 = w0_minus_cs2 + c_t0
-
             h = w0_minus_cs2_plus_ct0.make_hint_optimised(w1, alpha)
             if h.sum_hint() > self.omega:
                 continue
