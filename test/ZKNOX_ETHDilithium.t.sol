@@ -2,17 +2,11 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-import {Counter} from "../src/Counter.sol";
+import {ZKNOX_Expand, ZKNOX_Compact} from "../src/ZKNOX_utils.sol";
 
-contract CounterTest is Test {
-    Counter public counter;
+contract ETHDilithiumTest is Test {
 
-    function setUp() public {
-        counter = new Counter();
-        counter.setNumber(0);
-    }
-
-    function testToto() public {
+    function testCompact() public {
         // Public key
         uint256[32] memory A_hat_0_0 = [
             uint256(0x003b850031804a002f77fc005332990056e3fe0078477b003be024004459df),
@@ -1007,5 +1001,52 @@ contract CounterTest is Test {
             uint256(0x005a7474005d0ea2000d6ade007560c4001532870046a6720074b0890007b2ef),
             uint256(0x0042c82c00773c76004e4841006d88040020a4c6007dc89800004c510045c92d)
         ];
+
+        // // EXPAND PUBLIC KEY
+        // // A_hat
+        // uint256[256] memory A_hat_0_0_expand = ZKNOX_Expand(A_hat_0_0);
+        // uint256[256] memory A_hat_0_1_expand = ZKNOX_Expand(A_hat_0_1);
+        // uint256[256] memory A_hat_0_2_expand = ZKNOX_Expand(A_hat_0_2);
+        // uint256[256] memory A_hat_0_3_expand = ZKNOX_Expand(A_hat_0_3);
+        // uint256[256] memory A_hat_1_0_expand = ZKNOX_Expand(A_hat_1_0);
+        // uint256[256] memory A_hat_1_1_expand = ZKNOX_Expand(A_hat_1_1);
+        // uint256[256] memory A_hat_1_2_expand = ZKNOX_Expand(A_hat_1_2);
+        // uint256[256] memory A_hat_1_3_expand = ZKNOX_Expand(A_hat_1_3);
+        // uint256[256] memory A_hat_2_0_expand = ZKNOX_Expand(A_hat_2_0);
+        // uint256[256] memory A_hat_2_1_expand = ZKNOX_Expand(A_hat_2_1);
+        // uint256[256] memory A_hat_2_2_expand = ZKNOX_Expand(A_hat_2_2);
+        // uint256[256] memory A_hat_2_3_expand = ZKNOX_Expand(A_hat_2_3);
+        // uint256[256] memory A_hat_3_0_expand = ZKNOX_Expand(A_hat_3_0);
+        // uint256[256] memory A_hat_3_1_expand = ZKNOX_Expand(A_hat_3_1);
+        // uint256[256] memory A_hat_3_2_expand = ZKNOX_Expand(A_hat_3_2);
+        // uint256[256] memory A_hat_3_3_expand = ZKNOX_Expand(A_hat_3_3);
+        // // t1_new
+        // uint256[256] memory t1_new_0_0_expand = ZKNOX_Expand(t1_new_0_0);
+        // uint256[256] memory t1_new_1_0_expand = ZKNOX_Expand(t1_new_1_0);
+        // uint256[256] memory t1_new_2_0_expand = ZKNOX_Expand(t1_new_2_0);
+        // uint256[256] memory t1_new_3_0_expand = ZKNOX_Expand(t1_new_3_0);
+
+        // EXPAND SIGNATURE
+        // z
+        uint256[256] memory z_0_0_expand = ZKNOX_Expand(z_0_0);
+        uint256[256] memory z_1_0_expand = ZKNOX_Expand(z_1_0);
+        uint256[256] memory z_2_0_expand = ZKNOX_Expand(z_2_0);
+        uint256[256] memory z_3_0_expand = ZKNOX_Expand(z_3_0);
+
+        // h 
+        uint256[256] memory h_0_0_expand = ZKNOX_Expand(h_0_0);
+        uint256[256] memory h_1_0_expand = ZKNOX_Expand(h_1_0);
+        uint256[256] memory h_2_0_expand = ZKNOX_Expand(h_2_0);
+        uint256[256] memory h_3_0_expand = ZKNOX_Expand(h_3_0);
+
+
+        // c_ntt
+        uint256[256] memory c_ntt_expand = ZKNOX_Expand(c_ntt);
+
+        // check it works
+        uint256[32] memory c_ntt_back = ZKNOX_Compact(c_ntt_expand);
+        for (uint256 i = 0 ; i < 32 ; i++){
+            assertEq(c_ntt[i], c_ntt_back[i]);
+        }
     }
 }
