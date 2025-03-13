@@ -36,33 +36,13 @@ c_ntt_compact = c_ntt.compact_256(32)
 
 
 def print_compact(h, name):
-    out = "uint256[{}][{}][32] memory {} = [\n".format(
-        len(h), len(h[0]), name)
-    for a in h:
-        out += '['
-        for b in a:
-            out += '[ // forgefmt: disable-next-line\n'
-            for c in b:
-                out += '{},'.format(hex(c))
-            out = out[:-1]
-            out += '],\n'
-        out = out[:-2]
-        out += '],'
-    out = out[:-1]
-    out += '\n];'
-    print(out)
-
-
-def print_compact_2(h, name):
-    out = ''
+    out = 'uint256[32][{}][{}] memory {};\n'.format(len(h[0]), len(h), name)
     for (i, a) in enumerate(h):
         for (j, b) in enumerate(a):
-            out += "uint256[32] memory {}_{}_{} = [\n".format(name, i, j)
             # out += '// forgefmt: disable-next-line\n'
-            for c in b:
-                out += 'uint256(0x00{:x}),'.format(c)
-            out = out[:-1]
-            out += '];\n'
+            for (k, c) in enumerate(b):
+                out += "{}[{}][{}][{}] = uint256(0x00{:x});\n".format(name,
+                                                                      i, j, k, c)
     print(out)
 
 
@@ -78,12 +58,12 @@ def print_compact_elt(h, name):
 
 
 print("// Public key")
-print_compact_2(A_hat_compact, 'A_hat')
+print_compact(A_hat_compact, 'A_hat')
 print("bytes memory tr = \"{}\";".format(tr.hex()))
-print_compact_2(t1_new_compact, 't1_new')
+print_compact(t1_new_compact, 't1_new')
 print()
 print('// Signature')
 print("bytes memory c_tilde = \"{}\";".format(c_tilde.hex()))
-print_compact_2(z_compact, 'z')
-print_compact_2(h_compact, 'h')
+print_compact(z_compact, 'z')
+print_compact(h_compact, 'h')
 print_compact_elt(c_ntt_compact, 'c_ntt')

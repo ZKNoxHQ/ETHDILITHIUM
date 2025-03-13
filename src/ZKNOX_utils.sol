@@ -35,10 +35,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b) {
+uint256 constant _DILITHIUM_WORD256_S = 32;
+uint256 constant _DILITHIUM_WORD32_S = 256;
 
-    uint256[256] memory  b;
-  
+function ZKNOX_Expand_Mat(uint256[32][4][4] memory table) pure returns (uint256[256][4][4] memory b) {
+    uint256[256][4][4] memory b;
+    for (uint256 i = 0; i < 4; i++) {
+        for (uint256 j = 0; j < 4; j++) {
+            b[i][j] = ZKNOX_Expand(table[i][j]);
+        }
+    }
+    return b;
+}
+
+function ZKNOX_Expand_Vec(uint256[32][1][4] memory table) pure returns (uint256[256][4] memory b) {
+    uint256[256][4] memory b;
+    for (uint256 i = 0; i < 4; i++) {
+        b[i] = ZKNOX_Expand(table[i][0]);
+    }
+    return b;
+}
+
+function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b) {
+    uint256[256] memory b;
+
     /*
     for (uint256 i = 0; i < 32; i++) {
         uint256 ai = a[i];
@@ -71,7 +91,7 @@ function ZKNOX_Compact(uint256[256] memory a) pure returns (uint256[32] memory b
 
     assembly {
         let aa := a
-        let bb := b//add(b, 32)
+        let bb := b //add(b, 32)
         for { let i := 0 } lt(i, 256) { i := add(i, 1) } {
             let bi := add(bb, mul(32, shr(3, i))) //shr(3,i)*32 !=shl(1,i)
             mstore(bi, xor(mload(bi), shl(shl(5, and(i, 0x7)), mload(aa))))
