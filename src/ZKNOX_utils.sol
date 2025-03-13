@@ -48,10 +48,10 @@ function ZKNOX_Expand_Mat(uint256[32][4][4] memory table) pure returns (uint256[
     return b;
 }
 
-function ZKNOX_Expand_Vec(uint256[32][1][4] memory table) pure returns (uint256[256][4] memory b) {
+function ZKNOX_Expand_Vec(uint256[32][4] memory table) pure returns (uint256[256][4] memory b) {
     uint256[256][4] memory b;
     for (uint256 i = 0; i < 4; i++) {
-        b[i] = ZKNOX_Expand(table[i][0]);
+        b[i] = ZKNOX_Expand(table[i]);
     }
     return b;
 }

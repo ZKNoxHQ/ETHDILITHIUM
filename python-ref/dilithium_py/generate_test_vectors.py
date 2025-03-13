@@ -36,13 +36,20 @@ c_ntt_compact = c_ntt.compact_256(32)
 
 
 def print_compact(h, name):
-    out = 'uint256[32][{}][{}] memory {};\n'.format(len(h[0]), len(h), name)
+    n, m = len(h), len(h[0])
+    if m == 1:
+        out = 'uint256[32][{}] memory {};\n'.format(n, name)
+    else:
+        out = 'uint256[32][{}][{}] memory {};\n'.format(n, m, name)
     for (i, a) in enumerate(h):
         for (j, b) in enumerate(a):
-            # out += '// forgefmt: disable-next-line\n'
             for (k, c) in enumerate(b):
-                out += "{}[{}][{}][{}] = uint256(0x00{:x});\n".format(name,
-                                                                      i, j, k, c)
+                if m == 1:
+                    out += "{}[{}][{}] = uint256(0x00{:x});\n".format(name,
+                                                                      i, k, c)
+                else:
+                    out += "{}[{}][{}][{}] = uint256(0x00{:x});\n".format(name,
+                                                                          i, j, k, c)
     print(out)
 
 
