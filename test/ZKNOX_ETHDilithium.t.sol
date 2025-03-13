@@ -952,14 +952,14 @@ contract ETHDilithiumTest is Test {
         // A_hat
         uint256[256][4][4] memory A_hat_expand = ZKNOX_Expand_Mat(A_hat);
         // t1_new
-        uint256[256][4] memory t1_new_compact = ZKNOX_Expand_Vec(t1_new);
+        uint256[256][4] memory t1_new_expand = ZKNOX_Expand_Vec(t1_new);
 
         // EXPAND SIGNATURE
         // z
-        uint256[256][4] memory z_compact = ZKNOX_Expand_Vec(z);
+        uint256[256][4] memory z_expand = ZKNOX_Expand_Vec(z);
 
         // h
-        uint256[256][4] memory h_compact = ZKNOX_Expand_Vec(h);
+        uint256[256][4] memory h_expand = ZKNOX_Expand_Vec(h);
 
         // c_ntt
         uint256[256] memory c_ntt_expand = ZKNOX_Expand(c_ntt);
