@@ -35,6 +35,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+uint256 constant ID_keccak = 0x00;
+uint256 constant ID_tetration = 0x01;
+
 uint256 constant _DILITHIUM_WORD256_S = 32;
 uint256 constant _DILITHIUM_WORD32_S = 256;
 

@@ -52,16 +52,16 @@ contract ZKNOX_dilithium {
     // }
 
     struct DilithiumSignature {
-        bytes32 c_tilde;
-        uint256[][] z;
-        uint256[][] h;
-        uint256[] c_ntt;
+        bytes c_tilde;
+        uint256[32][4] z;
+        uint256[32][4] h;
+        uint256[32] c_ntt;
     }
 
     struct DilithiumPubKey {
-        uint256[][][] a_hat;
-        bytes32 tr;
-        uint256[][] t1_new;
+        uint256[32][4][4] a_hat;
+        bytes tr;
+        uint256[32][4] t1_new;
         bool is_compact;
         uint256 hashID; //identifier for the internal XOF
     }

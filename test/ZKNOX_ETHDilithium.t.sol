@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_utils.sol";
+import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 
 contract ETHDilithiumTest is Test {
     function testCompact() public {
@@ -954,6 +955,14 @@ contract ETHDilithiumTest is Test {
         // t1_new
         uint256[256][4] memory t1_new_expand = ZKNOX_Expand_Vec(t1_new);
 
+        // CREATE PK OBJECT
+        ZKNOX_dilithium.DilithiumPubKey memory pk;
+        pk.a_hat = A_hat;
+        pk.tr = tr;
+        pk.t1_new = t1_new;
+        pk.is_compact = true;
+        pk.hashID = 0x00;
+
         // EXPAND SIGNATURE
         // z
         uint256[256][4] memory z_expand = ZKNOX_Expand_Vec(z);
@@ -969,5 +978,12 @@ contract ETHDilithiumTest is Test {
         for (uint256 i = 0; i < 32; i++) {
             assertEq(c_ntt[i], c_ntt_back[i]);
         }
+
+        // CREATE SIG OBJECT
+        ZKNOX_dilithium.DilithiumSignature memory sig;
+        sig.c_tilde = c_tilde;
+        sig.z = z;
+        sig.h = h;
+        sig.c_ntt = c_ntt;
     }
 }
