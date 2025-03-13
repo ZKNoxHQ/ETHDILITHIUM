@@ -37,19 +37,19 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
+import {console} from "forge-std/Test.sol";
 
 // import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
-
-// import "./ZKNOX_falcon_utils.sol";
-// import "./ZKNOX_falcon_core.sol";
+import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
+import {ZKNOX_Expand_Vec, ID_keccak, omega, gamma_1_minus_beta} from "./ZKNOX_utils.sol";
 
 contract ZKNOX_dilithium {
-    // ZKNOX_NTT ntt;
 
-    // //Outer NTT contract, initialized with dilithium field parameters
-    // constructor(ZKNOX_NTT i_ntt) {
-    //     ntt = i_ntt;
-    // }
+    ZKNOX_keccak_prng H;
+
+    function setUp() public {
+        H = new ZKNOX_keccak_prng();
+    }
 
     struct DilithiumSignature {
         bytes c_tilde;
@@ -62,57 +62,63 @@ contract ZKNOX_dilithium {
         uint256[32][4][4] a_hat;
         bytes tr;
         uint256[32][4] t1_new;
-        bool is_compact;
         uint256 hashID; //identifier for the internal XOF
     }
 
-    function CheckKey(DilithiumPubKey memory Pubkey) public pure returns (bool) {
-        bool isKnownID = false;
-
-        // if (Pubkey.is_compact) {
-        //     if (Pubkey.value.length != _DILITHIUM_WORD256_S) return false;
-        // } else {
-        //     if (Pubkey.value.length != _DILITHIUM_WORD32_S) return false;
-        // }
-
-        // if (falcon_checkPolynomialRange(Pubkey.value, Pubkey.is_compact) != true) return false;
-
-        // if (Pubkey.hashID == ID_keccak) isKnownID = true;
-        // if (Pubkey.hashID == ID_tetration) isKnownID = true;
-
-        return isKnownID;
-    }
-
     function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
-        public
-        view
-        returns (bool result)
+        public returns (bool result)
     {
         result = false;
 
-        uint256[] memory hashed;
-        if (CheckKey(pk) == false) return false;
+        bytes memory mu;
+        
+        // assertEq(output_1, keccak_prng.extract(32));
 
-        // TODO IMPLEMENT (SIMILAR TO WHAT IS DONE IN FALCON)
-        // if (pk.hashID == ID_keccak) {
-        //     hashed = hashToPointRIP(signature.salt, msgs);
-        // } else {
-        //     if (pk.hashID == ID_tetration) {
-        //         hashed = hashToPointTETRATION(signature.salt, msgs);
-        //     } else {
-        //         return false;
-        //     } //unknwon ID
-        // }
+        if (pk.hashID == ID_keccak) {
+            H.inject(pk.tr);
+            H.inject(msgs);
+            H.flip();
+            uint256 len = 64;
+            mu = H.extract(len);
+        } else {
+            // Unkown hash (I am tired of Tetration, sorry)
+            return false;
+        }
 
-        // if (pk.is_compact == false) {
-        //     if (pk.nttform == false) {
-        //         //convert public key to ntt form
-        //         pk.value = ntt.ZKNOX_NTTFW(pk.value, ntt.o_psirev());
-        //     }
-        //     signature.s2 = _ZKNOX_NTT_Compact(signature.s2);
-        // }
+        // sum hint for h
+        uint256[256][4] memory h = ZKNOX_Expand_Vec(signature.h);
+        uint256 cpt = 0;
+        for (uint256 i = 0 ; i < 4 ; i++) {
+            for (uint256 j = 0; j < 256 ; j++){
+                if (h[i][j] == 1) {
+                    cpt = cpt + 1;
+                }
+                else{ // can be removed?
+                    if (h[i][j] != 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+        if (cpt > omega){
+            return false;
+        }
 
-        // return falcon_core(ntt, signature.salt, signature.s2, pk.value, hashed); //not implemented yet
+        // check norm bound for z
+        uint256[256][4] memory z = ZKNOX_Expand_Vec(signature.z);
+        for (uint256 i = 0 ; i < 4 ; i++) {
+            for (uint256 j = 0; j < 256 ; j++){
+                if (z[i][j] > gamma_1_minus_beta) {
+                    return false;
+                }
+            }
+        }
+
+        // z = z.ntt()
+        // Az_minus_ct1 = (A*z - c_ntt*t1_new).intt()
+        // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)
+        // w_prime_bytes = w_prime.bit_pack_w(γ_2)
+        // return c_tilde == H(μ + w_prime_bytes, 32)
     }
 }
 
