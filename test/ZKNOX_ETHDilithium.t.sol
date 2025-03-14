@@ -11,13 +11,13 @@ contract ETHDilithiumTest is Test {
     function setUp() public {
         dilithium = new ZKNOX_dilithium();
     }
-    
+
     function testCompactExpand() public {
         // test of expanding and compacting an element of Fq²⁵⁶ (Dilithium)
         // c is given by 256 Fq element (256 * 32 bits)
         // in compact form, c is given in 32 256-bit integers
         // 1. Expand and get back the 256 Fq elements
-        // 2. Compact again 
+        // 2. Compact again
         // 3. Verify the equality with initial value
         uint256[32] memory c_ntt = [
             uint256(0x00b3e4e0025f3f40036eecb002713c5002bc6d400781b0d003c185500329700),
@@ -58,7 +58,6 @@ contract ETHDilithiumTest is Test {
         for (uint256 i = 0; i < 32; i++) {
             assertEq(c_ntt[i], c_ntt_back[i]);
         }
-
     }
 
     function testVerify() public {
@@ -1022,7 +1021,6 @@ contract ETHDilithiumTest is Test {
         bytes memory msgs = "We are ZKNox.";
         bool check = dilithium.verify(pk, msgs, sig);
 
-     
+        console.log(check);
     }
-
 }

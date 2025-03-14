@@ -42,12 +42,11 @@ uint256 constant _DILITHIUM_WORD256_S = 32;
 uint256 constant _DILITHIUM_WORD32_S = 256;
 
 // DILITHIUM PARAMETERS
-uint256 constant n=256;
-uint256 constant q=8380417;
+uint256 constant n = 256;
+uint256 constant q = 8380417;
 uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant omega = 80;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
-
 
 function ZKNOX_Expand_Mat(uint256[32][4][4] memory table) pure returns (uint256[256][4][4] memory b) {
     for (uint256 i = 0; i < 4; i++) {
@@ -66,7 +65,6 @@ function ZKNOX_Expand_Vec(uint256[32][4] memory table) pure returns (uint256[256
 }
 
 function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b) {
-
     /*
     for (uint256 i = 0; i < 32; i++) {
         uint256 ai = a[i];
@@ -91,7 +89,6 @@ function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b)
 }
 
 function ZKNOX_Compact(uint256[256] memory a) pure returns (uint256[32] memory b) {
-
     /*
     for (uint256 i = 0; i < a.length; i++) {
         b[i >> 3] ^= a[i] << ((i & 0x7) << 5);

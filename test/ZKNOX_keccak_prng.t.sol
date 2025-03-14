@@ -36,7 +36,7 @@ contract KeccakPRNGTest is Test {
         keccak_prng.inject(input_1);
         keccak_prng.flip();
         console.logBytes(output_1);
-        //assertEq(output_1, keccak_prng.extract(32));
+        assertEq(output_1, keccak_prng.extract(32));
 
         // Test vector 2
         keccak_prng = new ZKNOX_keccak_prng();
@@ -47,13 +47,13 @@ contract KeccakPRNGTest is Test {
         assembly {
             computed_output_2 := mload(add(out_2, 64))
         }
-        //assertEq(computed_output_2, output_2);
+        assertEq(computed_output_2, output_2);
 
         // Test vector 3
         keccak_prng = new ZKNOX_keccak_prng();
         keccak_prng.inject(input_3);
         keccak_prng.flip();
-        //assertEq(output_3, keccak_prng.extract(32));
+        assertEq(output_3, keccak_prng.extract(32));
 
         // Test vector 4
         keccak_prng = new ZKNOX_keccak_prng();
@@ -67,7 +67,7 @@ contract KeccakPRNGTest is Test {
             computed_output_4_1 := mload(add(out_4_1, 32))
         }
         computed_output_4_1 = computed_output_4_1 >> 128;
-        //assertEq(computed_output_4_1, output_4_1);
+        assertEq(computed_output_4_1, output_4_1);
 
         bytes memory out_4_2 = keccak_prng.extract(32);
         // get a sub array
@@ -76,7 +76,7 @@ contract KeccakPRNGTest is Test {
             computed_output_4_2 := mload(add(out_4_2, 32))
         }
         computed_output_4_2 = computed_output_4_2 >> 128;
-        //assertEq(computed_output_4_2, output_4_2);
+        assertEq(computed_output_4_2, output_4_2);
 
         bytes memory out_4_3 = keccak_prng.extract(32);
         // get a sub array
@@ -85,15 +85,15 @@ contract KeccakPRNGTest is Test {
             computed_output_4_3 := mload(add(out_4_3, 32))
         }
         computed_output_4_3 = computed_output_4_3 >> 128;
-        //assertEq(computed_output_4_3, output_4_3);
+        assertEq(computed_output_4_3, output_4_3);
     }
 
     function test_keccak_1() public {
         // Test vector 1
         keccak_prng = new ZKNOX_keccak_prng();
         keccak_prng.inject(input_1);
-        // keccak_prng.flip();
-        // assertEq(output_1, keccak_prng.extract(32));
+        keccak_prng.flip();
+        assertEq(output_1, keccak_prng.extract(32));
     }
 
     function test_keccak_2() public {
@@ -101,7 +101,7 @@ contract KeccakPRNGTest is Test {
         keccak_prng = new ZKNOX_keccak_prng();
         keccak_prng.inject(input_1);
         keccak_prng.flip();
-        // assertEq(output_1, keccak_prng.extract(32));
+        assertEq(output_1, keccak_prng.extract(32));
     }
 
     function test_keccak_3() public {
@@ -109,7 +109,6 @@ contract KeccakPRNGTest is Test {
         keccak_prng = new ZKNOX_keccak_prng();
         keccak_prng.inject(input_1);
         keccak_prng.flip();
-        // assertEq(output_1, keccak_prng.extract(32));
+        assertEq(output_1, keccak_prng.extract(32));
     }
-
 }

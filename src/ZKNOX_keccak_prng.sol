@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
+import {console} from "forge-std/Test.sol";
+
 /**
  * Keccak256-Based PRNG
  * A cryptographically secure PRNG based on Keccak-256
@@ -36,7 +38,7 @@ contract ZKNOX_keccak_prng {
         require(!finalized, "Cannot inject after finalization");
 
         // Accumulate input into the buffer
-        buffer = abi.encodePacked(buffer, input);   
+        buffer = abi.encodePacked(buffer, input);
     }
 
     /**

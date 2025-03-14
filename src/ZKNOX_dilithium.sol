@@ -37,6 +37,7 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
+
 import {console} from "forge-std/Test.sol";
 
 // import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
@@ -44,13 +45,6 @@ import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
 import {ZKNOX_Expand_Vec, ID_keccak, omega, gamma_1_minus_beta} from "./ZKNOX_utils.sol";
 
 contract ZKNOX_dilithium {
-
-    ZKNOX_keccak_prng H;
-
-    function setUp() public {
-        H = new ZKNOX_keccak_prng();
-    }
-
     struct DilithiumSignature {
         bytes c_tilde;
         uint256[32][4] z;
@@ -66,20 +60,19 @@ contract ZKNOX_dilithium {
     }
 
     function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
-        public returns (bool result)
+        public
+        returns (bool result)
     {
         result = false;
 
         bytes memory mu;
-        
-        // assertEq(output_1, keccak_prng.extract(32));
 
         if (pk.hashID == ID_keccak) {
+            ZKNOX_keccak_prng H = new ZKNOX_keccak_prng();
             H.inject(pk.tr);
             H.inject(msgs);
             H.flip();
-            uint256 len = 64;
-            mu = H.extract(len);
+            mu = H.extract(64);
         } else {
             // Unkown hash (I am tired of Tetration, sorry)
             return false;
@@ -88,32 +81,31 @@ contract ZKNOX_dilithium {
         // sum hint for h
         uint256[256][4] memory h = ZKNOX_Expand_Vec(signature.h);
         uint256 cpt = 0;
-        for (uint256 i = 0 ; i < 4 ; i++) {
-            for (uint256 j = 0; j < 256 ; j++){
+        for (uint256 i = 0; i < 4; i++) {
+            for (uint256 j = 0; j < 256; j++) {
                 if (h[i][j] == 1) {
                     cpt = cpt + 1;
-                }
-                else{ // can be removed?
+                } else {
+                    // can be removed?
                     if (h[i][j] != 0) {
                         return false;
                     }
                 }
             }
         }
-        if (cpt > omega){
+        if (cpt > omega) {
             return false;
         }
 
         // check norm bound for z
         uint256[256][4] memory z = ZKNOX_Expand_Vec(signature.z);
-        for (uint256 i = 0 ; i < 4 ; i++) {
-            for (uint256 j = 0; j < 256 ; j++){
-                if (z[i][j] > gamma_1_minus_beta) {
+        for (uint256 i = 0; i < 4; i++) {
+            for (uint256 j = 0; j < 256; j++) {
+                if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
                     return false;
                 }
             }
         }
-
         // z = z.ntt()
         // Az_minus_ct1 = (A*z - c_ntt*t1_new).intt()
         // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)
