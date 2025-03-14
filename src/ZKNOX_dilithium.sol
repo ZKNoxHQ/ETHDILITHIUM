@@ -40,11 +40,17 @@ pragma solidity ^0.8.25;
 
 import {console} from "forge-std/Test.sol";
 
-// import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
+import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
 import {ZKNOX_Expand_Vec, ID_keccak, omega, gamma_1_minus_beta} from "./ZKNOX_utils.sol";
 
 contract ZKNOX_dilithium {
+    ZKNOX_NTT ntt;
+
+    constructor(ZKNOX_NTT i_ntt) {
+        ntt = i_ntt;
+    }
+
     struct DilithiumSignature {
         bytes c_tilde;
         uint256[32][4] z;
@@ -106,8 +112,20 @@ contract ZKNOX_dilithium {
                 }
             }
         }
-        // z = z.ntt()
-        // Az_minus_ct1 = (A*z - c_ntt*t1_new).intt()
+
+        // NTT(z)
+        uint256[][4] memory z_ntt;
+        for (uint256 i = 0 ; i < 4; i ++) {
+            uint256 [] memory toto = z[i];
+            z_ntt[i] = ntt.ZKNOX_NTTFW(toto, ntt.o_psirev());
+        } 
+
+        // STILL
+        // TO
+        // DO
+        // ...
+        //
+        // Az_minus_ct1 = (A*z_ntt - c_ntt*t1_new).intt()
         // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)
         // w_prime_bytes = w_prime.bit_pack_w(γ_2)
         // return c_tilde == H(μ + w_prime_bytes, 32)
