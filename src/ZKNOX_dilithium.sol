@@ -124,14 +124,20 @@ contract ZKNOX_dilithium {
             z_ntt[i] = ntt.ZKNOX_NTTFW(z_tmp, ntt.o_psirev());
         }
 
-        // STILL
-        // TO
-        // DO
-        // ...
-        
+        // 1.        
         // Az_minus_ct1 = (A*z_ntt - c_ntt*t1_new).intt()
+        // compute A*z_ntt
+        // computer c_ntt * t1_new
+        // negation between them
+        // Az_minus_ct1 = intt
+
+        // 2.
         // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)
+
+        // 3.
         // w_prime_bytes = w_prime.bit_pack_w(γ_2)
+
+        // 4.
         // return c_tilde == H(μ + w_prime_bytes, 32)
     }
 }
