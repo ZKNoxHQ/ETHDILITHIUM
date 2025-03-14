@@ -114,17 +114,21 @@ contract ZKNOX_dilithium {
         }
 
         // NTT(z)
-        uint256[][4] memory z_ntt;
-        for (uint256 i = 0 ; i < 4; i ++) {
-            uint256 [] memory toto = z[i];
-            z_ntt[i] = ntt.ZKNOX_NTTFW(toto, ntt.o_psirev());
-        } 
+        uint256[] memory z_tmp = new uint256[](256);
+        uint256[][] memory z_ntt = new uint256[][](4);
+        for (uint256 i = 0; i < 4; i++) {
+            for (uint256 j = 0; j < 256; j++) {
+                z_tmp[j] = z[i][j];
+            }
+
+            z_ntt[i] = ntt.ZKNOX_NTTFW(z_tmp, ntt.o_psirev());
+        }
 
         // STILL
         // TO
         // DO
         // ...
-        //
+        
         // Az_minus_ct1 = (A*z_ntt - c_ntt*t1_new).intt()
         // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)
         // w_prime_bytes = w_prime.bit_pack_w(γ_2)
