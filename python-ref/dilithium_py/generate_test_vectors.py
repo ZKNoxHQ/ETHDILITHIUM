@@ -73,11 +73,11 @@ def print_compact_mat(h, name):
 
 print("// Public key")
 print_compact_mat(A_hat_compact, 'A_hat')
-print("bytes memory tr = \"{}\";".format(tr.hex()))
+print("bytes memory tr = hex\"{}\";".format(tr.hex()))
 print_compact_vec(t1_new_compact, 't1_new')
 print()
 print('// Signature')
-print("bytes memory c_tilde = \"{}\";".format(c_tilde.hex()))
+print("bytes memory c_tilde = hex\"{}\";".format(c_tilde.hex()))
 print_compact_vec(z_compact, 'z')
 print_compact_vec(h_compact, 'h')
 print_compact_elt(c_ntt_compact, 'c_ntt')

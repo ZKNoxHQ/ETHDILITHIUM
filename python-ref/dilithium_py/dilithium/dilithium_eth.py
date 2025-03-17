@@ -152,13 +152,11 @@ class ETHDilithium(Dilithium):
             return False
 
         mu = self._h(tr + m, 64, _xof=_xof)
-
         z = z.to_ntt()
 
         Az_minus_ct1 = (A_hat @ z) - t1_new.scale(c_ntt)
         Az_minus_ct1 = Az_minus_ct1.from_ntt()
 
-        print("VERIF")
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
         for row in w_prime._data:
             for elt in row:
@@ -170,6 +168,5 @@ class ETHDilithium(Dilithium):
         # w_prime_bytes = w_prime.bit_pack_32()
         w_prime_bytes = encode(["int256"] * 256 * 4,
                                [x for row in w_prime._data for elt in row for x in elt.coeffs])
-        print(w_prime_bytes.hex())
 
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
