@@ -34,24 +34,6 @@ c_ntt_compact = c_ntt.compact_256(32)
 # print("\tc_ntt:\t\tdimension {}".format((1, 1)))
 
 
-def print_compact(h, name):
-    n, m = len(h), len(h[0])
-    if m == 1:
-        out = 'uint256[32][{}] memory {};\n'.format(n, name)
-    else:
-        out = 'uint256[32][{}][{}] memory {};\n'.format(n, m, name)
-    for (i, a) in enumerate(h):
-        for (j, b) in enumerate(a):
-            for (k, c) in enumerate(b):
-                if m == 1:
-                    out += "{}[{}][{}] = uint256(0x00{:x});\n".format(name,
-                                                                      i, k, c)
-                else:
-                    out += "{}[{}][{}][{}] = uint256(0x00{:x});\n".format(name,
-                                                                          i, j, k, c)
-    print(out)
-
-
 def print_compact_elt(h, name):
     out = "uint256[] memory {} = new uint256[](32);".format(name)
     for (i, coeff) in enumerate(h):
