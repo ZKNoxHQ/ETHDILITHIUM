@@ -136,7 +136,7 @@ class ETHDilithium(Dilithium):
 
             return self._pack_sig(c_tilde, z, h, c_ntt)
 
-    def verify(self, pk_bytes, m, sig_bytes, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
+    def verify(self, pk_bytes, m, sig_bytes, _xof=Keccak256PRNG):
         """
         Verifies a signature for a message m from a byte encoded public key and
         signature
