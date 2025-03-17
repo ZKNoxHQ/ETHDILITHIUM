@@ -168,6 +168,7 @@ function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v)
 {
     // Input: a matrix of elements of Fq²⁵⁶ and a vector of elements of Fq²⁵⁶
     // Output: the multiplication M * v as a vector of elements of Fq²⁵⁶
+    M_times_v = new uint256[][](v.length);
     for (uint256 i = 0; i < M.length; i++) {
         M_times_v[i] = ZKNOX_ScalarProduct(M[i], v);
     }

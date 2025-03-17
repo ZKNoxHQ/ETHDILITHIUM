@@ -42,7 +42,12 @@ import {console} from "forge-std/Test.sol";
 
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
-import {ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ID_keccak, omega, gamma_1_minus_beta} from "./ZKNOX_utils.sol";
+import {q,
+    ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat,
+    ZKNOX_MatVecProduct,
+    ZKNOX_VECMULMOD, ZKNOX_VECSUBMOD,
+    ID_keccak, omega, gamma_1_minus_beta
+} from "./ZKNOX_utils.sol";
 
 contract ZKNOX_dilithium {
     ZKNOX_NTT ntt;
@@ -120,15 +125,26 @@ contract ZKNOX_dilithium {
             z_ntt[i] = ntt.ZKNOX_NTTFW(z[i], ntt.o_psirev());
         }
 
+        // c_ntt
+        uint256[] memory c_ntt = ZKNOX_Expand(signature.c_ntt);
+
+        // t1_new
+        uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
+        
         // 1.
         uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-        uint256[][] memory first_row = A_hat[0];
-
-        // Az_minus_ct1 = (A*z_ntt - c_ntt*t1_new).intt()
-        // compute A*z_ntt
-        // computer c_ntt * t1_new
-        // negation between them
-        // Az_minus_ct1 = intt
+        uint256[][] memory A_mul_z_ntt = ZKNOX_MatVecProduct(A_hat, z_ntt);
+        uint256[][] memory Az_minus_ct1 = new uint256[][](4);
+        for (uint256 i = 0 ; i < 4 ; i++) {
+            Az_minus_ct1[i] = ntt.ZKNOX_NTTINV(
+                ZKNOX_VECSUBMOD(
+                    A_mul_z_ntt[i],
+                    ZKNOX_VECMULMOD(t1_new[i], c_ntt, q),
+                    q
+                ),
+                ntt.o_psi_inv_rev()
+            );
+        }
 
         // 2.
         // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)

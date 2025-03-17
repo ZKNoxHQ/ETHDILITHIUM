@@ -960,7 +960,7 @@ contract ETHDilithiumTest is Test {
         h[3][30] = uint256(0x000);
         h[3][31] = uint256(0x000);
 
-        uint256[] memory c_ntt = new uint256[](256);
+        uint256[] memory c_ntt = new uint256[](32);
         c_ntt[0] = uint256(0x00b3e4e0025f3f40036eecb002713c5002bc6d400781b0d003c185500329700);
         c_ntt[1] = uint256(0x007803bc006798b8007055c500151f2e00430b7c003d96d10038c7b400145b0a);
         c_ntt[2] = uint256(0x00103e97002e0bb200061e7f003ea088001c0fc900357b80001610fb001a0a92);
