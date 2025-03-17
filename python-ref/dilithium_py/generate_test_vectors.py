@@ -43,14 +43,13 @@ def print_compact_elt(h, name):
 
 def print_compact_vec(h, name):
     n = len(h)
-    h = h[0]
     out = 'uint256[][] memory {} = new uint256[][]({});\n'.format(name, n)
     out += "for (uint256 i = 0 ; i < 4 ; i ++) {\n"
     out += "\t{}[i] = new uint256[](32);\n".format(name)
     out += "}\n"
 
     for (i, a) in enumerate(h):
-        for (j, b) in enumerate(a):
+        for (j, b) in enumerate(a[0]):  # len(a) = 1...
             out += "{}[{}][{}] = uint256(0x00{:x});".format(name, i, j, b)
     print(out+"\n\n")
 

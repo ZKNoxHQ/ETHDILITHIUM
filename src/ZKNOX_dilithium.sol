@@ -120,6 +120,7 @@ contract ZKNOX_dilithium {
 
         // check norm bound for z
         uint256[][] memory z = ZKNOX_Expand_Vec(signature.z);
+
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
                 if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
@@ -142,6 +143,7 @@ contract ZKNOX_dilithium {
         // 1.
         uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
         z = ZKNOX_MatVecProduct(A_hat, z); // A * z
+
         for (i = 0; i < 4; i++) {
             // we store in z A*z - c*t1
             z[i] = ntt.ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt, q), q), ntt.o_psi_inv_rev());
@@ -149,14 +151,15 @@ contract ZKNOX_dilithium {
 
         // 2. w_prime
         int256[][] memory w_prime = useHintVec(h, z);
+        // VALUES ARE ACTUALLY NOT NEGATIVE????????
 
+        // 3. w_prime.bit_pack_w(γ_2) is realized using a "solidity-friendly encoding"
+        bytes memory w_prime_bytes;
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
-                console.log(w_prime[i][j]);
+                w_prime_bytes = abi.encodePacked(w_prime_bytes, w_prime[i][j]);
             }
         }
-        // 3.
-        bytes memory w_prime_bytes = abi.encode(w_prime); //w_prime.bit_pack_w(γ_2)
 
         // 4.
         // return c_tilde == H(μ + w_prime_bytes, 32)
