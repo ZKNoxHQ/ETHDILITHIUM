@@ -1,5 +1,4 @@
 import os
-
 from dilithium_py.dilithium.dilithium import Dilithium
 
 from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
@@ -114,7 +113,6 @@ class ETHDilithium(Dilithium):
             # w1_bytes = w1.bit_pack_32()
             w1_bytes = encode(["int256"] * 256 * 4,
                               [x for row in w1._data for elt in row for x in elt.coeffs])
-            print(len(w1_bytes))
             c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
@@ -137,7 +135,6 @@ class ETHDilithium(Dilithium):
             h = w0_minus_cs2_plus_ct0.make_hint_optimised(w1, alpha)
             if h.sum_hint() > self.omega:
                 continue
-
             return self._pack_sig(c_tilde, z, h, c_ntt)
 
     def verify(self, pk_bytes, m, sig_bytes, _xof=Keccak256PRNG):

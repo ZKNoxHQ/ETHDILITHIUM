@@ -7,7 +7,6 @@ msg = b"We are ZKNox."
 
 pk, sk = D.keygen()
 sig = D.sign(sk, msg)
-sig_fake = D.sign(sk, msg)
 assert D.verify(pk, msg, sig)
 
 # PK

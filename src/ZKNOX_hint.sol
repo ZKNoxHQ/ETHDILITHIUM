@@ -44,9 +44,9 @@ import {q} from "./ZKNOX_utils.sol";
 
 // Function to reduce r0 within the range of -(a << 1) < r0 <= (a << 1)
 function reduceModPM(int256 r0) pure returns (int256 res) {
-    int256 _res = r0 % _2_gamma_2;
-    if (_res > gamma_2) {
-        _res = _res - _2_gamma_2;
+    res = r0 % _2_gamma_2;
+    if (res > gamma_2) {
+        res = res - _2_gamma_2;
     }
 }
 

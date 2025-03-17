@@ -120,8 +120,8 @@ contract ZKNOX_dilithium {
 
         // check norm bound for z
         uint256[][] memory z = ZKNOX_Expand_Vec(signature.z);
-        for (uint256 i = 0; i < 4; i++) {
-            for (uint256 j = 0; j < 256; j++) {
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 256; j++) {
                 if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
                     return false;
                 }
@@ -150,6 +150,11 @@ contract ZKNOX_dilithium {
         // 2. w_prime
         int256[][] memory w_prime = useHintVec(h, z);
 
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 256; j++) {
+                console.log(w_prime[i][j]);
+            }
+        }
         // 3.
         bytes memory w_prime_bytes = abi.encode(w_prime); //w_prime.bit_pack_w(γ_2)
 
