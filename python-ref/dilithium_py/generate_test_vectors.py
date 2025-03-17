@@ -54,23 +54,50 @@ def print_compact(h, name):
 
 
 def print_compact_elt(h, name):
-    out = ""
-    out += "uint256[32] memory {} = [".format(name)
-    for coeff in h:
-        out += 'uint256(0x00{:x}),'.format(coeff)
+    out = "uint256[] memory {} = new uint256[](32);".format(name)
+    for (i, coeff) in enumerate(h):
+        out += '{}[{}] = uint256(0x00{:x});'.format(name, i, coeff)
+    print(out+"\n")
 
-    out = out[:-1]
-    out += '];'
-    print(out)
+
+def print_compact_vec(h, name):
+    n = len(h)
+    h = h[0]
+    out = 'uint256[][] memory {} = new uint256[][]({});\n'.format(name, n)
+    out += "for (uint256 i = 0 ; i < 4 ; i ++) {\n"
+    out += "\t{}[i] = new uint256[](32);\n".format(name)
+    out += "}\n"
+
+    for (i, a) in enumerate(h):
+        for (j, b) in enumerate(a):
+            out += "{}[{}][{}] = uint256(0x00{:x});".format(name, i, j, b)
+    print(out+"\n\n")
+
+
+def print_compact_mat(h, name):
+    n, m = len(h), len(h[0])
+    out = 'uint256[][][] memory {} = new uint256[][][]({});\n'.format(name, n)
+    out += "for (uint256 i = 0 ; i < {} ; i++) {{\n".format(n)
+    out += "\t{}[i] = new uint256[][]({});\n".format(name, m)
+    out += "\tfor (uint256 j = 0 ; j < {}; j++) {{\n".format(m)
+    out += "\t\t{}[i][j] = new uint256[](32);\n".format(name)
+    out += "\t}\n"
+    out += "}\n"
+    for (i, a) in enumerate(h):
+        for (j, b) in enumerate(a):
+            for (k, c) in enumerate(b):
+                out += "{}[{}][{}][{}] = uint256(0x00{:x});".format(
+                    name, i, j, k, c)
+    print(out+"\n\n")
 
 
 print("// Public key")
-print_compact(A_hat_compact, 'A_hat')
+print_compact_mat(A_hat_compact, 'A_hat')
 print("bytes memory tr = \"{}\";".format(tr.hex()))
-print_compact(t1_new_compact, 't1_new')
+print_compact_vec(t1_new_compact, 't1_new')
 print()
 print('// Signature')
 print("bytes memory c_tilde = \"{}\";".format(c_tilde.hex()))
-print_compact(z_compact, 'z')
-print_compact(h_compact, 'h')
+print_compact_vec(z_compact, 'z')
+print_compact_vec(h_compact, 'h')
 print_compact_elt(c_ntt_compact, 'c_ntt')

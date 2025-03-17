@@ -12,7 +12,7 @@ import struct
 
 # Constants
 # SIMON CHANGED 1024 to 4160, IS IT SECURE?????????????????
-MAX_BUFFER_SIZE = 4160  # Adjust based on needs
+MAX_BUFFER_SIZE = 33000  # Adjust based on needs
 KECCAK_OUTPUT = 32  # Keccak output size in bytes
 
 

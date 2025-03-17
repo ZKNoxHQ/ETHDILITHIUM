@@ -42,12 +42,19 @@ import {console} from "forge-std/Test.sol";
 
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
-import {q,
-    ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat,
+import {
+    q,
+    ZKNOX_Expand,
+    ZKNOX_Expand_Vec,
+    ZKNOX_Expand_Mat,
     ZKNOX_MatVecProduct,
-    ZKNOX_VECMULMOD, ZKNOX_VECSUBMOD,
-    ID_keccak, omega, gamma_1_minus_beta
+    ZKNOX_VECMULMOD,
+    ZKNOX_VECSUBMOD,
+    ID_keccak,
+    omega,
+    gamma_1_minus_beta
 } from "./ZKNOX_utils.sol";
+import {useHintVec} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_dilithium {
     ZKNOX_NTT ntt;
@@ -92,16 +99,19 @@ contract ZKNOX_dilithium {
         // sum hint for h
         uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
         uint256 cpt = 0;
-        for (uint256 i = 0; i < 4; i++) {
-            for (uint256 j = 0; j < 256; j++) {
+        uint256 i;
+        uint256 j;
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 256; j++) {
                 if (h[i][j] == 1) {
                     cpt = cpt + 1;
-                } else {
-                    // can be removed?
-                    if (h[i][j] != 0) {
-                        return false;
-                    }
                 }
+                // else {
+                //     // can be removed?
+                //     if (h[i][j] != 0) {
+                //         return false;
+                //     }
+                // }
             }
         }
         if (cpt > omega) {
@@ -119,10 +129,8 @@ contract ZKNOX_dilithium {
         }
 
         // NTT(z)
-        // uint256[] memory z_tmp = new uint256[](256);
-        uint256[][] memory z_ntt = new uint256[][](4);
-        for (uint256 i = 0; i < 4; i++) {
-            z_ntt[i] = ntt.ZKNOX_NTTFW(z[i], ntt.o_psirev());
+        for (i = 0; i < 4; i++) {
+            z[i] = ntt.ZKNOX_NTTFW(z[i], ntt.o_psirev());
         }
 
         // c_ntt
@@ -130,30 +138,39 @@ contract ZKNOX_dilithium {
 
         // t1_new
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
-        
+
         // 1.
         uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-        uint256[][] memory A_mul_z_ntt = ZKNOX_MatVecProduct(A_hat, z_ntt);
-        uint256[][] memory Az_minus_ct1 = new uint256[][](4);
-        for (uint256 i = 0 ; i < 4 ; i++) {
-            Az_minus_ct1[i] = ntt.ZKNOX_NTTINV(
-                ZKNOX_VECSUBMOD(
-                    A_mul_z_ntt[i],
-                    ZKNOX_VECMULMOD(t1_new[i], c_ntt, q),
-                    q
-                ),
-                ntt.o_psi_inv_rev()
-            );
+        z = ZKNOX_MatVecProduct(A_hat, z); // A * z
+        for (i = 0; i < 4; i++) {
+            // we store in z A*z - c*t1
+            z[i] = ntt.ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt, q), q), ntt.o_psi_inv_rev());
         }
 
-        // 2.
-        // w_prime = h.use_hint(Az_minus_ct1, 2γ_2)
+        // 2. w_prime
+        int256[][] memory w_prime = useHintVec(h, z);
 
         // 3.
-        // w_prime_bytes = w_prime.bit_pack_w(γ_2)
+        bytes memory w_prime_bytes = abi.encode(w_prime); //w_prime.bit_pack_w(γ_2)
 
         // 4.
         // return c_tilde == H(μ + w_prime_bytes, 32)
+        if (pk.hashID == ID_keccak) {
+            ZKNOX_keccak_prng H = new ZKNOX_keccak_prng();
+            H.inject(mu);
+            H.inject(w_prime_bytes);
+            H.flip();
+            bytes memory H_output = H.extract(32);
+            for (i = 0; i < 32; i++) {
+                if (signature.c_tilde[i] != H_output[i]) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            // Unkown hash (I am tired of Tetration, sorry)
+            return false;
+        }
     }
 }
 
