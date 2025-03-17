@@ -42,7 +42,7 @@ import {console} from "forge-std/Test.sol";
 
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
-import {ZKNOX_Expand_Vec, ID_keccak, omega, gamma_1_minus_beta} from "./ZKNOX_utils.sol";
+import {ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ID_keccak, omega, gamma_1_minus_beta} from "./ZKNOX_utils.sol";
 
 contract ZKNOX_dilithium {
     ZKNOX_NTT ntt;
@@ -53,15 +53,15 @@ contract ZKNOX_dilithium {
 
     struct DilithiumSignature {
         bytes c_tilde;
-        uint256[32][4] z;
-        uint256[32][4] h;
-        uint256[32] c_ntt;
+        uint256[][] z;
+        uint256[][] h;
+        uint256[] c_ntt;
     }
 
     struct DilithiumPubKey {
-        uint256[32][4][4] a_hat;
+        uint256[][][] a_hat;
         bytes tr;
-        uint256[32][4] t1_new;
+        uint256[][] t1_new;
         uint256 hashID; //identifier for the internal XOF
     }
 
@@ -85,7 +85,7 @@ contract ZKNOX_dilithium {
         }
 
         // sum hint for h
-        uint256[256][4] memory h = ZKNOX_Expand_Vec(signature.h);
+        uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
         uint256 cpt = 0;
         for (uint256 i = 0; i < 4; i++) {
             for (uint256 j = 0; j < 256; j++) {
@@ -104,7 +104,7 @@ contract ZKNOX_dilithium {
         }
 
         // check norm bound for z
-        uint256[256][4] memory z = ZKNOX_Expand_Vec(signature.z);
+        uint256[][] memory z = ZKNOX_Expand_Vec(signature.z);
         for (uint256 i = 0; i < 4; i++) {
             for (uint256 j = 0; j < 256; j++) {
                 if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
@@ -114,17 +114,16 @@ contract ZKNOX_dilithium {
         }
 
         // NTT(z)
-        uint256[] memory z_tmp = new uint256[](256);
+        // uint256[] memory z_tmp = new uint256[](256);
         uint256[][] memory z_ntt = new uint256[][](4);
         for (uint256 i = 0; i < 4; i++) {
-            for (uint256 j = 0; j < 256; j++) {
-                z_tmp[j] = z[i][j];
-            }
-
-            z_ntt[i] = ntt.ZKNOX_NTTFW(z_tmp, ntt.o_psirev());
+            z_ntt[i] = ntt.ZKNOX_NTTFW(z[i], ntt.o_psirev());
         }
 
-        // 1.        
+        // 1.
+        uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
+        uint256[][] memory first_row = A_hat[0];
+
         // Az_minus_ct1 = (A*z_ntt - c_ntt*t1_new).intt()
         // compute A*z_ntt
         // computer c_ntt * t1_new

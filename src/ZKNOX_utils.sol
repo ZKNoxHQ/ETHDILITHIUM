@@ -35,6 +35,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
+import {Test, console} from "forge-std/Test.sol";
+
 uint256 constant ID_keccak = 0x00;
 uint256 constant ID_tetration = 0x01;
 
@@ -48,8 +51,10 @@ uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant omega = 80;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
 
-function ZKNOX_Expand_Mat(uint256[32][4][4] memory table) pure returns (uint256[256][4][4] memory b) {
+function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
+    b = new uint256[][][](4);
     for (uint256 i = 0; i < 4; i++) {
+        b[i] = new uint256[][](4);
         for (uint256 j = 0; j < 4; j++) {
             b[i][j] = ZKNOX_Expand(table[i][j]);
         }
@@ -57,14 +62,16 @@ function ZKNOX_Expand_Mat(uint256[32][4][4] memory table) pure returns (uint256[
     return b;
 }
 
-function ZKNOX_Expand_Vec(uint256[32][4] memory table) pure returns (uint256[256][4] memory b) {
+function ZKNOX_Expand_Vec(uint256[][] memory table) pure returns (uint256[][] memory b) {
+    b = new uint256[][](4);
     for (uint256 i = 0; i < 4; i++) {
+        // b[i] = new uint256[](256);
         b[i] = ZKNOX_Expand(table[i]);
     }
     return b;
 }
 
-function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b) {
+function ZKNOX_Expand(uint256[] memory a) pure returns (uint256[] memory b) {
     /*
     for (uint256 i = 0; i < 32; i++) {
         uint256 ai = a[i];
@@ -73,10 +80,12 @@ function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b)
         }
     }
     */
+    require(a.length == 32, "Input array must have exactly 32 elements");
+    b = new uint256[](256);
 
     assembly {
-        let aa := a
-        let bb := b
+        let aa := add(a, 32)
+        let bb := add(b, 32)
         for { let i := 0 } lt(i, 32) { i := add(i, 1) } {
             let ai := mload(aa)
             for { let j := 0 } lt(j, 8) { j := add(j, 1) } {
@@ -88,16 +97,17 @@ function ZKNOX_Expand(uint256[32] memory a) pure returns (uint256[256] memory b)
     return b;
 }
 
-function ZKNOX_Compact(uint256[256] memory a) pure returns (uint256[32] memory b) {
+function ZKNOX_Compact(uint256[] memory a) pure returns (uint256[] memory b) {
     /*
     for (uint256 i = 0; i < a.length; i++) {
         b[i >> 3] ^= a[i] << ((i & 0x7) << 5);
     }
     */
-
+    require(a.length == 256, "Input array must have exactly 256 elements");
+    b = new uint256[](32);
     assembly {
-        let aa := a
-        let bb := b
+        let aa := add(a, 32)
+        let bb := add(b, 32)
         for { let i := 0 } lt(i, 256) { i := add(i, 1) } {
             let bi := add(bb, mul(32, shr(3, i))) //shr(3,i)*32 !=shl(1,i)
             mstore(bi, xor(mload(bi), shl(shl(5, and(i, 0x7)), mload(aa))))
@@ -106,4 +116,59 @@ function ZKNOX_Compact(uint256[256] memory a) pure returns (uint256[32] memory b
     }
 
     return b;
+}
+
+//Vectorized modular multiplication
+//Multiply chunk wise vectors of n chunks modulo q
+function ZKNOX_VECMULMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure returns (uint256[] memory) {
+    assert(a.length == b.length);
+    uint256[] memory res = new uint256[](a.length);
+    for (uint256 i = 0; i < a.length; i++) {
+        res[i] = mulmod(a[i], b[i], q);
+    }
+    return res;
+}
+
+//Vectorized modular multiplication
+//Multiply chunk wise vectors of n chunks modulo q
+function ZKNOX_VECADDMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure returns (uint256[] memory) {
+    assert(a.length == b.length);
+    uint256[] memory res = new uint256[](a.length);
+    for (uint256 i = 0; i < a.length; i++) {
+        res[i] = addmod(a[i], b[i], q);
+    }
+    return res;
+}
+
+//Vectorized modular multiplication
+//Multiply chunk wise vectors of n chunks modulo q
+function ZKNOX_VECSUBMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure returns (uint256[] memory) {
+    assert(a.length == b.length);
+    uint256[] memory res = new uint256[](a.length);
+    for (uint256 i = 0; i < a.length; i++) {
+        res[i] = addmod(a[i], q - b[i], q);
+    }
+    return res;
+}
+
+function ZKNOX_ScalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns (uint256[] memory result) {
+    // Input: two vectors of elements of Fq²⁵⁶
+    // Output: the scalar product <a,b> in Fq²⁵⁶
+    // TODO USE q AS A PARAMETER FOR GENERALIZATION
+    result = new uint256[](256);
+    for (uint256 i = 0; i < a.length; i++) {
+        uint256[] memory toto = ZKNOX_VECMULMOD(a[i], b[i], q);
+        result = ZKNOX_VECADDMOD(result, toto, q);
+    }
+}
+
+function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v)
+    pure
+    returns (uint256[][] memory M_times_v)
+{
+    // Input: a matrix of elements of Fq²⁵⁶ and a vector of elements of Fq²⁵⁶
+    // Output: the multiplication M * v as a vector of elements of Fq²⁵⁶
+    for (uint256 i = 0; i < M.length; i++) {
+        M_times_v[i] = ZKNOX_ScalarProduct(M[i], v);
+    }
 }

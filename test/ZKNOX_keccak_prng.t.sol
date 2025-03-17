@@ -35,7 +35,6 @@ contract KeccakPRNGTest is Test {
         keccak_prng = new ZKNOX_keccak_prng();
         keccak_prng.inject(input_1);
         keccak_prng.flip();
-        console.logBytes(output_1);
         assertEq(output_1, keccak_prng.extract(32));
 
         // Test vector 2
