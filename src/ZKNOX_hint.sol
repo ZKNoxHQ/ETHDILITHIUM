@@ -93,3 +93,11 @@ function useHintVec(uint256[][] memory h, uint256[][] memory r) pure returns (in
         hint[i] = useHintElt(h[i], r[i]);
     }
 }
+
+function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (uint8[1024] memory hint) {
+    for (uint256 i = 0; i < 4; i++) {
+        for (uint256 j = 0; j < 256; j++) {
+            hint[i * 256 + j] = uint8(uint256(useHint(h[i][j], r[i][j])));
+        }
+    }
+}

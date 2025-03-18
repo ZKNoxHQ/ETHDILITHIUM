@@ -41,7 +41,7 @@ pragma solidity ^0.8.25;
 import {console} from "forge-std/Test.sol";
 
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
-import {ZKNOX_keccak_prng} from "./ZKNOX_keccak_prng.sol";
+import {H} from "./ZKNOX_keccak_prng.sol";
 import {
     q,
     ZKNOX_Expand,
@@ -54,7 +54,7 @@ import {
     omega,
     gamma_1_minus_beta
 } from "./ZKNOX_utils.sol";
-import {useHintVec} from "./ZKNOX_hint.sol";
+import {useHintETHDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_dilithium {
     ZKNOX_NTT ntt;
@@ -86,11 +86,7 @@ contract ZKNOX_dilithium {
         bytes memory mu;
 
         if (pk.hashID == ID_keccak) {
-            ZKNOX_keccak_prng H = new ZKNOX_keccak_prng();
-            H.inject(pk.tr);
-            H.inject(msgs);
-            H.flip();
-            mu = H.extract(64);
+            mu = abi.encodePacked(H(abi.encodePacked(pk.tr, msgs), 2));
         } else {
             // Unkown hash (I am tired of Tetration, sorry)
             return false;
@@ -150,27 +146,16 @@ contract ZKNOX_dilithium {
         }
 
         // 2. w_prime
-        int256[][] memory w_prime = useHintVec(h, z);
-        // VALUES ARE ACTUALLY NOT NEGATIVE????????
+        uint8[1024] memory w_prime = useHintETHDilithium(h, z);
 
         // 3. w_prime.bit_pack_w(γ_2) is realized using a "solidity-friendly encoding"
-        bytes memory w_prime_bytes;
-        for (i = 0; i < 4; i++) {
-            for (j = 0; j < 256; j++) {
-                w_prime_bytes = abi.encodePacked(w_prime_bytes, w_prime[i][j]);
-            }
-        }
-
+        bytes memory w_prime_bytes = abi.encode(w_prime);
         // 4.
         // return c_tilde == H(μ + w_prime_bytes, 32)
         if (pk.hashID == ID_keccak) {
-            ZKNOX_keccak_prng H = new ZKNOX_keccak_prng();
-            H.inject(mu);
-            H.inject(w_prime_bytes);
-            H.flip();
-            bytes memory H_output = H.extract(32);
+            bytes32[] memory final_hash = H(abi.encodePacked(mu, w_prime_bytes), 1);
             for (i = 0; i < 32; i++) {
-                if (signature.c_tilde[i] != H_output[i]) {
+                if (signature.c_tilde[i] != final_hash[0][i]) {
                     return false;
                 }
             }
@@ -180,6 +165,7 @@ contract ZKNOX_dilithium {
             return false;
         }
     }
+
 }
 
 //end of contract
