@@ -112,7 +112,7 @@ contract ETHDilithiumTest is Test {
         dilithium = new ZKNOX_dilithium(ntt);
     }
 
-    function testVerify() public {
+    function testVerify() public view {
 """
 
 file.write(header)

@@ -17,6 +17,7 @@ example:
 	
 generate_test_vectors:
 	$(PYTHON) -m dilithium_py.generate_test_vectors
+	forge fmt
 	
 clean:
 	rm -f $(AUX)

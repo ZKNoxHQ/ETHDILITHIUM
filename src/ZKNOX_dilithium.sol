@@ -47,7 +47,7 @@ import {
     ZKNOX_Expand,
     ZKNOX_Expand_Vec,
     ZKNOX_Expand_Mat,
-    ZKNOX_MatVecProduct,
+    ZKNOX_MatVecProductDilithium,
     ZKNOX_VECMULMOD,
     ZKNOX_VECSUBMOD,
     ID_keccak,
@@ -78,7 +78,9 @@ contract ZKNOX_dilithium {
     }
 
     function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
-        public view returns (bool result)
+        public
+        view
+        returns (bool result)
     {
         result = false;
 
@@ -125,8 +127,9 @@ contract ZKNOX_dilithium {
         }
 
         // NTT(z)
+        address addr_ntt = ntt.o_psirev();
         for (i = 0; i < 4; i++) {
-            z[i] = ntt.ZKNOX_NTTFW(z[i], ntt.o_psirev());
+            z[i] = ntt.ZKNOX_NTTFW(z[i], addr_ntt);
         }
 
         // c_ntt
@@ -135,22 +138,21 @@ contract ZKNOX_dilithium {
         // t1_new
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
 
-        // 1.
+        // 1. A*z
         uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-        z = ZKNOX_MatVecProduct(A_hat, z); // A * z
+        z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
 
+        // 2. A*z - c*t1
+        addr_ntt = ntt.o_psi_inv_rev();
         for (i = 0; i < 4; i++) {
             // we store in z A*z - c*t1
-            z[i] = ntt.ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt, q), q), ntt.o_psi_inv_rev());
+            z[i] = ntt.ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt, q), q), addr_ntt);
         }
 
-        // 2. w_prime
-        uint8[1024] memory w_prime = useHintETHDilithium(h, z);
+        // 3. w_prime packed using a "solidity-friendly encoding"
+        bytes memory w_prime_bytes = abi.encode(useHintETHDilithium(h, z));
 
-        // 3. w_prime.bit_pack_w(γ_2) is realized using a "solidity-friendly encoding"
-        bytes memory w_prime_bytes = abi.encode(w_prime);
-        // 4.
-        // return c_tilde == H(μ + w_prime_bytes, 32)
+        // 4. return c_tilde == H(μ + w_prime_bytes, 32)
         if (pk.hashID == ID_keccak) {
             bytes32[] memory final_hash = KeccakPRNG(abi.encodePacked(mu, w_prime_bytes), 1);
             for (i = 0; i < 32; i++) {
@@ -164,7 +166,6 @@ contract ZKNOX_dilithium {
             return false;
         }
     }
-
 }
 
 //end of contract
