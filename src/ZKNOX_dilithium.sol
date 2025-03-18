@@ -41,7 +41,7 @@ pragma solidity ^0.8.25;
 import {console} from "forge-std/Test.sol";
 
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
-import {H} from "./ZKNOX_keccak_prng.sol";
+import {KeccakPRNG} from "./ZKNOX_keccak_prng.sol";
 import {
     q,
     ZKNOX_Expand,
@@ -78,15 +78,14 @@ contract ZKNOX_dilithium {
     }
 
     function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
-        public
-        returns (bool result)
+        public view returns (bool result)
     {
         result = false;
 
         bytes memory mu;
 
         if (pk.hashID == ID_keccak) {
-            mu = abi.encodePacked(H(abi.encodePacked(pk.tr, msgs), 2));
+            mu = abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2));
         } else {
             // Unkown hash (I am tired of Tetration, sorry)
             return false;
@@ -153,7 +152,7 @@ contract ZKNOX_dilithium {
         // 4.
         // return c_tilde == H(μ + w_prime_bytes, 32)
         if (pk.hashID == ID_keccak) {
-            bytes32[] memory final_hash = H(abi.encodePacked(mu, w_prime_bytes), 1);
+            bytes32[] memory final_hash = KeccakPRNG(abi.encodePacked(mu, w_prime_bytes), 1);
             for (i = 0; i < 32; i++) {
                 if (signature.c_tilde[i] != final_hash[0][i]) {
                     return false;
