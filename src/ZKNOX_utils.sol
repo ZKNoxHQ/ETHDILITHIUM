@@ -173,6 +173,7 @@ function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v)
         M_times_v[i] = ZKNOX_ScalarProduct(M[i], v);
     }
 }
+
 function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
     pure
     returns (uint256[][] memory M_times_v)
@@ -187,7 +188,7 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
     uint256 j;
     uint256 k;
     uint256[] memory tmp;
-    uint256[] memory Mij; 
+    uint256[] memory Mij;
     uint256[] memory vj;
     for (i = 0; i < rowCount; i++) {
         tmp = new uint256[](vecSize);
@@ -198,7 +199,7 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
                 tmp[k] += mulmod(Mij[k], vj[k], q);
             }
         }
-        for (k = 0; k < vecSize;k++ ) {
+        for (k = 0; k < vecSize; k++) {
             tmp[k] %= q;
         }
         M_times_v[i] = tmp;

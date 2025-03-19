@@ -54,7 +54,7 @@ import {
     omega,
     gamma_1_minus_beta
 } from "./ZKNOX_utils.sol";
-import {useHintETHDilithium} from "./ZKNOX_hint.sol";
+import {useHintETHDilithiumBitPack6} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_dilithium {
     ZKNOX_NTT ntt;
@@ -150,7 +150,7 @@ contract ZKNOX_dilithium {
         }
 
         // 3. w_prime packed using a "solidity-friendly encoding"
-        bytes memory w_prime_bytes = abi.encode(useHintETHDilithium(h, z));
+        bytes memory w_prime_bytes = useHintETHDilithiumBitPack6(h, z);
 
         // 4. return c_tilde == H(μ + w_prime_bytes, 32)
         if (pk.hashID == ID_keccak) {

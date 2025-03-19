@@ -66,29 +66,29 @@ function decompose(uint256 r) pure returns (int256 r1, int256 r0) {
 }
 
 // Main function, use_hint
-function useHint(uint256 h, uint256 r) pure returns (int256) {
+function useHint(uint256 h, uint256 r) pure returns (uint256) {
     int256 m = _2_gamma_2_inverse;
     (int256 r1, int256 r0) = decompose(r);
 
     if (h == 1) {
         if (r0 > 0) {
-            return (r1 + 1) % m;
+            return uint256((r1 + 1) % m);
         }
-        return (r1 - 1) % m;
+        return uint256((r1 - 1) % m);
     }
 
-    return r1;
+    return uint256(r1);
 }
 
-function useHintElt(uint256[] memory h, uint256[] memory r) pure returns (int256[] memory hint) {
-    hint = new int256[](h.length);
+function useHintElt(uint256[] memory h, uint256[] memory r) pure returns (uint256[] memory hint) {
+    hint = new uint256[](h.length);
     for (uint256 i = 0; i < h.length; i++) {
         hint[i] = useHint(h[i], r[i]);
     }
 }
 
-function useHintVec(uint256[][] memory h, uint256[][] memory r) pure returns (int256[][] memory hint) {
-    hint = new int256[][](h.length);
+function useHintVec(uint256[][] memory h, uint256[][] memory r) pure returns (uint256[][] memory hint) {
+    hint = new uint256[][](h.length);
     for (uint256 i = 0; i < h.length; i++) {
         hint[i] = useHintElt(h[i], r[i]);
     }
@@ -98,6 +98,37 @@ function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure re
     for (uint256 i = 0; i < 4; i++) {
         for (uint256 j = 0; j < 256; j++) {
             hint[i * 256 + j] = uint8(uint256(useHint(h[i][j], r[i][j])));
+        }
+    }
+}
+
+function useHintETHDilithiumBitPack6(uint256[][] memory h, uint256[][] memory r) pure returns (bytes memory hint) {
+    // Stored in 768 bytes for 4 * 256 * 6 bits (useHint output < 64)
+    // We follow the packing of the reference implementation
+    hint = new bytes(768);
+    uint256 bitIndex;
+    uint256 i;
+    uint256 j;
+    uint256 k;
+    uint8 result;
+    uint256 byteIndex;
+    uint256 bitPos;
+    
+    for (i = 0; i < 4; i++) {
+        bitIndex = 0;
+        bytes memory hint_tmp = new bytes(192);
+        for (j = 0; j < 256; j++) {
+            // reading coefficients in reversed order
+            result = uint8(uint256(useHint(h[i][255 - j], r[i][255 - j])));
+            for (k = 0; k < 6; k++) {
+                byteIndex = bitIndex >> 3;
+                bitPos = bitIndex & 7;
+                hint_tmp[191 - byteIndex] |= bytes1(uint8((result >> (5 - k)) & 0x01) << (7 - bitPos));
+                bitIndex++;
+            }
+        }
+        for (uint256 j = 0; j < 192;j++) {
+            hint[192 * i + j] = hint_tmp[j];
         }
     }
 }
