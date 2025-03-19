@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_utils.sol";
-import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
+import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_dilithium_utils.sol";
+import {ZKNOX_dilithium} from "../src/ZKNOX_ETHDilithium.sol";
 import {ZKNOX_NTT} from "../src/ZKNOX_NTT.sol";
 
 contract ETHDilithiumTest is Test {

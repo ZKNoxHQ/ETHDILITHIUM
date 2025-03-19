@@ -38,7 +38,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ZKNOX_VECMULMOD, ZKNOX_VECADDMOD, ZKNOX_VECSUBMOD} from "./ZKNOX_utils.sol";
+import {ZKNOX_VECMULMOD, ZKNOX_VECADDMOD, ZKNOX_VECSUBMOD} from "./ZKNOX_dilithium_utils.sol";
 
 contract ZKNOX_NTT {
     /**

@@ -38,7 +38,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_utils.sol";
+import "./ZKNOX_dilithium_utils.sol";
 
 // NTT_FW as specified by EIP, statefull version
 //address apsirev: address of the contract storing the powers of psi

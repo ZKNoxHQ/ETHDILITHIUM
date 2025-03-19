@@ -55,7 +55,7 @@ import {
     ID_keccak,
     omega,
     gamma_1_minus_beta
-} from "./ZKNOX_utils.sol";
+} from "./ZKNOX_dilithium_utils.sol";
 import {useHintETHDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_dilithium {
