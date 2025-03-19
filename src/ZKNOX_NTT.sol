@@ -38,7 +38,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ZKNOX_VECMULMOD, ZKNOX_VECADDMOD, ZKNOX_VECSUBMOD} from "./ZKNOX_utils.sol";
+import {ZKNOX_VECMULMOD, ZKNOX_VECADDMOD, ZKNOX_VECSUBMOD} from "./ZKNOX_dilithium_utils.sol";
 
 contract ZKNOX_NTT {
     /**
@@ -60,7 +60,7 @@ contract ZKNOX_NTT {
     address public o_psirev; //external contract containing psi_rev
     address public o_psi_inv_rev; //external contract containing psi_inv_rev
     uint256 storage_q;
-    uint256 storage_nm1modq; //n^-1 mod 12289
+    uint256 storage_nm1modq;
     uint256 is_immutable; //"antifuse" variable
 
     constructor(address Apsi_rev, address Apsi_inrev, uint256 q, uint256 nm1modq) {
@@ -169,14 +169,12 @@ contract ZKNOX_NTT {
 
     //multiply two polynomials over Zq a being in standard canonical representation, b in ntt representation with reduction polynomial X^n+1
     function ZKNOX_NTT_HALFMUL(uint256[] memory a, uint256[] memory b) public view returns (uint256[] memory) {
-        return (ZKNOX_NTTINV(ZKNOX_VECMULMOD(ZKNOX_NTTFW(a, o_psirev), b, storage_q), o_psi_inv_rev));
+        return (ZKNOX_NTTINV(ZKNOX_VECMULMOD(ZKNOX_NTTFW(a, o_psirev), b), o_psi_inv_rev));
     }
 
     //multiply two polynomials over Zq a being in standard canonical representation, b in ntt representation with reduction polynomial X^n+1
     function ZKNOX_NTT_MUL(uint256[] memory a, uint256[] memory b) public view returns (uint256[] memory) {
-        return (
-            ZKNOX_NTTINV(ZKNOX_VECMULMOD(ZKNOX_NTTFW(a, o_psirev), ZKNOX_NTTFW(b, o_psirev), storage_q), o_psi_inv_rev)
-        );
+        return (ZKNOX_NTTINV(ZKNOX_VECMULMOD(ZKNOX_NTTFW(a, o_psirev), ZKNOX_NTTFW(b, o_psirev)), o_psi_inv_rev));
     }
 
     //     /**

@@ -30,101 +30,149 @@
 ///* License: This software is licensed under MIT License
 ///* This Code may be reused including this header, license and copyright notice.
 ///* See LICENSE file at the root folder of the project.
-///* FILE: ZKNOX_hint.sol
-///* Description: Compute Negative Wrap Convolution NTT as specified in EIP-NTT
+///* FILE: ZKNOX_dilithium.sol
+///* Description: Compute ethereum friendly version of dilithium verification
+/**
+ *
+ */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-int256 constant gamma_2 = 95232;
-int256 constant _2_gamma_2 = 190464;
-int256 constant _2_gamma_2_inverse = 44; // (8380417 - 1) / _2_gamma_2
+import {console} from "forge-std/Test.sol";
 
-import {Test, console} from "forge-std/Test.sol";
-import {q} from "./ZKNOX_dilithium_utils.sol";
+import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
+import "./ZKNOX_NTT_dilithium.sol";
 
-// Function to reduce r0 within the range of -(a << 1) < r0 <= (a << 1)
-function reduceModPM(int256 r0) pure returns (int256 res) {
-    res = r0 % _2_gamma_2;
-    if (res > gamma_2) {
-        res = res - _2_gamma_2;
+import {KeccakPRNG} from "./ZKNOX_keccak_prng.sol";
+import {
+    q,
+    ZKNOX_Expand,
+    ZKNOX_Expand_Vec,
+    ZKNOX_Expand_Mat,
+    ZKNOX_MatVecProductDilithium,
+    ZKNOX_VECMULMOD,
+    ZKNOX_VECSUBMOD,
+    ID_keccak,
+    omega,
+    gamma_1_minus_beta
+} from "./ZKNOX_dilithium_utils.sol";
+import {useHintDilithium} from "./ZKNOX_hint.sol";
+
+contract ZKNOX_dilithium {
+    ZKNOX_NTT ntt;
+    address public apsirev;
+    address public apsiInvrev;
+
+    constructor(ZKNOX_NTT i_ntt) {
+        ntt = i_ntt;
+        apsirev = ntt.o_psirev();
+        apsiInvrev = ntt.o_psi_inv_rev();
     }
-}
 
-// Decompose function equivalent to the Python version
-function decompose(uint256 r) pure returns (int256 r1, int256 r0) {
-    int256 rp = int256(r % q);
-    r0 = reduceModPM(rp);
-    r1 = rp - r0;
-
-    if (rp - r0 == 8380416) {
-        r1 = 0;
-        r0 = r0 - 1;
-    } else {
-        r1 = r1 / _2_gamma_2;
+    struct DilithiumSignature {
+        bytes c_tilde;
+        uint256[][] z;
+        uint256[][] h;
+        uint256[] c_ntt;
     }
-    return (r1, r0);
-}
 
-// Main function, use_hint
-function useHint(uint256 h, uint256 r) pure returns (uint256) {
-    int256 m = _2_gamma_2_inverse;
-    (int256 r1, int256 r0) = decompose(r);
+    struct DilithiumPubKey {
+        uint256[][][] a_hat;
+        bytes tr;
+        uint256[][] t1_new;
+        uint256 hashID; //identifier for the internal XOF
+    }
 
-    if (h == 1) {
-        if (r0 > 0) {
-            return uint256((r1 + 1) % m);
+    function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
+        public
+        view
+        returns (bool result)
+    {
+        result = false;
+
+        bytes memory mu;
+
+        if (pk.hashID == ID_keccak) {
+            mu = abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2));
+        } else {
+            // Unkown hash (I am tired of Tetration, sorry)
+            return false;
         }
-        return uint256((r1 - 1) % m);
-    }
 
-    return uint256(r1);
-}
-
-function useHintElt(uint256[] memory h, uint256[] memory r) pure returns (uint256[] memory hint) {
-    hint = new uint256[](h.length);
-    for (uint256 i = 0; i < h.length; i++) {
-        hint[i] = useHint(h[i], r[i]);
-    }
-}
-
-function useHintVec(uint256[][] memory h, uint256[][] memory r) pure returns (uint256[][] memory hint) {
-    hint = new uint256[][](h.length);
-    for (uint256 i = 0; i < h.length; i++) {
-        hint[i] = useHintElt(h[i], r[i]);
-    }
-}
-
-function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (uint8[1024] memory hint) {
-    for (uint256 i = 0; i < 4; i++) {
-        for (uint256 j = 0; j < 256; j++) {
-            hint[i * 256 + j] = uint8(uint256(useHint(h[i][j], r[i][j])));
-        }
-    }
-}
-
-function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (bytes memory hint) {
-    // Stored in 768 bytes for 4 * 256 * 6 bits (useHint output < 64)
-    // We follow the packing of the reference implementation
-    hint = new bytes(768);
-    uint256 bitIndex;
-    uint256 i;
-    uint256 j;
-    uint256 k;
-    uint8 result;
-    uint256 byteIndex;
-    uint256 bitPos;
-
-    for (i = 0; i < 4; i++) {
-        bitIndex = 0;
-        for (j = 0; j < 256; j++) {
-            // reading coefficients in reversed order
-            result = uint8(uint256(useHint(h[i][255 - j], r[i][255 - j])));
-            for (k = 0; k < 6; k++) {
-                byteIndex = bitIndex >> 3;
-                bitPos = bitIndex & 7;
-                hint[192 * i + 191 - byteIndex] |= bytes1(uint8((result >> (5 - k))) << (7 - bitPos));
-                bitIndex++;
+        // sum hint for h
+        uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
+        uint256 cpt = 0;
+        uint256 i;
+        uint256 j;
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 256; j++) {
+                if (h[i][j] == 1) {
+                    cpt = cpt + 1;
+                }
+                // else {
+                //     // can be removed?
+                //     if (h[i][j] != 0) {
+                //         return false;
+                //     }
+                // }
             }
         }
+        if (cpt > omega) {
+            return false;
+        }
+
+        // check norm bound for z
+        uint256[][] memory z = ZKNOX_Expand_Vec(signature.z);
+
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 256; j++) {
+                if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
+                    return false;
+                }
+            }
+        }
+
+        // NTT(z)
+
+        for (i = 0; i < 4; i++) {
+            z[i] = ZKNOX_NTTFW(z[i], apsirev);
+        }
+
+        // c_ntt
+        uint256[] memory c_ntt = ZKNOX_Expand(signature.c_ntt);
+
+        // t1_new
+        uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
+
+        // 1. A*z
+        uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
+        z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
+
+        // 2. A*z - c*t1
+
+        for (i = 0; i < 4; i++) {
+            // we store in z A*z - c*t1
+            z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
+        }
+
+        // 3. w_prime packed using a "solidity-friendly encoding"
+        bytes memory w_prime_bytes = useHintDilithium(h, z);
+
+        // 4. return c_tilde == H(μ + w_prime_bytes, 32)
+        if (pk.hashID == ID_keccak) {
+            bytes32[] memory final_hash = KeccakPRNG(abi.encodePacked(mu, w_prime_bytes), 1);
+            for (i = 0; i < 32; i++) {
+                if (signature.c_tilde[i] != final_hash[0][i]) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            // Unkown hash (I am tired of Tetration, sorry)
+            return false;
+        }
     }
 }
+
+//end of contract
+/* the contract shall be initialized with a valid precomputation of psi_rev and psi_invrev contracts provided to the input ntt contract*/
