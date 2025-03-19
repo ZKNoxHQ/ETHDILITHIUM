@@ -48,6 +48,7 @@ uint256 constant _DILITHIUM_WORD32_S = 256;
 uint256 constant n = 256;
 uint256 constant q = 8380417;
 uint256 constant kq = 4290773504; // (2**32 // q) * q
+uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
 
@@ -120,7 +121,7 @@ function ZKNOX_Compact(uint256[] memory a) pure returns (uint256[] memory b) {
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function ZKNOX_VECMULMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure returns (uint256[] memory) {
+function ZKNOX_VECMULMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -131,7 +132,7 @@ function ZKNOX_VECMULMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function ZKNOX_VECADDMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure returns (uint256[] memory) {
+function ZKNOX_VECADDMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -142,7 +143,7 @@ function ZKNOX_VECADDMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function ZKNOX_VECSUBMOD(uint256[] memory a, uint256[] memory b, uint256 q) pure returns (uint256[] memory) {
+function ZKNOX_VECSUBMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -157,8 +158,8 @@ function ZKNOX_ScalarProduct(uint256[][] memory a, uint256[][] memory b) pure re
     // TODO USE q AS A PARAMETER FOR GENERALIZATION
     result = new uint256[](256);
     for (uint256 i = 0; i < a.length; i++) {
-        uint256[] memory toto = ZKNOX_VECMULMOD(a[i], b[i], q);
-        result = ZKNOX_VECADDMOD(result, toto, q);
+        uint256[] memory toto = ZKNOX_VECMULMOD(a[i], b[i]);
+        result = ZKNOX_VECADDMOD(result, toto);
     }
 }
 
@@ -174,40 +175,39 @@ function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v)
     }
 }
 
-    uint256 constant vecSize = 256;
-    uint256 constant rowCount = 4;
-    uint256 constant colCount = 4;
+uint256 constant vecSize = 256;
+uint256 constant rowCount = 4;
+uint256 constant colCount = 4;
 
 function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
     pure
     returns (uint256[][] memory M_times_v)
 {
-
     M_times_v = new uint256[][](rowCount);
 
     uint256 i;
     uint256 j;
     uint256 k;
     uint256[] memory tmp;
-    uint256[] memory Mij; 
+    uint256[] memory Mij;
     uint256[] memory vj;
     for (i = 0; i < rowCount; i++) {
         tmp = new uint256[](vecSize);
         for (j = 0; j < colCount; j++) {
             Mij = M[i][j];
             vj = v[j];
-                        
-            assembly{
-                let a_tmp:=add(tmp,32)
-                let a_Mij:=add(Mij, 32)
-                let a_vj:=add(vj,32)
+
+            assembly {
+                let a_tmp := add(tmp, 32)
+                let a_Mij := add(Mij, 32)
+                let a_vj := add(vj, 32)
                 for { let offset_k := 0 } gt(8192, offset_k) { offset_k := add(offset_k, 32) } {
-                    let tmp_k:=add(a_tmp,offset_k) //address of tmp[k]
-                    mstore(tmp_k, add(mload(tmp_k), mulmod(mload(add(a_Mij,offset_k)), mload(add(a_vj, offset_k)) , q)) )
-            }
+                    let tmp_k := add(a_tmp, offset_k) //address of tmp[k]
+                    mstore(tmp_k, add(mload(tmp_k), mulmod(mload(add(a_Mij, offset_k)), mload(add(a_vj, offset_k)), q)))
+                }
             }
         }
-        for (k = 0; k < vecSize;k++ ) {
+        for (k = 0; k < vecSize; k++) {
             tmp[k] %= q;
         }
         M_times_v[i] = tmp;
