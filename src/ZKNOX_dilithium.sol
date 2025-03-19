@@ -54,7 +54,7 @@ import {
     omega,
     gamma_1_minus_beta
 } from "./ZKNOX_utils.sol";
-import {useHintETHDilithiumBitPack6} from "./ZKNOX_hint.sol";
+import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_dilithium {
     ZKNOX_NTT ntt;

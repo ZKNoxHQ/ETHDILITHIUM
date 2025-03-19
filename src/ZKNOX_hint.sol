@@ -113,22 +113,18 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
     uint8 result;
     uint256 byteIndex;
     uint256 bitPos;
-    
+
     for (i = 0; i < 4; i++) {
         bitIndex = 0;
-        bytes memory hint_tmp = new bytes(192);
         for (j = 0; j < 256; j++) {
             // reading coefficients in reversed order
             result = uint8(uint256(useHint(h[i][255 - j], r[i][255 - j])));
             for (k = 0; k < 6; k++) {
                 byteIndex = bitIndex >> 3;
                 bitPos = bitIndex & 7;
-                hint_tmp[191 - byteIndex] |= bytes1(uint8((result >> (5 - k)) & 0x01) << (7 - bitPos));
+                hint[192*i + 191 - byteIndex] |= bytes1(uint8((result >> (5 - k))) << (7 - bitPos));
                 bitIndex++;
             }
-        }
-        for (uint256 j = 0; j < 192;j++) {
-            hint[192 * i + j] = hint_tmp[j];
         }
     }
 }
