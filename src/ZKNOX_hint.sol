@@ -122,7 +122,7 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
             for (k = 0; k < 6; k++) {
                 byteIndex = bitIndex >> 3;
                 bitPos = bitIndex & 7;
-                hint[192*i + 191 - byteIndex] |= bytes1(uint8((result >> (5 - k))) << (7 - bitPos));
+                hint[192 * i + 191 - byteIndex] |= bytes1(uint8((result >> (5 - k))) << (7 - bitPos));
                 bitIndex++;
             }
         }
