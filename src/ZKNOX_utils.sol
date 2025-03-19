@@ -173,13 +173,15 @@ function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v)
         M_times_v[i] = ZKNOX_ScalarProduct(M[i], v);
     }
 }
+
+    uint256 constant vecSize = 256;
+    uint256 constant rowCount = 4;
+    uint256 constant colCount = 4;
+
 function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
     pure
     returns (uint256[][] memory M_times_v)
 {
-    uint256 rowCount = M.length;
-    uint256 colCount = v.length;
-    uint256 vecSize = M[0][0].length;
 
     M_times_v = new uint256[][](rowCount);
 
@@ -194,8 +196,15 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
         for (j = 0; j < colCount; j++) {
             Mij = M[i][j];
             vj = v[j];
-            for (k = 0; k < vecSize; k++) {
-                tmp[k] += mulmod(Mij[k], vj[k], q);
+                        
+            assembly{
+                let a_tmp:=add(tmp,32)
+                let a_Mij:=add(Mij, 32)
+                let a_vj:=add(vj,32)
+                for { let offset_k := 0 } gt(8192, offset_k) { offset_k := add(offset_k, 32) } {
+                    let tmp_k:=add(a_tmp,offset_k) //address of tmp[k]
+                    mstore(tmp_k, add(mload(tmp_k), mulmod(mload(add(a_Mij,offset_k)), mload(add(a_vj, offset_k)) , q)) )
+            }
             }
         }
         for (k = 0; k < vecSize;k++ ) {
