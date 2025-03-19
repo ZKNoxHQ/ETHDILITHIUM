@@ -102,7 +102,7 @@ function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure re
     }
 }
 
-function useHintETHDilithiumBitPack6(uint256[][] memory h, uint256[][] memory r) pure returns (bytes memory hint) {
+function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (bytes memory hint) {
     // Stored in 768 bytes for 4 * 256 * 6 bits (useHint output < 64)
     // We follow the packing of the reference implementation
     hint = new bytes(768);

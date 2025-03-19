@@ -150,7 +150,7 @@ contract ZKNOX_dilithium {
         }
 
         // 3. w_prime packed using a "solidity-friendly encoding"
-        bytes memory w_prime_bytes = useHintETHDilithiumBitPack6(h, z);
+        bytes memory w_prime_bytes = useHintDilithium(h, z);
 
         // 4. return c_tilde == H(μ + w_prime_bytes, 32)
         if (pk.hashID == ID_keccak) {
