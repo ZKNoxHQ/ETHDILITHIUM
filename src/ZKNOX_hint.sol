@@ -103,35 +103,36 @@ function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure re
 }
 
 function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (bytes memory hint) {
-    // Stored in 768 bytes for 4 * 256 * 6 bits (useHint output < 64)
-    // We follow the packing of the reference implementation
+    // Hint computed with a packing of 6 bytes
+    // Total : (ModuleDimension) * (RingDimension) * (useHintBitSize)
+    //       =       4           *       256       *        6
+    //       = 6144 bits = 768 bytes.
     hint = new bytes(768);
     bytes memory hint_i;
-    uint256 bitIndex;
     uint256 i;
     uint256 j;
-    uint256 l;
-    uint8 result0;
-    uint8 result1;
-    uint8 result2;
-    uint8 result3;
+    uint256 k;
+    uint256 result0;
+    uint256 result1;
+    uint256 result2;
+    uint256 result3;
 
     for (i = 0; i < 4; i++) {
         hint_i = new bytes(192);
-        l = 192;
-        bitIndex = 191;
-        for (j = 0; j < 256; j=j+4) {
-            // reading coefficients in reversed order
-            result0 = uint8(uint256(useHint(h[i][255 - j], r[i][255 - j])));
-            result1 = uint8(uint256(useHint(h[i][255 - j-1], r[i][255 - j-1])));
-            result2 = uint8(uint256(useHint(h[i][255 - j-2], r[i][255 - j-2])));
-            result3 = uint8(uint256(useHint(h[i][255 - j-3], r[i][255 - j-3])));
-            hint_i[l-1]= bytes1(result0 << 2 | result1 >> 4);
-            hint_i[l-2] = bytes1((result1 & 15) << 4 | result2 >> 2);
-            hint_i[l-3] = bytes1((result2 & 3) << 6 | result3);
-            l = l-3;
+        k = 0;
+        for (j = 0; j < 256; j = j + 4) {
+            // reading coefficients by slice of 4 (each of them is 6-bit long)
+            result0 = useHint(h[i][j + 0], r[i][j + 0]);
+            result1 = useHint(h[i][j + 1], r[i][j + 1]);
+            result2 = useHint(h[i][j + 2], r[i][j + 2]);
+            result3 = useHint(h[i][j + 3], r[i][j + 3]);
+            // storing by slices of 3 bytes (as 4*6 = 3*8)
+            hint_i[k+0] = bytes1(uint8((result1 & 3) << 6 | result0));
+            hint_i[k+1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
+            hint_i[k+2] = bytes1(uint8(result3 << 2 | result2 >> 4));
+            k += 3;
         }
-        // copy hint_i into hint 
+        // copy hint_i into hint
         assembly {
             let dest := add(hint, add(32, mul(i, 192)))
             let src := add(hint_i, 32)
@@ -142,14 +143,7 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
 
 
 /*
+xxxxxx yyyyyy zzzzzz tttttt
 
-[12 23 34 45]
-
-45 101101
-34 100010
-23  10111
-12   1100
-
-|  45  |  34  |  23  |  12  |
-|101101|100010|010111|001100|
+zztttttt yyyyzzzz xxxxxxyy
 */
