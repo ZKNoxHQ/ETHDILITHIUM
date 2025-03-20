@@ -104,9 +104,11 @@ function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure re
 
 function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (bytes memory hint) {
     // Hint computed with a packing of 6 bytes
-    // Total : (ModuleDimension) * (RingDimension) * (useHintBitSize)
+    // Total = (ModuleDimension) * (RingDimension) * (useHintBitSize)
     //       =       4           *       256       *        6
-    //       = 6144 bits = 768 bytes.
+    //       = 4 * 1535 bits
+    //       = 4 * 192 bytes
+    //       = 768 bytes.
     hint = new bytes(768);
     bytes memory hint_i;
     uint256 i;
@@ -140,10 +142,3 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
         }
     }
 }
-
-
-/*
-xxxxxx yyyyyy zzzzzz tttttt
-
-zztttttt yyyyzzzz xxxxxxyy
-*/
