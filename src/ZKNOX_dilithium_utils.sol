@@ -35,7 +35,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 uint256 constant ID_keccak = 0x00;
