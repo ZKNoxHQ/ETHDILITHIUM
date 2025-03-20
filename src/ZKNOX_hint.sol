@@ -124,12 +124,12 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
         k = 0;
         for (j = 0; j < 256; j = j + 4) {
             // reading coefficients by slice of 4 (each of them is 6-bit long)
-            result0 = useHint(h[i][j + 0], r[i][j + 0]);
+            result0 = useHint(h[i][j], r[i][j]);
             result1 = useHint(h[i][j + 1], r[i][j + 1]);
             result2 = useHint(h[i][j + 2], r[i][j + 2]);
             result3 = useHint(h[i][j + 3], r[i][j + 3]);
             // storing by slices of 3 bytes (as 4*6 = 3*8)
-            hint_i[k+0] = bytes1(uint8((result1 & 3) << 6 | result0));
+            hint_i[k] = bytes1(uint8((result1 & 3) << 6 | result0));
             hint_i[k+1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
             hint_i[k+2] = bytes1(uint8(result3 << 2 | result2 >> 4));
             k += 3;
