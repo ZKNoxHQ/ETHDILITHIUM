@@ -130,8 +130,8 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
             result3 = useHint(h[i][j + 3], r[i][j + 3]);
             // storing by slices of 3 bytes (as 4*6 = 3*8)
             hint_i[k] = bytes1(uint8((result1 & 3) << 6 | result0));
-            hint_i[k+1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
-            hint_i[k+2] = bytes1(uint8(result3 << 2 | result2 >> 4));
+            hint_i[k + 1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
+            hint_i[k + 2] = bytes1(uint8(result3 << 2 | result2 >> 4));
             k += 3;
         }
         // copy hint_i into hint
