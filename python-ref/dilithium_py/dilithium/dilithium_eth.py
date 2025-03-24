@@ -87,6 +87,7 @@ class ETHDilithium(Dilithium):
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
         # Set seeds and nonce (kappa)
         mu = self._h(tr + m, 64, _xof=_xof)
+        print("μ = ", mu.hex())
         kappa = 0
         rho_prime = self._h(K + mu, 64, _xof=_xof)
 
@@ -149,7 +150,11 @@ class ETHDilithium(Dilithium):
         if z.check_norm_bound(self.gamma_1 - self.beta):
             return False
 
+        print("\n\n")
+        print("tr = ", tr.hex())
+        print("m = ", m.hex())
         mu = self._h(tr + m, 64, _xof=_xof)
+        print('mu = ', mu.hex())
         z = z.to_ntt()
 
         Az_minus_ct1 = (A_hat @ z) - t1_new.scale(c_ntt)
@@ -157,5 +162,8 @@ class ETHDilithium(Dilithium):
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
+        print("mu = ", mu.hex())
+        print("wprime = ", w_prime_bytes.hex())
+        print("final = ", self._h(mu + w_prime_bytes, 32, _xof=_xof).hex())
 
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)

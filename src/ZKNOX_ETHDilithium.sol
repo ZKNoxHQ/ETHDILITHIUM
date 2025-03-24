@@ -44,6 +44,7 @@ import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import "./ZKNOX_NTT_dilithium.sol";
 
 import {KeccakPRNG} from "./ZKNOX_keccak_prng.sol";
+import "./ZKNOX_shake.sol";
 import {
     q,
     ZKNOX_Expand,
@@ -83,11 +84,12 @@ contract ZKNOX_dilithium {
         uint256 hashID; //identifier for the internal XOF
     }
 
-    function dilithium_core(
-        DilithiumPubKey memory pk,
-        DilithiumSignature memory signature
-    ) public view returns (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) {
-         // sum hint for h
+    function dilithium_core(DilithiumPubKey memory pk, DilithiumSignature memory signature)
+        public
+        view
+        returns (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes)
+    {
+        // sum hint for h
         uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
         norm_h = 0;
         uint256 i;
@@ -108,12 +110,15 @@ contract ZKNOX_dilithium {
 
         // check norm bound for z
         z = ZKNOX_Expand_Vec(signature.z);
-        
 
         // NTT(z)
         uint256[][] memory tmp = new uint256[][](4);
         for (i = 0; i < 4; i++) {
-            tmp[i] = ZKNOX_NTTFW(z[i], apsirev);
+            tmp[i] = new uint256[](256);
+            for (j = 0; j < 256; j++) {
+                tmp[i][j] = z[i][j];
+            }
+            tmp[i] = ZKNOX_NTTFW(tmp[i], apsirev);
         }
 
         // c_ntt
@@ -141,7 +146,7 @@ contract ZKNOX_dilithium {
         returns (bool result)
     {
         result = false;
-        (uint256 norm_h, uint256[][] memory z,  bytes memory w_prime_bytes) = dilithium_core(pk, signature);
+        (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) = dilithium_core(pk, signature);
 
         if (norm_h > omega) {
             return false;
@@ -149,38 +154,40 @@ contract ZKNOX_dilithium {
         for (uint256 i = 0; i < 4; i++) {
             for (uint256 j = 0; j < 256; j++) {
                 if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
-                    console.log("AOOOO", i, j, z[i][j]);
                     return false;
                 }
             }
         }
-
-        // bytes memory mu;
-
-        // if (pk.hashID == ID_keccak) {
-        //     mu = abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2));
-        // } else {
-        //     // Unkown hash (I am tired of Tetration, sorry)
-        //     return false;
-        // }
-
-
-        // 4. return c_tilde == H(μ + w_prime_bytes, 32)
+        bytes32 final_hash;
         if (pk.hashID == ID_keccak) {
-            bytes32[] memory final_hash = KeccakPRNG(abi.encodePacked(
-                abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2)),
-                w_prime_bytes
-            ), 1);
-            for (uint256 i = 0; i < 32; i++) {
-                if (signature.c_tilde[i] != final_hash[0][i]) {
-                    return false;
-                }
-            }
-            return true;
+            final_hash = KeccakPRNG(abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2), w_prime_bytes), 1)[0];
+        } else if (pk.hashID == ID_shake) {
+            ctx_shake memory ctx;
+            ctx = shake_update(ctx, pk.tr);
+            ctx = shake_update(ctx, msgs);
+            bytes memory mu = shake_digest(ctx, 64);
+            console.logBytes(pk.tr);
+            console.logBytes(msgs);
+            console.logBytes(mu);
+            console.log("");
+            ctx_shake memory ctx2;
+            ctx2 = shake_update(ctx2, mu);
+            ctx2 = shake_update(ctx2, w_prime_bytes);
+            final_hash = bytes32(shake_digest(ctx2, 32));
+            console.logBytes(mu);
+            console.logBytes(w_prime_bytes);
+            console.logBytes32(final_hash);
+            console.logBytes(signature.c_tilde);
         } else {
             // Unkown hash (I am tired of Tetration, sorry)
             return false;
         }
+        for (uint256 i = 0; i < 32; i++) {
+            if (signature.c_tilde[i] != final_hash[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
