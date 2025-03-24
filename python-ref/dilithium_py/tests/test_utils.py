@@ -27,4 +27,3 @@ class TestUtils(unittest.TestCase):
         h = 2345433
         r = 5432321
         assert use_hint(h, r, a, q) == 29
-        print(decompose(r, a, q))
