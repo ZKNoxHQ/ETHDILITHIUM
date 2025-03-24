@@ -1,4 +1,3 @@
-import os
 from dilithium_py.dilithium.dilithium import Dilithium
 
 from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
