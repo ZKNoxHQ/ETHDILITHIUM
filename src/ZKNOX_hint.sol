@@ -74,7 +74,8 @@ function useHint(uint256 h, uint256 r) pure returns (uint256) {
         if (r0 > 0) {
             return uint256((r1 + 1) % m);
         }
-        return uint256((r1 - 1) % m);
+        // (r1-1)%m
+        return uint256((r1 + m - 1) % m);
     }
 
     return uint256(r1);
