@@ -1,3 +1,4 @@
+from hashlib import shake_256
 from .polynomials_generic import PolynomialRing, Polynomial
 from ..utilities.utils import (
     reduce_mod_pm,
@@ -8,7 +9,7 @@ from ..utilities.utils import (
 )
 from ..utilities.utils import make_hint, make_hint_optimised, use_hint
 
-from ..shake.shake_wrapper import shake128, shake256
+from ..shake.shake_wrapper import Shake, shake128, shake256
 from polyntt.ntt_iterative import NTTIterative
 
 
@@ -41,7 +42,11 @@ class PolynomialRingDilithium(PolynomialRing):
                     return j
 
         # Initialise the XOF
-        xof = _xof(seed)
+        if _xof == shake256:
+            xof = Shake(shake_256, 136)
+            xof.absorb(seed)
+        else:
+            xof = _xof(seed)
         xof.flip()
         # Set the first 8 bytes for the sign, and leave the rest for
         # sampling.

@@ -1,7 +1,8 @@
+from hashlib import shake_256
 import os
 from ..modules.modules import ModuleDilithium
 
-from ..shake.shake_wrapper import shake128, shake256
+from ..shake.shake_wrapper import Shake, shake128, shake256
 
 
 class Dilithium:
@@ -61,7 +62,9 @@ class Dilithium:
             h = _xof()
             h.inject(input_bytes)
         else:
-            h = _xof(input_bytes)
+            # fix the bug for now like this
+            h = Shake(shake_256, 136)
+            h.absorb(input_bytes)
         h.flip()
         return h.read(length)
 
