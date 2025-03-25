@@ -1,7 +1,7 @@
-import os
 from dilithium_py.dilithium.dilithium import Dilithium
 
 from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
+from ..shake.shake_wrapper import shake256
 
 
 class ETHDilithium(Dilithium):
@@ -110,8 +110,6 @@ class ETHDilithium(Dilithium):
 
             # Create challenge polynomial
             w1_bytes = w1.bit_pack_w(self.gamma_2)
-            # w1_bytes = encode(["int256"] * 256 * 4,
-            #                   [x for row in w1._data for elt in row for x in elt.coeffs])
             c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 

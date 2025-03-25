@@ -111,6 +111,12 @@ class TestDilithium(unittest.TestCase):
             self.generic_test_ethdilithium(
                 ETHDilithium2, Keccak256PRNG, Keccak256PRNG)
 
+    # TEST ETHDILITHIUM with SHAKE
+    def test_ethdilithium2_shake(self):
+        for _ in range(3):
+            self.generic_test_ethdilithium(
+                ETHDilithium2, shake256, Keccak256PRNG)
+
 
 class TestDilithiumDRBG(unittest.TestCase):
     """

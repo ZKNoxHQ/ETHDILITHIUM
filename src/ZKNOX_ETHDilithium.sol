@@ -44,6 +44,7 @@ import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import "./ZKNOX_NTT_dilithium.sol";
 
 import {KeccakPRNG} from "./ZKNOX_keccak_prng.sol";
+import "./ZKNOX_shake.sol";
 import {
     q,
     ZKNOX_Expand,
@@ -83,31 +84,20 @@ contract ZKNOX_dilithium {
         uint256 hashID; //identifier for the internal XOF
     }
 
-    function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
+    function dilithium_core(DilithiumPubKey memory pk, DilithiumSignature memory signature)
         public
         view
-        returns (bool result)
+        returns (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes)
     {
-        result = false;
-
-        bytes memory mu;
-
-        if (pk.hashID == ID_keccak) {
-            mu = abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2));
-        } else {
-            // Unkown hash (I am tired of Tetration, sorry)
-            return false;
-        }
-
         // sum hint for h
         uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
-        uint256 cpt = 0;
+        norm_h = 0;
         uint256 i;
         uint256 j;
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
                 if (h[i][j] == 1) {
-                    cpt = cpt + 1;
+                    norm_h += 1;
                 }
                 // else {
                 //     // can be removed?
@@ -117,25 +107,18 @@ contract ZKNOX_dilithium {
                 // }
             }
         }
-        if (cpt > omega) {
-            return false;
-        }
 
         // check norm bound for z
-        uint256[][] memory z = ZKNOX_Expand_Vec(signature.z);
-
-        for (i = 0; i < 4; i++) {
-            for (j = 0; j < 256; j++) {
-                if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
-                    return false;
-                }
-            }
-        }
+        z = ZKNOX_Expand_Vec(signature.z);
 
         // NTT(z)
-
+        uint256[][] memory tmp = new uint256[][](4);
         for (i = 0; i < 4; i++) {
-            z[i] = ZKNOX_NTTFW(z[i], apsirev);
+            tmp[i] = new uint256[](256);
+            for (j = 0; j < 256; j++) {
+                tmp[i][j] = z[i][j];
+            }
+            tmp[i] = ZKNOX_NTTFW(tmp[i], apsirev);
         }
 
         // c_ntt
@@ -146,31 +129,57 @@ contract ZKNOX_dilithium {
 
         // 1. A*z
         uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-        z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
+        tmp = ZKNOX_MatVecProductDilithium(A_hat, tmp); // A * z
 
         // 2. A*z - c*t1
-
         for (i = 0; i < 4; i++) {
-            // we store in z A*z - c*t1
-            z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
+            tmp[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(tmp[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
         }
 
         // 3. w_prime packed using a "solidity-friendly encoding"
-        bytes memory w_prime_bytes = useHintDilithium(h, z);
+        w_prime_bytes = useHintDilithium(h, tmp);
+    }
 
-        // 4. return c_tilde == H(μ + w_prime_bytes, 32)
-        if (pk.hashID == ID_keccak) {
-            bytes32[] memory final_hash = KeccakPRNG(abi.encodePacked(mu, w_prime_bytes), 1);
-            for (i = 0; i < 32; i++) {
-                if (signature.c_tilde[i] != final_hash[0][i]) {
+    function verify(DilithiumPubKey memory pk, bytes memory msgs, DilithiumSignature memory signature)
+        public
+        view
+        returns (bool result)
+    {
+        result = false;
+        (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) = dilithium_core(pk, signature);
+
+        if (norm_h > omega) {
+            return false;
+        }
+        for (uint256 i = 0; i < 4; i++) {
+            for (uint256 j = 0; j < 256; j++) {
+                if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
                     return false;
                 }
             }
-            return true;
+        }
+        bytes32 final_hash;
+        if (pk.hashID == ID_keccak) {
+            final_hash = KeccakPRNG(abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2), w_prime_bytes), 1)[0];
+        } else if (pk.hashID == ID_shake) {
+            ctx_shake memory ctx;
+            ctx = shake_update(ctx, pk.tr);
+            ctx = shake_update(ctx, msgs);
+            bytes memory mu = shake_digest(ctx, 64);
+            ctx_shake memory ctx2;
+            ctx2 = shake_update(ctx2, mu);
+            ctx2 = shake_update(ctx2, w_prime_bytes);
+            final_hash = bytes32(shake_digest(ctx2, 32));
         } else {
             // Unkown hash (I am tired of Tetration, sorry)
             return false;
         }
+        for (uint256 i = 0; i < 32; i++) {
+            if (signature.c_tilde[i] != final_hash[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
