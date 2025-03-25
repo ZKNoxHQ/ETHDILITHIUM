@@ -166,18 +166,10 @@ contract ZKNOX_dilithium {
             ctx = shake_update(ctx, pk.tr);
             ctx = shake_update(ctx, msgs);
             bytes memory mu = shake_digest(ctx, 64);
-            console.logBytes(pk.tr);
-            console.logBytes(msgs);
-            console.logBytes(mu);
-            console.log("");
             ctx_shake memory ctx2;
             ctx2 = shake_update(ctx2, mu);
             ctx2 = shake_update(ctx2, w_prime_bytes);
             final_hash = bytes32(shake_digest(ctx2, 32));
-            console.logBytes(mu);
-            console.logBytes(w_prime_bytes);
-            console.logBytes32(final_hash);
-            console.logBytes(signature.c_tilde);
         } else {
             // Unkown hash (I am tired of Tetration, sorry)
             return false;
