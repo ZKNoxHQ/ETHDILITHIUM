@@ -167,14 +167,11 @@ function shake_absorb(uint256 i, uint8[200] memory buf, uint64[25] memory state,
 
         if (i == _RATE) {
             (buf, state) = shake_permute(buf, state);
-
             i = 0;
         }
         todo -= willabsorb;
         index += willabsorb;
-        console.log(todo);
     }
-
     return (i, buf, state);
 }
 
@@ -194,7 +191,6 @@ function shake_update(ctx_shake memory ctx, bytes memory input) pure returns (ct
         (ctx.buff, ctx.state) = shake_permute(ctx.buff, ctx.state);
     }
     ctxout.direction = _SPONGE_ABSORBING;
-
     (ctxout.i, ctxout.buff, ctxout.state) = shake_absorb(ctx.i, ctx.buff, ctx.state, input);
     return ctxout;
 }
