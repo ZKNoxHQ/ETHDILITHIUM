@@ -43,6 +43,7 @@ import {console} from "forge-std/Test.sol";
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import "./ZKNOX_NTT_dilithium.sol";
 import "./ZKNOX_dilithium_core.sol";
+import "./ZKNOX_dilithium_utils.sol";
 
 import {KeccakPRNG} from "./ZKNOX_keccak_prng.sol";
 import "./ZKNOX_shake.sol";
@@ -86,25 +87,26 @@ contract ZKNOX_dilithium {
     // }
 
     function verify(
-        uint256[][] memory pk_t1_new,
-        uint256[][][] memory pk_a_hat,
-        bytes memory pk_tr,
+        PubKey memory pk,
+        // uint256[][] memory pk_t1_new,
+        // uint256[][][] memory pk_a_hat,
+        // bytes memory pk_tr,
         bytes memory msgs,
-        bytes memory signature_c_tilde,
-        uint256[][] memory signature_z,
-        uint256[][] memory signature_h,
-        uint256[] memory signature_c_ntt
+        Signature memory signature
     )
-        public
+        // bytes memory signature_c_tilde,
+        // uint256[][] memory signature_z,
+        // uint256[][] memory signature_h,
+        // uint256[] memory signature_c_ntt
+        external
         view
-        returns (bool result)
+        returns (bool)
     {
-        result = false;
-        (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) = dilithium_core(
-            apsirev, apsiInvrev,
-            pk_t1_new, pk_a_hat,
-            signature_h, signature_z, signature_c_ntt
-        );
+        (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) =
+            dilithium_core(apsirev, apsiInvrev, pk, signature);
+        // pk_t1_new, pk_a_hat,
+        // signature_h, signature_z, signature_c_ntt
+
         if (norm_h > omega) {
             return false;
         }
@@ -117,7 +119,7 @@ contract ZKNOX_dilithium {
         }
         bytes32 final_hash;
         ctx_shake memory ctx;
-        ctx = shake_update(ctx, pk_tr);
+        ctx = shake_update(ctx, pk.tr);
         ctx = shake_update(ctx, msgs);
         bytes memory mu = shake_digest(ctx, 64);
         ctx_shake memory ctx2;
@@ -125,7 +127,7 @@ contract ZKNOX_dilithium {
         ctx2 = shake_update(ctx2, w_prime_bytes);
         final_hash = bytes32(shake_digest(ctx2, 32));
         for (uint256 i = 0; i < 32; i++) {
-            if (signature_c_tilde[i] != final_hash[i]) {
+            if (signature.c_tilde[i] != final_hash[i]) {
                 return false;
             }
         }

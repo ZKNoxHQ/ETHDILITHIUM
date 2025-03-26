@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_dilithium_utils.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {ZKNOX_NTT} from "../src/ZKNOX_NTT.sol";
+import "../src/ZKNOX_dilithium_utils.sol";
 
 contract ETHDilithiumTest is Test {
     ZKNOX_dilithium dilithium;
@@ -992,24 +993,23 @@ contract ETHDilithiumTest is Test {
         c_ntt[30] = uint256(0x00637ae2006c66bb00358f4d0072d07e004710ff00059202003130b00037e73d);
         c_ntt[31] = uint256(0x0040fdec0076816a00028a680069ad8400707b6f0069e5d000247727002e541b);
 
-        // // CREATE PK OBJECT
-        // ZKNOX_dilithium.PubKey memory pk;
-        // pk.a_hat = A_hat;
-        // pk.tr = tr;
-        // pk.t1_new = t1_new;
-        // pk.hashID = 0x02;
+        // CREATE PK OBJECT
+        PubKey memory pk;
+        pk.a_hat = A_hat;
+        pk.tr = tr;
+        pk.t1_new = t1_new;
 
-        // // CREATE SIG OBJECT
-        // ZKNOX_dilithium.Signature memory sig;
-        // sig.c_tilde = c_tilde;
-        // sig.z = z;
-        // sig.h = h;
-        // sig.c_ntt = c_ntt;
+        // CREATE SIG OBJECT
+        Signature memory sig;
+        sig.c_tilde = c_tilde;
+        sig.z = z;
+        sig.h = h;
+        sig.c_ntt = c_ntt;
 
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(t1_new, A_hat, tr, msgs, c_tilde, z, h, c_ntt);
+        bool ver = dilithium.verify(pk, msgs, sig); //t1_new, A_hat, tr, msgs, c_tilde, z, h, c_ntt);
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
