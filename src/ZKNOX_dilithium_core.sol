@@ -71,8 +71,19 @@ function dilithium_core(
     view
     returns (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes)
 {
+    // sum hint for h
+    uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
     uint256 i;
     uint256 j;
+    norm_h = 0;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 256; j++) {
+            if (h[i][j] == 1) {
+                norm_h += 1;
+            }
+            // else { /* check that h[i][j] == 0 ? */}
+        }
+    }
 
     // check norm bound for z
     z = ZKNOX_Expand_Vec(signature.z);
@@ -102,18 +113,6 @@ function dilithium_core(
         tmp[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(tmp[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
     }
 
-    // sum hint for h stored in t1_new
-    t1_new = ZKNOX_Expand_Vec(signature.h);
-    norm_h = 0;
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 256; j++) {
-            if (t1_new[i][j] == 1) {
-                norm_h += 1;
-            }
-            // else { /* check that t1_new[i][j] == 0 ? */}
-        }
-    }
-
     // 3. w_prime packed using a "solidity-friendly encoding"
-    w_prime_bytes = useHintDilithium(t1_new, tmp);
+    w_prime_bytes = useHintDilithium(h, tmp);
 }
