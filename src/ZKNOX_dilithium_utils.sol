@@ -213,3 +213,17 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
         M_times_v[i] = tmp;
     }
 }
+
+struct Signature {
+    bytes c_tilde;
+    uint256[][] z;
+    uint256[][] h;
+    uint256[] c_ntt;
+}
+
+struct PubKey {
+    uint256[][][] a_hat;
+    bytes tr;
+    uint256[][] t1_new;
+    uint256 hashID; //identifier for the internal XOF
+}

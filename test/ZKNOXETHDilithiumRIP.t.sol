@@ -4,11 +4,12 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_dilithium_utils.sol";
-import {ZKNOX_dilithium} from "../src/ZKNOX_ETHDilithium.sol";
+import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import {ZKNOX_NTT} from "../src/ZKNOX_NTT.sol";
+import "../src/ZKNOX_dilithium_utils.sol";
 
 contract ETHDilithiumTest is Test {
-    ZKNOX_dilithium dilithium;
+    ZKNOX_ethdilithium dilithium;
 
     //exemple of stateless initialisation, no external contract provided
     ZKNOX_NTT ntt = new ZKNOX_NTT(address(0), address(0), 8380417, 8347681); // q = 8380417, n = 256, inv_mod(n,q) = 8347681
@@ -34,7 +35,7 @@ contract ETHDilithiumTest is Test {
 
         ntt.update(a_psirev, a_psiInvrev, 8380417, 8347681); //update ntt with outer contract
 
-        dilithium = new ZKNOX_dilithium(ntt);
+        dilithium = new ZKNOX_ethdilithium(ntt);
     }
 
     function testVerify() public view {
@@ -993,14 +994,13 @@ contract ETHDilithiumTest is Test {
         c_ntt[31] = uint256(0x00211f90019d9030045f8ea005a5d480053693300515b730023c8510056435c);
 
         // CREATE PK OBJECT
-        ZKNOX_dilithium.DilithiumPubKey memory pk;
+        PubKey memory pk;
         pk.a_hat = A_hat;
         pk.tr = tr;
         pk.t1_new = t1_new;
-        pk.hashID = 0x00;
 
         // CREATE SIG OBJECT
-        ZKNOX_dilithium.DilithiumSignature memory sig;
+        Signature memory sig;
         sig.c_tilde = c_tilde;
         sig.z = z;
         sig.h = h;
@@ -1009,7 +1009,7 @@ contract ETHDilithiumTest is Test {
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(pk, msgs, sig);
+        bool ver = dilithium.verify(pk, msgs, sig); //t1_new, A_hat, tr, msgs, c_tilde, z, h, c_ntt);
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
