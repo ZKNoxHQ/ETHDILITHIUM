@@ -1009,7 +1009,7 @@ contract ETHDilithiumTest is Test {
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(pk, msgs, sig); //t1_new, A_hat, tr, msgs, c_tilde, z, h, c_ntt);
+        bool ver = dilithium.verify(pk, msgs, sig);
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
