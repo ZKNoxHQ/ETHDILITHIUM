@@ -38,8 +38,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {console} from "forge-std/Test.sol";
-
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import "./ZKNOX_NTT_dilithium.sol";
 import "./ZKNOX_dilithium_core.sol";
@@ -57,7 +55,8 @@ import {
     ZKNOX_VECSUBMOD,
     ID_keccak,
     omega,
-    gamma_1_minus_beta
+    gamma_1_minus_beta,
+    tau
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
@@ -72,40 +71,42 @@ contract ZKNOX_dilithium {
         apsiInvrev = ntt.o_psi_inv_rev();
     }
 
-    // struct Signature {
-    //     bytes c_tilde;
-    //     uint256[][] z;
-    //     uint256[][] h;
-    //     uint256[] c_ntt;
-    // }
+    function compute_c_ntt(address apsirev, Signature memory signature) internal returns (uint256[] memory c) {
+        ctx_shake memory ctx;
+        ctx = shake_update(ctx, signature.c_tilde);
+        bytes memory sign_bytes = shake_digest(ctx, 8);
+        uint256 sign_int = 0;
+        for (uint256 i = 0; i < 8; i++) {
+            sign_int |= uint256(uint8(sign_bytes[i])) << (8 * i);
+        }
 
-    // struct PubKey {
-    //     uint256[][][] a_hat;
-    //     bytes tr;
-    //     uint256[][] t1_new;
-    //     uint256 hashID; //identifier for the internal XOF
-    // }
+        // Now set tau values of c to be ±1
+        c = new uint256[](256);
+        uint256 j;
+        bytes memory bytes_j;
+        for (uint256 i = 256 - tau; i < 256; i++) {
+            // Rejects values until a value j <= i is found
+            while (true) {
+                (ctx, bytes_j) = shake_squeeze(ctx, 1);
+                j = uint256(uint8(bytes_j[0]));
+                if (j <= i) {
+                    break;
+                }
+            }
+            c[i] = c[j];
+            if (sign_int & 1 == 1) {
+                c[j] = q - 1;
+            } else {
+                c[j] = 1;
+            }
+            sign_int >>= 1;
+        }
+        c = ZKNOX_NTTFW(c, apsirev);
+    }
 
-    function verify(
-        PubKey memory pk,
-        // uint256[][] memory pk_t1_new,
-        // uint256[][][] memory pk_a_hat,
-        // bytes memory pk_tr,
-        bytes memory msgs,
-        Signature memory signature
-    )
-        // bytes memory signature_c_tilde,
-        // uint256[][] memory signature_z,
-        // uint256[][] memory signature_h,
-        // uint256[] memory signature_c_ntt
-        external
-        view
-        returns (bool)
-    {
-        (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) =
-            dilithium_core(apsirev, apsiInvrev, pk, signature);
-        // pk_t1_new, pk_a_hat,
-        // signature_h, signature_z, signature_c_ntt
+    function verify(PubKey memory pk, bytes memory msgs, Signature memory signature) external returns (bool) {
+        // FIRST CORE STEP
+        (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
 
         if (norm_h > omega) {
             return false;
@@ -117,6 +118,13 @@ contract ZKNOX_dilithium {
                 }
             }
         }
+        // C_NTT
+        uint256[] memory c_ntt = compute_c_ntt(apsirev, signature);
+
+        // SECOND CORE STEP
+        bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h);
+
+        // FINAL HASH
         bytes32 final_hash;
         ctx_shake memory ctx;
         ctx = shake_update(ctx, pk.tr);

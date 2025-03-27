@@ -38,8 +38,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {console} from "forge-std/Test.sol";
-
 import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import "./ZKNOX_NTT_dilithium.sol";
 import "./ZKNOX_dilithium_core.sol";
@@ -72,41 +70,13 @@ contract ZKNOX_ethdilithium {
         apsiInvrev = ntt.o_psi_inv_rev();
     }
 
-    // struct Signature {
-    //     bytes c_tilde;
-    //     uint256[][] z;
-    //     uint256[][] h;
-    //     uint256[] c_ntt;
-    // }
-
-    // struct PubKey {
-    //     uint256[][][] a_hat;
-    //     bytes tr;
-    //     uint256[][] t1_new;
-    //     uint256 hashID; //identifier for the internal XOF
-    // }
-
-    function verify(
-        PubKey memory pk,
-        // uint256[][] memory pk_t1_new,
-        // uint256[][][] memory pk_a_hat,
-        // bytes memory pk_tr,
-        bytes memory msgs,
-        Signature memory signature
-    )
-        // bytes memory signature_c_tilde,
-        // uint256[][] memory signature_z,
-        // uint256[][] memory signature_h,
-        // uint256[] memory signature_c_ntt
+    function verify(PubKey memory pk, bytes memory msgs, Signature memory signature)
         external
         view
         returns (bool result)
     {
-        result = false;
-        (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes) =
-            dilithium_core(apsirev, apsiInvrev, pk, signature);
-        // pk_t1_new, pk_a_hat,
-        // signature_h, signature_z, signature_c_ntt
+        // FIRST CORE STEP
+        (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
 
         if (norm_h > omega) {
             return false;
@@ -118,6 +88,13 @@ contract ZKNOX_ethdilithium {
                 }
             }
         }
+        // CNTT
+        uint256[] memory c_ntt = ZKNOX_Expand(signature.c_ntt);
+
+        // SECOND CORE STEP
+        bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h);
+
+        // FINAL HASH
         bytes32 final_hash =
             KeccakPRNG(abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2), w_prime_bytes), 1)[0];
         for (uint256 i = 0; i < 32; i++) {

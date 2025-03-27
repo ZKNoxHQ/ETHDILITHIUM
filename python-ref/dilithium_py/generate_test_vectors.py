@@ -98,7 +98,7 @@ for (XOF, hash_type) in [(Keccak256PRNG, 'RIP'), (shake256, 'NIST')]:
             dilithium = new ZKNOX_{}dilithium(ntt);
         }}
 
-        function testVerify() public view {{
+        function testVerify() public {{
     """.format(
         'eth' if hash_type == 'RIP' else '',
         'eth' if hash_type == 'RIP' else '',

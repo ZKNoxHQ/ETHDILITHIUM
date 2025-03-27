@@ -51,6 +51,7 @@ uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
+uint256 constant tau = 39;
 
 function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
     b = new uint256[][][](4);

@@ -38,7 +38,7 @@ contract ETHDilithiumTest is Test {
         dilithium = new ZKNOX_ethdilithium(ntt);
     }
 
-    function testVerify() public view {
+    function testVerify() public {
         // Public key
         uint256[][][] memory A_hat = new uint256[][][](4);
         for (uint256 i = 0; i < 4; i++) {

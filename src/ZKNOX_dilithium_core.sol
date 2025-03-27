@@ -55,24 +55,11 @@ import {
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
-function dilithium_core(
-    address apsirev,
-    address apsiInvrev,
-    PubKey memory pk,
-    // uint256[][] memory pk_t1_new,
-    // uint256[][][] memory pk_a_hat,
-    // bytes memory pk.tr,
-    Signature memory signature
-)
-    // bytes memory signature_c_tilde,
-    // uint256[][] memory signature_z,
-    // uint256[][] memory signature_h,
-    // uint256[] memory signature_c_ntt
+function dilithium_core_1(Signature memory signature)
     view
-    returns (uint256 norm_h, uint256[][] memory z, bytes memory w_prime_bytes)
+    returns (uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
 {
-    // sum hint for h
-    uint256[][] memory h = ZKNOX_Expand_Vec(signature.h);
+    h = ZKNOX_Expand_Vec(signature.h);
     uint256 i;
     uint256 j;
     norm_h = 0;
@@ -85,34 +72,34 @@ function dilithium_core(
         }
     }
 
-    // check norm bound for z
     z = ZKNOX_Expand_Vec(signature.z);
+}
 
+function dilithium_core_2(
+    address apsirev,
+    address apsiInvrev,
+    PubKey memory pk,
+    uint256[][] memory z,
+    uint256[] memory c_ntt,
+    uint256[][] memory h
+) view returns (bytes memory w_prime_bytes) {
     // NTT(z)
-    uint256[][] memory tmp = new uint256[][](4);
-    for (i = 0; i < 4; i++) {
-        tmp[i] = new uint256[](256);
-        for (j = 0; j < 256; j++) {
-            tmp[i][j] = z[i][j];
-        }
-        tmp[i] = ZKNOX_NTTFW(tmp[i], apsirev);
+    for (uint256 i = 0; i < 4; i++) {
+        z[i] = ZKNOX_NTTFW(z[i], apsirev);
     }
-
-    // c_ntt
-    uint256[] memory c_ntt = ZKNOX_Expand(signature.c_ntt);
 
     // t1_new
     uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
 
     // 1. A*z
     uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-    tmp = ZKNOX_MatVecProductDilithium(A_hat, tmp); // A * z
+    z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
 
     // 2. A*z - c*t1
-    for (i = 0; i < 4; i++) {
-        tmp[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(tmp[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
+    for (uint256 i = 0; i < 4; i++) {
+        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
     }
 
     // 3. w_prime packed using a "solidity-friendly encoding"
-    w_prime_bytes = useHintDilithium(h, tmp);
+    w_prime_bytes = useHintDilithium(h, z);
 }
