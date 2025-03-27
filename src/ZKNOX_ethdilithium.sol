@@ -60,14 +60,25 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_ethdilithium {
-    ZKNOX_NTT ntt;
+     ZKNOX_NTT ntt;
     address public apsirev;
     address public apsiInvrev;
+    bool immutableMe;
+    bool EIP7885;
 
-    constructor(ZKNOX_NTT i_ntt) {
+    function update(address i_psirev, address i_psiInvrev) public {
+        if (immutableMe == true) revert();
+        apsirev = i_psirev;
+        apsiInvrev = i_psiInvrev;
+        EIP7885 = false;
+        immutableMe = true;
+    }
+
+    function updateNTT(ZKNOX_NTT i_ntt) public {
+        if (immutableMe == true) revert();
         ntt = i_ntt;
-        apsirev = ntt.o_psirev();
-        apsiInvrev = ntt.o_psi_inv_rev();
+        EIP7885 = true;
+        immutableMe = true;
     }
 
     function verify(PubKey memory pk, bytes memory msgs, Signature memory signature)
