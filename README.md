@@ -14,38 +14,37 @@ The repo contains a solidity verifier and a python signer.
 
 * **Installation:**
     ```bash
-    # TODO makefile
+    make install
     ```
+    (or `make install_signer` or `make install_verifier`)
+* **Generation of test vectors:**
+    ```bash
+    make gen_test_vectors
+    ```
+    Generate the test vectors of `test/ZKNOX_dilithium.t.sol` and `test/ZKNOX_ethdilithium.t.sol`.
 * **Tests:**
     ```bash
-    # TODO makefile
+    make test
     ```
-
-TODO: explain how to generate signatures and verify it using solidity
-```
-cd python-ref
-make generate_test_vectors
-cd ..
-forge test -vv
-```
+     (or `make test_signer` or `make test_verifier`)
 
 ## BENCHMARKS
 
 |Signature verification | Gas cost|Status|
 |-|-|-|
-|Dilithium|10.7M|WIP|
-|ETHDilithium|6.9M|WIP|
+|Dilithium|13.5M|OK (NIST KAT pass)|
+|ETHDilithium|6.6M|OK|
 
-Note that these versions save compression and use larger signatures and public keys. TODO develop this
+Dilithium is an implementation of the NIST standardized signature scheme, where the public key is expanded in order to save computations.
+ETHDilithium is an alternative version with a cheaper hash function and precomputations in the public key and signer in order to accelerate the verification. 
 
 ## EXAMPLE 
-TODO
+An example of key generation, signature and verification in python is provided in [this file](python-ref/example.py), for Dilithium and ETHDilithium.
+A signature verification can be computed in Solidity, as illustrated in [this file](test/ZKNOX_dilithiumKATS.t.sol) with a KAT vector from the NIST submission.
 
-## DEPLOYMENTS
-TODO
 
 ## CONCLUSION
-TODO
+This repo provides an optimized version of DILITHIUM. Order of magnitudes were gained compared to other implementations. Despite those efforts, it is not feasible to reach the same cost as [Falcon](https://github.com/ZKNoxHQ/ETHFALCON) post-quantum signature. The implementation takes advantage of the NTT implementation of [this repository](https://github.com/ZKNoxHQ/NTT). The main reason for adopting Dilithium for Ethereum is the simplicity and efficiency of the signer algorithm for hardware wallet. 
 
 ----
 
