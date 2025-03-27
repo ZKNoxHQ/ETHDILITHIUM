@@ -123,7 +123,7 @@ contract ZKNOX_dilithium {
         // C_NTT
         uint256[] memory c_ntt = compute_c_ntt(signature);
 
-        // t1
+        // computation of NTT_FW((1<<d) * t1)
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
         // scale by 1<<d
         for (i = 0; i < 4; i++) {
@@ -132,7 +132,6 @@ contract ZKNOX_dilithium {
             }
             t1_new[i] = ZKNOX_NTTFW(t1_new[i], apsirev);
         }
-        // uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
 
         // SECOND CORE STEP
         bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
