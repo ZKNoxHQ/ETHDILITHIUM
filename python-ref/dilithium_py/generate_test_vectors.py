@@ -125,7 +125,8 @@ for (XOF, hash_type) in [(Keccak256PRNG, 'RIP'), (shake256, 'NIST')]:
     file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
     file.write(solidity_compact_vec(z_compact, 'z'))
     file.write(solidity_compact_vec(h_compact, 'h'))
-    file.write(solidity_compact_elt(c_ntt_compact, 'c_ntt'))
+    if hash_type == 'RIP':
+        file.write(solidity_compact_elt(c_ntt_compact, 'c_ntt'))
 
     footer = """
             // CREATE PK OBJECT
@@ -139,8 +140,12 @@ for (XOF, hash_type) in [(Keccak256PRNG, 'RIP'), (shake256, 'NIST')]:
             sig.c_tilde = c_tilde;
             sig.z = z;
             sig.h = h;
-            sig.c_ntt = c_ntt;
+        """
+    file.write(footer)
+    if hash_type == 'RIP':
+        file.write('sig.c_ntt = c_ntt;\n')
 
+    footer2 = """
             // MESSAGE
             bytes memory msgs = "We are ZKNox.";
             uint256 gasStart = gasleft();
@@ -152,5 +157,5 @@ for (XOF, hash_type) in [(Keccak256PRNG, 'RIP'), (shake256, 'NIST')]:
     }}
     """.format('0x00' if hash_type == 'RIP' else '0x02')
 
-    file.write(footer)
+    file.write(footer2)
     file.close()
