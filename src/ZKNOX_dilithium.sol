@@ -143,6 +143,7 @@ contract ZKNOX_dilithium {
         ctx = shake_update(ctx, pk.tr);
         ctx = shake_update(ctx, msgs);
         bytes memory mu = shake_digest(ctx, 64);
+
         ctx_shake memory ctx2;
         ctx2 = shake_update(ctx2, mu);
         ctx2 = shake_update(ctx2, w_prime_bytes);
