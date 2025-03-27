@@ -52,6 +52,7 @@ uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
 uint256 constant tau = 39;
+uint256 constant d = 13;
 
 function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
     b = new uint256[][][](4);
@@ -225,6 +226,6 @@ struct Signature {
 struct PubKey {
     uint256[][][] a_hat;
     bytes tr;
-    uint256[][] t1_new;
+    uint256[][] t1;
     uint256 hashID; //identifier for the internal XOF
 }

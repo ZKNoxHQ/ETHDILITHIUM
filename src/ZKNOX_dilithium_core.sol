@@ -56,7 +56,7 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 function dilithium_core_1(Signature memory signature)
-    view
+    pure
     returns (uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
 {
     h = ZKNOX_Expand_Vec(signature.h);
@@ -81,15 +81,13 @@ function dilithium_core_2(
     PubKey memory pk,
     uint256[][] memory z,
     uint256[] memory c_ntt,
-    uint256[][] memory h
+    uint256[][] memory h,
+    uint256[][] memory t1_new
 ) view returns (bytes memory w_prime_bytes) {
     // NTT(z)
     for (uint256 i = 0; i < 4; i++) {
         z[i] = ZKNOX_NTTFW(z[i], apsirev);
     }
-
-    // t1_new
-    uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1_new);
 
     // 1. A*z
     uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);

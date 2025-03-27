@@ -290,7 +290,6 @@ class Dilithium:
         """
         rho, t1 = self._unpack_pk(pk_bytes)
         c_tilde, z, h = self._unpack_sig(sig_bytes)
-
         if h.sum_hint() > self.omega:
             return False
 

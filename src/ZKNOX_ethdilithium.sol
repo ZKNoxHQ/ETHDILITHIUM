@@ -91,8 +91,11 @@ contract ZKNOX_ethdilithium {
         // CNTT
         uint256[] memory c_ntt = ZKNOX_Expand(signature.c_ntt);
 
+        // t1_new
+        uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
+
         // SECOND CORE STEP
-        bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h);
+        bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
 
         // FINAL HASH
         bytes32 final_hash =
