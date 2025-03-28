@@ -41,13 +41,13 @@ pragma solidity ^0.8.25;
 import "./ZKNOX_dilithium_utils.sol";
 
 // NTT_FW as specified by EIP, statefull version
-//address apsirev: address of the contract storing the powers of psi
+//address apsirev: address of the contract storing the powers of psi, expanded
 function ZKNOX_NTTFW(uint256[] memory a, address apsirev) view returns (uint256[] memory) {
     uint256 t = n;
     uint256 m = 1;
 
     uint256[1] memory S;
-
+    
     assembly ("memory-safe") {
         for {} gt(n, m) {} {
             //while(m<n)
@@ -57,6 +57,40 @@ function ZKNOX_NTTFW(uint256[] memory a, address apsirev) view returns (uint256[
                 let j2 := sub(add(j1, t), 1) //j2=j1+t-1;
 
                 extcodecopy(apsirev, S, mul(add(i, m), 32), 32) //psi_rev[m+i]
+                for { let j := j1 } gt(add(j2, 1), j) { j := add(j, 1) } {
+                    let a_aj := add(a, mul(add(j, 1), 32)) //address of a[j]
+                    let U := mload(a_aj)
+
+                    a_aj := add(a_aj, mul(t, 32)) //address of a[j+t]
+                    let V := mulmod(mload(a_aj), mload(S), q)
+                    mstore(a_aj, addmod(U, sub(q, V), q))
+                    a_aj := sub(a_aj, mul(t, 32)) //back to address of a[j]
+                    mstore(a_aj, addmod(U, V, q))
+                }
+            }
+            m := shl(1, m) //m=m<<1
+        }
+    }
+    return a;
+}
+
+// NTT_FW as specified by EIP, statefull version
+//address apsirev: address of the contract storing the powers of psi, compact
+function ZKNOX_NTTFW_Compact(uint256[] memory a, address apsirev) view returns (uint256[] memory) {
+    uint256 t = n;
+    uint256 m = 1;
+
+    uint256[1] memory S;
+    
+    assembly ("memory-safe") {
+        for {} gt(n, m) {} {
+            //while(m<n)
+            t := shr(1, t)
+            for { let i := 0 } gt(m, i) { i := add(i, 1) } {
+                let j1 := shl(1, mul(i, t))
+                let j2 := sub(add(j1, t), 1) //j2=j1+t-1;
+
+                extcodecopy(apsirev, S, mul(add(i, m), 4), 4) //psi_rev[m+i]
                 for { let j := j1 } gt(add(j2, 1), j) { j := add(j, 1) } {
                     let a_aj := add(a, mul(add(j, 1), 32)) //address of a[j]
                     let U := mload(a_aj)

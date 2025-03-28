@@ -7,6 +7,7 @@ import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from ".
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {ZKNOX_NTT} from "../src/ZKNOX_NTT.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
+import "../src/ZKNOX_dilithium_deploy.sol";
 
 contract ETHDilithiumTest is Test {
     ZKNOX_dilithium dilithium;
@@ -30,8 +31,12 @@ contract ETHDilithiumTest is Test {
         a_psiInvrev = address(uint160(0xa5a5)); //here it is etched, use create in the future
         vm.etch(a_psiInvrev, bytecode_psiInvrev); //pushing psirev bytecode into contract todo : replace with create
 
+
+
         dilithium = new ZKNOX_dilithium();
         dilithium.update(a_psirev, a_psiInvrev);
+      
+       
     }
 
     function testVerify() public {

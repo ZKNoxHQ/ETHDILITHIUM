@@ -42,7 +42,7 @@ pragma solidity ^0.8.25;
 
 function _Swap32(uint256 inw) pure returns (uint256 outw) {
     for (uint256 i = 0; i < 256; i += 32) {
-        outw ^= (inw >> (240 - i) & 0xffffffff) << (i);
+        outw ^= (inw >> (224 - i) & 0xffffffff) << (i);
     }
 
     return outw;
@@ -66,7 +66,7 @@ function _Compact(uint256[] memory a) pure returns (uint256[] memory b) {
         }
     }
 
-    //endianness for extcodecopy requires to swap 16 bits word inside each 256 bits word
+    //endianness for extcodecopy requires to swap 32 bits word inside each 256 bits word
     for (uint256 i = 0; i < 32; i++) {
         b[i] = _Swap32(b[i]);
     }
