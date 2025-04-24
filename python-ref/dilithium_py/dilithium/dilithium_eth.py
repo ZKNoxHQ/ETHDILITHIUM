@@ -1,7 +1,7 @@
 from dilithium_py.dilithium.dilithium import Dilithium
 
 from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
-from ..shake.shake_wrapper import shake256
+from ..shake.shake_wrapper import shake128, shake256
 
 
 class ETHDilithium(Dilithium):
@@ -41,6 +41,18 @@ class ETHDilithium(Dilithium):
         h = self._unpack_h(h_bytes)
         c_ntt = self.R.bit_unpack_32(c_ntt_bytes, is_ntt=True)
         return c_tilde, z, h, c_ntt
+
+    def _expand_matrix_from_seed(self, rho, _xof=shake128):
+        """
+        Helper function which generates a element of size
+        k x l from a seed `rho`.
+        """
+        A_data = [[0 for _ in range(self.l)] for _ in range(self.k)]
+        for i in range(self.k):
+            for j in range(self.l):
+                A_data[i][j] = self.R.rejection_sample_ntt_poly_babybear(
+                    rho, i, j, _xof=_xof)
+        return self.M(A_data)
 
     def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
         """
@@ -132,6 +144,7 @@ class ETHDilithium(Dilithium):
             h = w0_minus_cs2_plus_ct0.make_hint_optimised(w1, alpha)
             if h.sum_hint() > self.omega:
                 continue
+
             return self._pack_sig(c_tilde, z, h, c_ntt)
 
     def verify(self, pk_bytes, m, sig_bytes, _xof=Keccak256PRNG):

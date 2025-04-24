@@ -48,8 +48,7 @@ ETHDilithium2BabyBear = ETHDilithium(
         "tau": 39,
         "omega": 80,
         "gamma_1": 131072,  # 2^17
-        "gamma_2": 22878021,  # (q-1)/88
-        # CHECK SECURITY NOW!!!
+        "gamma_2": 122880,  # (q-1)/2^14,
     },
     q=2013265921,
     n=256

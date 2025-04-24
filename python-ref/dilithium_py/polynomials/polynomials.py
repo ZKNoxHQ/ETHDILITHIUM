@@ -65,7 +65,6 @@ class PolynomialRingDilithium(PolynomialRing):
 
         return self(coeffs)
 
-    # TODO WHY 128 and not 256 here??
     def rejection_sample_ntt_poly(self, rho, i, j, _xof=shake128):
         """
         Samples an element in the NTT domain of R^q using rejection sampling
@@ -82,6 +81,32 @@ class PolynomialRingDilithium(PolynomialRing):
                 j_bytes = xof.read(3)
                 j = int.from_bytes(j_bytes, "little")
                 j &= 0x7FFFFF
+                if j < self.q:
+                    return j
+
+        # Initialise the XOF
+        seed = rho + bytes([j, i])
+        xof = _xof(seed)
+        xof.flip()
+        coeffs = [rejection_sample(xof) for _ in range(256)]
+        return self(coeffs, is_ntt=True)
+
+    def rejection_sample_ntt_poly_babybear(self, rho, i, j, _xof=shake128):
+        """
+        Samples an element in the NTT domain of R^q using rejection sampling
+        """
+
+        def rejection_sample(xof):
+            """
+            Sample four random bytes from `xof` and
+            interpret them as integers in {0, ..., 2^32 - 1}
+
+            Rejects values until a value j < q is found
+            """
+            while True:
+                j_bytes = xof.read(4)
+                j = int.from_bytes(j_bytes, "little")
+                j &= 0xFFFFFFFF
                 if j < self.q:
                     return j
 
@@ -328,6 +353,11 @@ class PolynomialDilithium(Polynomial):
         # Level 2 parameter set
         if gamma_2 == 95232:
             return self.__bit_pack(self.coeffs, 6, 192)
+        elif gamma_2 == 122880:
+            # Baby Bear
+            # m = max([len(bin(l))-2 for l in self.coeffs])
+            # return self.__bit_pack(self.coeffs, m, 256//8 * m)
+            return self.__bit_pack(self.coeffs, 13, 416)
         # Level 3 and 5 parameter set
         assert (
             gamma_2 == 261888
