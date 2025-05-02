@@ -13,7 +13,7 @@ test:
 	$(PYTHON) -m unittest $(if $(TEST),dilithium_py.tests.$(TEST),discover -s dilithium_py.tests) -v
 	
 example:
-	$(PYTHON) -m dilithium_py.example
+	# $(PYTHON) -m dilithium_py.example
 	$(PYTHON) -m dilithium_py.example_babybear
 
 generate_test_vectors:
