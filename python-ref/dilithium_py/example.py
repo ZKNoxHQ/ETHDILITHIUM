@@ -3,7 +3,6 @@ from .dilithium import ETHDilithium2, Dilithium2
 msg = b"We are ZKNox."
 
 ################################################
-
 pk1, sk1 = ETHDilithium2.keygen()
 sig1 = ETHDilithium2.sign(sk1, msg)
 assert ETHDilithium2.verify(pk1, msg, sig1)
