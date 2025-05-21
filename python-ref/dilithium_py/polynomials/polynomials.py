@@ -353,11 +353,11 @@ class PolynomialDilithium(Polynomial):
         # Level 2 parameter set
         if gamma_2 == 95232:
             return self.__bit_pack(self.coeffs, 6, 192)
-        elif gamma_2 == 122880:
-            # Baby Bear
+        elif gamma_2 == 983040 or gamma_2 == 1040384:
+            # {Baby, Koala}Bear
             # m = max([len(bin(l))-2 for l in self.coeffs])
             # return self.__bit_pack(self.coeffs, m, 256//8 * m)
-            return self.__bit_pack(self.coeffs, 13, 416)
+            return self.__bit_pack(self.coeffs, 10, 320)
         # Level 3 and 5 parameter set
         assert (
             gamma_2 == 261888

@@ -43,13 +43,27 @@ ETHDilithium2BabyBear = ETHDilithium(
     {
         "d": 13,
         "k": 4,
-        "l": 4,
-        "eta": 2,
+        "l": 5,
+        "eta": 4,
         "tau": 39,
         "omega": 80,
         "gamma_1": 131072,  # 2^17
-        "gamma_2": 122880,  # (q-1)/2^14,
+        "gamma_2": 983040,  # (q-1)/2^11,
     },
     q=2013265921,
+    n=256
+)
+ETHDilithium2KoalaBear = ETHDilithium(
+    {
+        "d": 13,
+        "k": 4,
+        "l": 5,
+        "eta": 4,
+        "tau": 39,
+        "omega": 80,
+        "gamma_1": 131072,  # 2^17
+        "gamma_2": 1040384,  # (q-1)/2^11,
+    },
+    q=2130706433,
     n=256
 )

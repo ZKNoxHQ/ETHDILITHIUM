@@ -20,20 +20,26 @@ class ETHDilithium(Dilithium):
     def _unpack_pk(self, pk_bytes):
         # A_hat is a matrix 4x4 of elements of 256 coefficients of 32 bits
         # 4 * 4 * 256 * 32/8  = 16384 bytes
-        a_hat_bytes = pk_bytes[:16384]
+        # 4 * 5 * 256 * 32/8  = 20480 bytes if we consider (k,l) = (4,5)?
+
+        a_hat_bytes = pk_bytes[:self.k * self.l * 256 * 4]
         a_hat = self.M.bit_unpack_32(a_hat_bytes, self.k, self.l, is_ntt=True)
         # tr is 32 bytes
-        tr = pk_bytes[16384:16384+32]
+        tr = pk_bytes[self.k * self.l * 256 *
+                      4: self.k * self.l * 256 * 4 + 32]
         # t1_new is 4 * 256 * 32/8 = 4096B
-        t1_new_bytes = pk_bytes[16384+32:]
+        t1_new_bytes = pk_bytes[self.k * self.l * 256 * 4 + 32:]
         t1_new = self.M.bit_unpack_32(t1_new_bytes, self.k, 1, is_ntt=True)
         return a_hat, tr, t1_new
 
     def _unpack_sig(self, sig_bytes):
+        # c_tilde is 32 bytes
         c_tilde = sig_bytes[:32]
-        z_bytes = sig_bytes[32: 32 + 4 * 1024]
-        h_bytes = sig_bytes[32 + 4 * 1024: -1024]
-        c_ntt_bytes = sig_bytes[-1024:]
+        # z is l Fq²⁵⁶ elements and q is 4 bytes long
+        z_bytes = sig_bytes[32: 32 + self.l * 256*4]
+        # h is k Fq²⁵⁶ elements and q is 4 bytes long
+        h_bytes = sig_bytes[32 + self.l * 256*4: -256*4]
+        c_ntt_bytes = sig_bytes[-256*4:]
 
         gamma_minus_z = self.M.bit_unpack_32(z_bytes, self.l, 1)
         z = self.M(
