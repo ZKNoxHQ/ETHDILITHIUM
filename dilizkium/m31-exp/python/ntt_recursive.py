@@ -1,5 +1,8 @@
-from m31_2 import mul2, inv2, sub2, add2, i2, sqr1, sqr1_inv
+from m31_2 import p, mul2, inv2, sub2, add2, i2
 from constants_ntt_recursive import Roots
+
+sqr1 = [0, 1]
+sqr1_inv = [0, p-1]
 
 
 def merge(f_list):
@@ -21,9 +24,10 @@ def split_ntt_rec(f_ntt):
     f0_ntt = [0] * (n // 2)
     f1_ntt = [0] * (n // 2)
     for i in range(n // 2):
-        f0_ntt[i] = mul2(add2(f_ntt[2*i], f_ntt[2*i+1]), i2)
+        f0_ntt[i] = mul2(add2(f_ntt[2*i], f_ntt[2*i+1]), [i2, 0])
         inv_w_2i = inv2(w[2*i])
-        f1_ntt[i] = mul2(mul2(i2, inv_w_2i), sub2(f_ntt[2*i], f_ntt[2*i+1]))
+        f1_ntt[i] = mul2(mul2([i2, 0], inv_w_2i),
+                         sub2(f_ntt[2*i], f_ntt[2*i+1]))
     return [f0_ntt, f1_ntt]
 
 
@@ -69,6 +73,6 @@ def intt_rec(f_ntt):
         f = merge([f0, f1])
     elif (n == 2):
         f = [0] * n
-        f[0] = mul2(add2(f_ntt[0], f_ntt[1]), i2)
-        f[1] = mul2(sub2(f_ntt[0], f_ntt[1]), mul2(i2, sqr1_inv))
+        f[0] = mul2(add2(f_ntt[0], f_ntt[1]), [i2, 0])
+        f[1] = mul2(sub2(f_ntt[0], f_ntt[1]), mul2([i2, 0], sqr1_inv))
     return f

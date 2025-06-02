@@ -1,5 +1,8 @@
 p = (1 << 31) - 1
 
+i2 = 1073741824
+assert (i2 * 2) % p == 1
+
 
 def xgcd(a, b):
     """ Returns gcd(a, b), and x, y such that ax + by = gcd(a, b) """
