@@ -8,19 +8,43 @@ u = Fp2.gen()
 Fp2y = Fp2['y']
 y = Fp2y.gen()
 
-two_adicity = 2
+two_adicity = 5
 assert two_adicity > 1  # because in Fp2, we consider halved lists
 n = 1 << two_adicity
 
-# root of x^{2n}+1 in Fp2
+# root of x^n + 1 in Fp2
 # u² = -1
-roots = {}
-phi_roots = [sqrt(u), -sqrt(u)]
-for k in range(1, two_adicity+2):
-    roots[1 << k] = phi_roots
-    phi_roots = sum([[sqrt(elt), -sqrt(elt)] for elt in phi_roots], [])
 
-sqr1 = u  # sqrt(u)
+
+def sqrt_m31(x):
+    y = x
+    for i in range(29):
+        y = y**2
+    return y
+
+
+def sqrt_m31_2(x):
+    if x in Fp:
+        return sqrt_m31(x)
+
+    x1, x2 = x.list()
+    Δ = x1**2 + x2**2
+    sqrtΔ = sqrt_m31(Δ)
+    b2 = (-x1 + sqrtΔ)/2
+    b = sqrt_m31(b2)
+    a = x2/(2*b)
+    # assert a+u*b
+    return a+u*b
+
+
+Roots = {}
+phi_roots = [u, -u]
+for k in range(1, two_adicity+2):
+    Roots[1 << k] = phi_roots
+    phi_roots = sum([[sqrt_m31_2(elt), -sqrt_m31_2(elt)]
+                    for elt in phi_roots], [])
+
+sqr1 = u
 
 
 def fp_to_fp2(a):
@@ -28,7 +52,7 @@ def fp_to_fp2(a):
     # by x -> ωy
     r = []
     n = len(a)//2
-    ω = roots[n][0]
+    ω = Roots[2*n][0]
     for i in range(n):
         r.append(Fp2([a[i], -a[i+n]]) * ω**i)
     return r
@@ -39,7 +63,7 @@ def fp2_to_fp(a):
     r = []
     s = []
     n = len(a)
-    ω = roots[n][0]
+    ω = Roots[2*n][0]
     for i in range(n):
         c = a[i]/ω**i
         r.append(c[0])
@@ -51,10 +75,15 @@ a = [Fp.random_element() for _ in range(n)]
 b = [Fp.random_element() for _ in range(n)]
 
 # check that this map is indeed multiplicative
-a_mul_b = ((Fpx(a) * Fpx(b)) % (x**n + 1)).list()
-φ_ab = fp_to_fp2(a_mul_b)
-φa_φb = ((Fp2y(fp_to_fp2(a)) * Fp2y(fp_to_fp2(b))) % (y**(n//2)+1)).list()
-assert fp2_to_fp(φa_φb) == a_mul_b
+ax = Fpx(a)
+bx = Fpx(b)
+abx = (ax*bx) % (x**n+1)
+
+ay = Fp2y(fp_to_fp2(a))
+by = Fp2y(fp_to_fp2(b))
+aby = (ay * by) % (y**(n//2)+1)
+
+assert abx.list() == fp2_to_fp(aby.list())
 
 
 def merge(f_list):
@@ -72,7 +101,7 @@ def split_ntt(f_ntt):
     """Split a polynomial f in two or three polynomials.
     """
     n = len(f_ntt)
-    w = roots[n]
+    w = Roots[n]
     f0_ntt = [0] * (n // 2)
     f1_ntt = [0] * (n // 2)
     for i in range(n // 2):
@@ -82,13 +111,13 @@ def split_ntt(f_ntt):
 
 
 def merge_ntt(f_list_ntt):
-    """Merge two or three polynomials into a single polynomial f.
+    """Merge two polynomials into a single polynomial f.
     """
     f0_ntt, f1_ntt = f_list_ntt
-    n = 2 * len(f0_ntt)
-    w = roots[n]
-    f_ntt = [0] * n
-    for i in range(n // 2):
+    n = len(f0_ntt)
+    w = Roots[2*n]
+    f_ntt = [0] * 2*n
+    for i in range(n):
         f_ntt[2 * i + 0] = f0_ntt[i] + w[2 * i] * f1_ntt[i]
         f_ntt[2 * i + 1] = f0_ntt[i] - w[2 * i] * f1_ntt[i]
     return f_ntt
@@ -126,19 +155,10 @@ def intt(f_ntt):
     return f
 
 
-a = [Fp.random_element() for _ in range(n)]
-b = [Fp.random_element() for _ in range(n)]
-a_mul_b = ((Fpx(a) * Fpx(b)) % (x**n + 1)).list()
+ay_ntt = ntt(ay.list())
+by_ntt = ntt(by.list())
 
-φa = fp_to_fp2(a)
-φb = fp_to_fp2(b)
-φab = fp_to_fp2(a_mul_b)
+aby_ntt = [x*y for (x, y) in zip(ay_ntt, by_ntt)]
+aby_zknox = intt(aby_ntt)
 
-
-φa_ntt = ntt(φa)
-φb_ntt = ntt(φb)
-
-φ_product_ntt = [x*y for (x, y) in zip(φa_ntt, φb_ntt)]
-φ_product = intt(φ_product_ntt)
-
-assert fp2_to_fp(φ_product) == a_mul_b
+assert aby.list() == aby_zknox
