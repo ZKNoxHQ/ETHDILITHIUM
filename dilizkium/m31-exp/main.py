@@ -2,7 +2,7 @@ from random import randint
 
 p = 2**31 - 1
 
-two_adicity = 2
+two_adicity = 6
 assert two_adicity > 1  # because in Fp2, we consider halved lists
 n = 1 << two_adicity
 
@@ -76,14 +76,14 @@ def sqrt_m31_2(x):
 
 
 Roots = {}
-phi_roots = [[0, 1], [0, -1]]
+phi_roots = [[0, 1], [0, p-1]]
 for k in range(1, two_adicity+2):
     Roots[1 << k] = phi_roots
     phi_roots = sum([[sqrt_m31_2(elt), opp2(sqrt_m31_2(elt))]
                      for elt in phi_roots], [])
 
 sqr1 = [0, 1]
-sqr1_inv = [0, -1]
+sqr1_inv = [0, p-1]
 
 
 def fp_to_fp2(a):
@@ -115,10 +115,6 @@ def fp2_to_fp(a):
     return r+s
 
 
-a = [randint(0, p) for _ in range(n)]
-b = [randint(0, p) for _ in range(n)]
-
-
 def merge(f_list):
     """Merge two polynomials into a single polynomial f.
     """
@@ -138,7 +134,7 @@ def split_ntt(f_ntt):
     f0_ntt = [0] * (n // 2)
     f1_ntt = [0] * (n // 2)
     for i in range(n // 2):
-        f0_ntt[i] = add2(f_ntt[2*i], mul2(f_ntt[2*i+1], i2))
+        f0_ntt[i] = mul2(add2(f_ntt[2*i], f_ntt[2*i+1]), i2)
         inv_w_2i = inv2(w[2*i])
         f1_ntt[i] = mul2(mul2(i2, inv_w_2i), sub2(f_ntt[2*i], f_ntt[2*i+1]))
     return [f0_ntt, f1_ntt]
@@ -170,8 +166,8 @@ def ntt(f):
         f_ntt = merge_ntt([f0_ntt, f1_ntt])
     elif (n == 2):
         f_ntt = [0] * n
-        f_ntt[0] = add2(f[0], f[1])
-        f_ntt[1] = sub2(f[0], f[1])
+        f_ntt[0] = add2(f[0], mul2(f[1], sqr1))
+        f_ntt[1] = sub2(f[0], mul2(f[1], sqr1))
     return f_ntt
 
 
@@ -191,16 +187,30 @@ def intt(f_ntt):
     return f
 
 
+a = [randint(0, p) for _ in range(n)]
+b = [randint(0, p) for _ in range(n)]
+
+
 a2 = fp_to_fp2(a)
 a2_ntt = ntt(a2)
-print(intt(a2_ntt))
-print(a2)
-'''
-ay_ntt = ntt(ay.list())
-by_ntt = ntt(by.list())
 
-aby_ntt = [x*y for (x, y) in zip(ay_ntt, by_ntt)]
-aby_zknox = intt(aby_ntt)
+b2 = fp_to_fp2(b)
+b2_ntt = ntt(b2)
 
-assert aby.list() == aby_zknox
-'''
+
+ab2_ntt = [mul2(x, y) for (x, y) in zip(a2_ntt, b2_ntt)]
+ab2_zknox = intt(ab2_ntt)
+
+
+def school_book(a, b):
+    assert len(a) == len(b)
+    r = [0] * (len(a)*2)
+    for i in range(len(a)):
+        for j in range(len(a)):
+            r[i+j] = (r[i+j] + a[i]*b[j]) % p
+    r_lo = r[:len(a)]
+    r_hi = r[len(a):]
+    return [(u-v) % p for (u, v) in zip(r_lo, r_hi)]
+
+
+assert fp2_to_fp(ab2_zknox) == school_book(a, b)

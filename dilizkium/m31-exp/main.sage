@@ -8,7 +8,7 @@ u = Fp2.gen()
 Fp2y = Fp2['y']
 y = Fp2y.gen()
 
-two_adicity = 5
+two_adicity = 3
 assert two_adicity > 1  # because in Fp2, we consider halved lists
 n = 1 << two_adicity
 
@@ -71,8 +71,8 @@ def fp2_to_fp(a):
     return r+s
 
 
-a = [Fp.random_element() for _ in range(n)]
-b = [Fp.random_element() for _ in range(n)]
+a = [Fp(i) for i in range(n)]
+b = [Fp(i) for i in range(n)]
 
 # check that this map is indeed multiplicative
 ax = Fpx(a)
