@@ -1,4 +1,4 @@
-from m31 import p, inv_mod, sqrt_m31, i2
+from m31 import p, inv_m31, sqrt_m31, i2, mul_m31, add_m31
 
 two_adicity = 9
 
@@ -8,7 +8,7 @@ def opp2(x):
 
 
 def add2(x, y):
-    return [(x[0] + y[0]) % p, (x[1] + y[1]) % p]
+    return [add_m31(x[0], y[0]), add_m31(x[1], y[1])]
 
 
 def sub2(x, y):
@@ -16,23 +16,23 @@ def sub2(x, y):
 
 
 def mul2(x, y):
-    return [(x[0]*y[0] - x[1]*y[1]) % p, (x[0]*y[1] + x[1]*y[0]) % p]
+    return [add_m31(mul_m31(x[0], y[0]), p - mul_m31(x[1], y[1])), add_m31(mul_m31(x[0], y[1]), mul_m31(x[1], y[0]))]
 
 
 def inv2(x):
-    den = (x[0]*x[0] + x[1] * x[1]) % p
-    inv_den = inv_mod(den, p)
-    return [(x[0] * inv_den) % p, (-x[1] * inv_den) % p]
+    den = add_m31(mul_m31(x[0], x[0]), mul_m31(x[1], x[1]))
+    inv_den = inv_m31(den)
+    return [mul_m31(x[0], inv_den), mul_m31(p-x[1], inv_den)]
 
 
 def sqrt_m31_2(x):
     if len(x) == 1:
         return sqrt_m31(x)
     x1, x2 = x
-    Δ = x1**2 + x2**2
+    Δ = add_m31(mul_m31(x1, x1), mul_m31(x2, x2))
     sqrtΔ = sqrt_m31(Δ)
-    b2 = ((-x1 + sqrtΔ) * i2) % p
+    b2 = mul_m31(add_m31(p-x1, sqrtΔ), i2)
     b = sqrt_m31(b2)
-    b_inv = inv_mod(b, p)
-    a = (x2*i2 * b_inv) % p
+    b_inv = inv_m31(b)
+    a = mul_m31(mul_m31(x2, i2), b_inv)
     return [a, b]

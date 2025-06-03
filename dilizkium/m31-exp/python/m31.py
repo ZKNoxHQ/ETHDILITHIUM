@@ -14,20 +14,31 @@ def xgcd(a, b):
     return a, x0, y0
 
 
-def inv_mod(elt, q):
-    """
-    Thomas Prest stores the inverses mod q, but in the long term, we will consider a larger q,
-    and thus we do not store the inverses mod q (it would require a too large storage).
-    """
-    _, inv_elt, _ = xgcd(elt, q)
-    assert (inv_elt * elt) % q == 1
+def add_m31(a, b):
+    result = a+b
+    if result >= p:
+        result -= p
+    return result
+
+
+def mul_m31(a, b):
+    product = a * b
+    result = (product & p) + (product >> 31)
+    if result >= p:
+        result -= p
+    return result
+
+
+def inv_m31(elt):
+    _, inv_elt, _ = xgcd(elt, p)
+    assert mul_m31(inv_elt, elt) == 1
     if inv_elt < 0:
-        inv_elt += q
+        inv_elt += p
     return inv_elt
 
 
 def sqrt_m31(x):
     y = x
     for i in range(29):
-        y = (y**2) % p
+        y = mul_m31(y, y)
     return y

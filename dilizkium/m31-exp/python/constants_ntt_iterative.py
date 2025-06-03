@@ -1,5 +1,5 @@
 from utils import bit_reverse_order
-from m31 import inv_mod, p
+from m31 import inv_m31, p, mul_m31, add_m31
 from m31_2 import two_adicity, mul2, inv2
 
 # ψ is a root of the 2⁹-th cyclotomic polynomial
@@ -29,4 +29,4 @@ for i in range(1, n):
 
 n_inv = {}
 for j in range(1, two_adicity+1):
-    n_inv[1 << j] = [inv_mod(1 << j, p), 0]
+    n_inv[1 << j] = [inv_m31(1 << j), 0]
