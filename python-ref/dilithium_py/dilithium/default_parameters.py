@@ -67,3 +67,18 @@ ETHDilithium2KoalaBear = ETHDilithium(
     q=2130706433,
     n=256
 )
+
+ETHDilithium2M31 = ETHDilithium(
+    {
+        "d": 16,
+        "k": 4,
+        "l": 5,
+        "eta": 4,
+        "tau": 39,
+        "omega": 80,
+        "gamma_1": 2**21,
+        "gamma_2": 1015839,  # (q-1)/(2*7*151),
+    },
+    q=2147483647,  # 2**31 - 1
+    n=256
+)

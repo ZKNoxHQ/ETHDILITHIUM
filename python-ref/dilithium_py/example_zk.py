@@ -1,10 +1,12 @@
 from dilithium_py.dilithium.default_parameters import ETHDilithium2BabyBear as ETHDilithiumBB
 from dilithium_py.dilithium.default_parameters import ETHDilithium2KoalaBear as ETHDilithiumKB
+from dilithium_py.dilithium.default_parameters import ETHDilithium2M31 as ETHDilithiumM31
 
 # An example of ZK-ETHDilithium with Baby Bear and Koala Bear together with and Keccak256PRNG.
 msg = b"We are ZKNox."
 
-for D in [ETHDilithiumBB, ETHDilithiumKB]:
+# for D in [ETHDilithiumBB, ETHDilithiumM31, ETHDilithiumKB]:
+for D in [ETHDilithiumM31]:
     print("KG")
     pk, sk = D.keygen()
     print("sign")
