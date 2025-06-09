@@ -1,0 +1,213 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{physics}
+\usepackage{multicol}
+\usepackage{fourier}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[table]{xcolor}
+
+\setbeamertemplate{navigation symbols}{%
+    \usebeamerfont{footline}%
+    \usebeamercolor[fg]{footline}%
+    \hspace{1em}%
+    \insertframenumber/\inserttotalframenumber
+}
+\setbeamercolor{footline}{fg=black}
+
+\title{Zero-knowledge versions of Dilithium Signature Scheme}
+\author{}
+\date{}
+
+\begin{document}
+
+\begin{frame}
+    \maketitle
+\end{frame}
+
+
+\begin{frame}{Goal of the work}
+    A zero-knowledge version of Dilithium:
+    \begin{itemize}
+        \item Verification arithmetic must be in a (PQ-)SNARK field,
+        \item Keep a reasonable verification cost,
+        \item Keep a reasonable public key and signature size,
+        \item Keep a reasonable signer time,
+        \item Keep a good security.
+    \end{itemize}
+    \pause
+    Here, we replace $q= 8380417$ by:
+    \begin{itemize}
+        \item $2^{31}-2^{27}+1$, as in zkVM by Risc0 (BabyBear field),
+        \item $2^{31}-1$, as in Plonky3 (Mersenne 31 field),
+        \item $2^{31} - 2^{24}+1$ as in Plonky3 (KoalaBear field)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Dilithium parameters}
+    Dilithium has many parameters:
+    \begin{itemize}
+        \item $q$ the characteristic of the field, 
+        \item $n$ the extension defining the polynomial ring,
+        \item $k$ and $l$, the dimensions of the matrix and secret key,
+        \item $\eta$ for the size of the coefficients of the secret key,
+        \item $\gamma_1$ defining the norm of the randomness given by $y$ as well as $z$,
+        \item $\gamma_2$ defining how to define Low and High bits,
+        \item $\tau$ for the challenge $c$ set size,
+        \item $d$ for reducing the public key size.
+        % \item $\beta = \tau \eta$ (always?).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Parametrization}
+    Security:
+    \begin{itemize}
+        \item MLWE is hard for parameters $q$, $n$, $k$, $l$, $\eta$,
+        \item MSIS is hard for parameters $q$, $n$, $k+l+1$, $\zeta = \min(\gamma_1, 2\gamma_2+1+\tau 2^{d-1})$,\\
+        This is called unforgeability,
+        \item MSIS is hard for parameters $q$, $n$, $k+l+1$, $\zeta' = \min(2\gamma_1, 4\gamma_2+1)$,\\
+        This is called strong unforgeability,
+    \end{itemize}
+    \pause
+    Efficiency:
+    \begin{itemize}
+        \item Signing requires $\exp(256\eta\tau(l/\gamma_1 + k/\gamma_2))$ iterations.
+    \end{itemize}
+    \pause
+    Size:
+    \begin{itemize}
+        \item Public key: $A'\in\mathcal M_{k,l}(\mathbb F_q^n)$: $4kln$ bytes, $tr$: 32 bytes, $t_1' \in (\mathbb F_q^n)^k$: $4kn$ bytes,
+        \item Signature: $c'$: 32 bytes, $z \in (\mathbb F_q^n)^l$: $4ln$ bytes, $h \in (\mathbb F_q^n)^k$: $4kn$ bytes.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{DILITHIUM NIST II} 
+    $$n=256,  (k,l) = (4,4), \gamma_1 = 2^{17}, \gamma_2 = (q-1)/88, \eta = 2, \tau = 39, \zeta = 350209, \zeta' = 380929, d = 13$$
+    \begin{itemize}
+        \item Weak UF SIS: 123 (quantum),  112 (classical), 87 (plausible),
+        \item Strong UF SIS: 121 (quantum),  110 (classical), 86 (plausible),
+        \item Primal LWE: 124 (quantum),  112 (classical), 87 (plausible),
+        \item Dual LWE: 123 (quantum),  111 (classical), 87 (plausible),
+        \item Requires approx $\exp(256\cdot 2 \cdot 39\cdot(4\cdot 88 / (q-1) + 4 / 2^{17})) \approx 4.25$ signing iter.
+        \item (Uncompressed) Public key of 20512kB and signature of 9248kB. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Zero-Knowledge Dilithium}
+    \begin{minipage}{.65\linewidth}
+        \begin{enumerate}[<+->]
+            \item Start from Dilithium NIST II, and change $q$.\\
+            \emph{LWE insecure anymore as $q$ increased.}
+            \item Keep, $k,l,n$, and increase $\eta$ for LWE.\\
+            \emph{$\eta = 10\Longrightarrow$ LWE secure, but many sign iter.!}
+            \item Back to $\eta = 2$, but $l = 5$.\\
+            \emph{LWE almost OK, but pk and sig size increased.}
+            \item Increase $\eta$ to $4$.\\
+            \emph{LWE OK, but 24 signing iterations. Change $\gamma_i$?}
+            \item Change $\gamma_2$ to a divisor of $q-1$.\\
+            \emph{MSIS insecure? Decrease $\gamma_2$.}
+            \item Reduce $\gamma_1$ to get a good signing iteration.
+            \item Increase $d$ while keeping a good MSIS security.\\
+            \emph{Done!}
+        \end{enumerate}
+    \end{minipage}
+    \begin{minipage}{.34\linewidth}
+        \begin{tabular}{|c|c|c|c|c|}
+            \hline
+            & \textbf{MLWE} & \textbf{MSISI} & \textbf{Sign}\\
+            & \textbf{sec.} & \textbf{sec.} & \textbf{iter.} \\
+            \hline
+            1& \textcolor{red}{insecure}&--&--\\
+            \hline
+            \onslide<2->{2}&\onslide<2->{secure}&    \onslide<2->{--}                       &\onslide<2->{\textcolor{red}{huge}}\\
+            \hline
+            \onslide<3->{3}&\onslide<3->{$\sim$~secure}&\onslide<3->{--}                       &\onslide<3->{--}\\
+            \hline
+            \onslide<4->{4}&\onslide<4->{secure}&    \onslide<4->{--}                       &\onslide<4->{\textcolor{red}{high}}\\
+            \hline
+            \onslide<5->{5}&\onslide<5->{secure}&    \onslide<5->{\textcolor{red}{insecure}}&\onslide<5->{$\sim$~okay}\\
+            \hline
+            \onslide<6->{6}&\onslide<6->{secure}&    \onslide<6->{secure}                   &\onslide<6->{okay}\\
+            \hline
+            \onslide<7->{7}&\onslide<7->{secure}&    \onslide<7->{secure}                   &\onslide<7->{okay}\\
+            \hline
+        \end{tabular}
+    \end{minipage}
+\end{frame}
+
+\begin{frame}{ZK-DILITHIUM (BabyBear)} 
+    $$n=256,  (k,l) = (4,5), \gamma_1 = 2^{21}, \gamma_2 = (q-1)/2^{11},$$
+    $$\eta = 4, \tau = 39, \zeta = 3244033, \zeta'=4194304, d = 16.$$
+    \begin{itemize}
+        \item Weak UF SIS: 128 (quantum),  116 (classical), 91 (plausible),
+        \item Strong UF SIS: 123 (quantum),  111 (classical), 87 (plausible),
+        \item Primal LWE: 124 (quantum),  112 (classical), 88 (plausible),
+        \item Dual LWE: 124 (quantum),  112 (classical), 87 (plausible),
+        \item Requires approx $1.29$ iterations for signing,
+        \item (Uncompressed) Public key of 24.608kB and signature of 10.272kB. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{ZK-DILITHIUM (M31)} 
+    $$n=256,  (k,l) = (4,5), \gamma_1 = 2^{21}, \gamma_2 = (q-1)/(2\cdot7\cdot 151),$$
+    $$\eta = 4, \tau = 39, \zeta = 3309631, \zeta'=4194304, d = 16.$$
+    \begin{itemize}
+        \item Weak UF SIS: 128 (quantum),   116 (classical), 91 (plausible),
+        \item Strong UF SIS: 124 (quantum), 112 (classical), 87 (plausible),
+        \item Primal LWE: 124 (quantum),    112 (classical), 87 (plausible),
+        \item Dual LWE: 123 (quantum),      112 (classical), 87 (plausible),
+        \item Requires approx $1.29$ iterations for signing,
+        \item (Uncompressed) Public key of 24.608kB and signature of 10.272kB. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{ZK-DILITHIUM (KoalaBear)} 
+    $$n=256,  (k,l) = (4,5), \gamma_1 = 2^{21}, \gamma_2 = (q-1)/2^{11},$$
+    $$\eta = 4, \tau = 39, \zeta = 3358721, \zeta'=4194304, d = 16.$$
+    \begin{itemize}
+        \item Weak UF SIS: 128 (quantum),   116 (classical), 90 (plausible),
+        \item Strong UF SIS: 124 (quantum), 112 (classical), 87 (plausible),
+        \item Primal LWE: 124 (quantum),    112 (classical), 87 (plausible),
+        \item Dual LWE: 123 (quantum),      112 (classical), 87 (plausible),
+        \item Requires approx $1.28$ iterations for signing,
+        \item (Uncompressed) Public key of 24.608kB and signature of 10.272kB. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Comparison}
+    \begin{center}
+        \begin{tabular}{|l|c|c|c|c|}
+            \hline
+            & \textbf{Original} & \textbf{BabyBear} & \textbf{M31} & \textbf{KoalaBear}\\
+            \hline
+            Public key size & 20.5kB & \multicolumn{3}{c|}{24.6kB}\\
+            Signature size & 9.3kB & \multicolumn{3}{c|}{10.3kB}\\
+            \hline
+            Security (quantum) & 121 bits & 123 bits & 123 bits & 123 bits\\
+            Security (classic) & 110 bits & 111 bits & 112 bits & 112 bits\\
+            Security (plausible) & 86 bits & 87 bits & 87 bits  & 87 bits\\
+            \hline
+            Signing iterations & 4.25 & 1.29 & 1.29 & 1.28\\
+            \hline
+            NTTs in verif & 8 & \multicolumn{3}{c|}{9}\\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Questions}
+    \begin{itemize}
+        \item Dilithium NIST II uses $d=13$ in order to have public key elements of $23-13=10$-bit long.
+        \item We can reach elements of $31 - 16 = 15$ bits here (but for now we use uncompressed keys).
+        \item How to choose $\omega$? It's a small probability to calculate but not sure how.
+    \end{itemize}
+\end{frame}
+    
+\end{document}
