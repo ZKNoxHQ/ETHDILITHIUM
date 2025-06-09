@@ -1,11 +1,10 @@
-from m31 import mul_m31, sqrt_m31
 from random import randint
 from m31_2 import two_adicity, p, mul2
 from ntt_recursive import ntt_rec, intt_rec
 from ring import fp_to_fp2, fp2_to_fp, school_book, mul_zknox
 
 assert two_adicity > 1  # because in Fp2, we consider halved lists
-n = 1 << two_adicity
+n = 1 << (two_adicity-1)
 
 
 a = [randint(0, p) for _ in range(n)]
@@ -31,3 +30,10 @@ assert fp2_to_fp(ab2_zknox) == school_book(a, b)
 #############
 
 assert mul_zknox(a, b) == school_book(a, b)
+
+toto = [i for i in range(1<<7)]
+toto2 = fp_to_fp2(toto)
+print(toto[0:10])
+print(toto2[0:10])
+print(ntt_rec(toto2)[0:10])
+print(fp2_to_fp(intt_rec(ntt_rec(toto2)))[0:10])

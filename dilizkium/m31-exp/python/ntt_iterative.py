@@ -1,6 +1,8 @@
-from m31_2 import mul2, add2, sub2
-from constants_ntt_iterative import ψ_rev, ψ_inv_rev, n_inv
-
+from m31_2 import p, mul2, add2, sub2
+from ntt_constants_iterative import ψ_rev, ψ_inv_rev, n_inv
+ψ_rev = ψ_rev[p]
+ψ_inv_rev = ψ_inv_rev[p]
+n_inv = n_inv[p]
 
 def ntt(f):
     # following eprint 2016/504 Algorithm 1

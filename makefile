@@ -1,6 +1,6 @@
 DIRSIGNER = 'python-ref'
 PYTHON=python-ref/myenv/bin/python
-CORES := $(shell grep -c ^processor /proc/cpuinfo)
+CORES := $(shell nproc)
 
 # INSTALL
 
@@ -28,7 +28,7 @@ test_signer:
 	make -C $(DIRSIGNER) test
 
 test_verifier:
-	FOUNDRY_PROFILE=lite forge test -j$(CORE) -vv
+	FOUNDRY_PROFILE=lite forge test -j$(CORES) -vv
 
 test_verifier_slow:
 	forge test -j$(CORES) -vv

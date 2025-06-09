@@ -1,15 +1,14 @@
-from m31 import p
-from m31_2 import mul2, inv2
-from constants_ntt_recursive import Roots
+from m31_2 import p, mul2, inv2
+from ntt_constants_recursive import roots_dict_mod
 from ntt_iterative import ntt, intt
-
+roots_dict_mod = roots_dict_mod[p]
 
 def fp_to_fp2(a):
     # this map is Fp[x]/(x^n+1) -> Fp²[y]/(y^{n/2}+1)
     # by x -> ωy
     r = []
     n = len(a)//2
-    ω = Roots[2*n][0]
+    ω = roots_dict_mod[2*n][0]
     ω_i = [1, 0]
     for i in range(n):
         r.append(mul2([a[i], p-a[i+n]], ω_i))
@@ -22,8 +21,10 @@ def fp2_to_fp(a):
     r = []
     s = []
     n = len(a)
-    ω = Roots[2*n][0]
+    ω = roots_dict_mod[2*n][0]
     ω_inv = inv2(ω)
+    print('2n = ', 2*n)
+    print('ωinv', ω_inv)
     ω_inv_i = [1, 0]
     for i in range(n):
         c = mul2(a[i], ω_inv_i)

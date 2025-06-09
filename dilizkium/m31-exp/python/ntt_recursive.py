@@ -1,6 +1,6 @@
 from m31_2 import p, mul2, inv2, sub2, add2, i2
-from constants_ntt_recursive import Roots
-
+from ntt_constants_recursive import roots_dict_mod
+roots_dict_mod = roots_dict_mod[p]
 sqr1 = [0, 1]
 sqr1_inv = [0, p-1]
 
@@ -20,7 +20,7 @@ def split_ntt_rec(f_ntt):
     """Split a polynomial f in two or three polynomials.
     """
     n = len(f_ntt)
-    w = Roots[n]
+    w = roots_dict_mod[n]
     f0_ntt = [0] * (n // 2)
     f1_ntt = [0] * (n // 2)
     for i in range(n // 2):
@@ -36,7 +36,7 @@ def merge_ntt_rec(f_list_ntt):
     """
     f0_ntt, f1_ntt = f_list_ntt
     n = len(f0_ntt)
-    w = Roots[2*n]
+    w = roots_dict_mod[2*n]
     f_ntt = [0] * 2*n
     for i in range(n):
         f_ntt[2 * i + 0] = add2(f0_ntt[i],
