@@ -6,7 +6,7 @@ class Module:
         self.ring = ring
         self.matrix = Matrix
 
-    def random_element(self, m, n):
+    def random(self, m, n):
         """
         Generate a random element of the module of dimension m x n
 
@@ -14,7 +14,7 @@ class Module:
         :param int m: the number of columns in tge matrix
         :return: an element of the module with dimension `m times n`
         """
-        elements = [[self.ring.random_element() for _ in range(n)]
+        elements = [[self.ring.random() for _ in range(n)]
                     for _ in range(m)]
         return self(elements)
 
@@ -118,7 +118,7 @@ class Matrix:
         """
         for row in self._data:
             for ele in row:
-                ele.reduce_coefficients()
+                ele._reduce()
         return self
 
     def __getitem__(self, idx):
@@ -198,9 +198,15 @@ class Matrix:
         if not n == n_:
             raise ValueError("Matrices are of incompatible dimensions")
 
+        # for i in range(m):
+        #     for j in range(l):
+        #         for k in range(n):
+        #             print(type(self[i, k]))
+        #             print(type(other[k, j]))
+        zero = self.parent.ring([0 for _ in range(self.parent.ring.n)])
         return self.parent(
             [
-                [sum(self[i, k] * other[k, j] for k in range(n))
+                [sum([self[i, k] * other[k, j] for k in range(n)], zero)
                  for j in range(l)]
                 for i in range(m)
             ]

@@ -1,5 +1,7 @@
 from .dilithium import Dilithium
 from .dilithium_eth import ETHDilithium
+from polyntt.field.prime_field import PrimeField
+from polyntt.field.m31 import M31ExtensionField
 
 DEFAULT_PARAMETERS = {
     "dilithium2": {
@@ -50,7 +52,7 @@ ETHDilithium2BabyBear = ETHDilithium(
         "gamma_1": 131072,  # 2^17
         "gamma_2": 983040,  # (q-1)/2^11,
     },
-    q=2013265921,
+    F=PrimeField(2013265921),
     n=256
 )
 ETHDilithium2KoalaBear = ETHDilithium(
@@ -64,7 +66,7 @@ ETHDilithium2KoalaBear = ETHDilithium(
         "gamma_1": 131072,  # 2^17
         "gamma_2": 1040384,  # (q-1)/2^11,
     },
-    q=2130706433,
+    F=PrimeField(2130706433),
     n=256
 )
 
@@ -79,6 +81,6 @@ ETHDilithium2M31 = ETHDilithium(
         "gamma_1": 2**21,
         "gamma_2": 1015839,  # (q-1)/(2*7*151),
     },
-    q=2147483647,  # 2**31 - 1
+    F=M31ExtensionField(),  # 2**31 - 1
     n=256
 )

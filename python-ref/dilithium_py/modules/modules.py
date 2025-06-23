@@ -1,10 +1,12 @@
+from dilithium_py.polynomials.polynomials_dilithium import PolynomialRingDilithium
 from .modules_generic import Module, Matrix
-from ..polynomials.polynomials import PolynomialRingDilithium
+from polyntt.polynomial.polynomial import PolynomialRing
+from polyntt.field.prime_field import PrimeField
 
 
 class ModuleDilithium(Module):
-    def __init__(self, q=8380417, n=256):
-        self.ring = PolynomialRingDilithium(q, n)
+    def __init__(self, F=PrimeField(8380417), n=256):
+        self.ring = PolynomialRingDilithium(F, n)
         self.matrix = MatrixDilithium
 
     def __bit_unpack(self, input_bytes, m, n, alg, packed_len, *args):
@@ -64,12 +66,12 @@ class ModuleDilithium(Module):
         algorithm = self.ring.bit_unpack_z
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_1)
 
-    def bit_unpack_32(self, input_bytes, m, n, is_ntt=False):
+    def bit_unpack_32(self, input_bytes, m, n, ntt=False):
         """
         Unpack a Module element by unpacking all field elements by 32 bits.
         """
         packed_len = 1024
-        def algorithm(x): return self.ring.bit_unpack_32(x, is_ntt=True)
+        def algorithm(x): return self.ring.bit_unpack_32(x, ntt=True)
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
 
 

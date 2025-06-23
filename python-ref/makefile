@@ -7,7 +7,7 @@ AUX = *.pyc *.cprof */*.pyc
 install:
 	$(PY) -m venv $(VENV)
 	$(PIP) install -r requirements.txt
-	$(PIP) install -e "git+https://github.com/ZKNoxHQ/NTT.git@main#egg=polyntt&subdirectory=assets/pythonref/"
+	$(PIP) install -e "git+https://github.com/ZKNoxHQ/NTT.git@simon/FiniteFieldIntegration#egg=polyntt&subdirectory=assets/pythonref/"
 
 test:
 	$(PYTHON) -m unittest $(if $(TEST),dilithium_py.tests.$(TEST),discover -s dilithium_py.tests) -v

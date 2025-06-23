@@ -2,11 +2,12 @@ from dilithium_py.dilithium.dilithium import Dilithium
 
 from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 from ..shake.shake_wrapper import shake128, shake256
+from polyntt.field.prime_field import PrimeField
 
 
 class ETHDilithium(Dilithium):
-    def __init__(self, parameter_set, q=8380417, n=256):
-        super().__init__(parameter_set, q, n)
+    def __init__(self, parameter_set, F=PrimeField(8380417), n=256):
+        super().__init__(parameter_set, F, n)
 
     @staticmethod
     def _pack_pk(A_hat, tr, t1_new):
@@ -53,12 +54,22 @@ class ETHDilithium(Dilithium):
         Helper function which generates a element of size
         k x l from a seed `rho`.
         """
-        A_data = [[0 for _ in range(self.l)] for _ in range(self.k)]
-        for i in range(self.k):
-            for j in range(self.l):
-                A_data[i][j] = self.R.rejection_sample_ntt_poly_babybear(
-                    rho, i, j, _xof=_xof)
-        return self.M(A_data)
+        if self.M.ring.q == 2**31-1:
+            A_data = [[[0, 0] for _ in range(self.l)] for _ in range(self.k)]
+            for i in range(self.k):
+                for j in range(self.l):
+                    A_data[i][j][0] = self.R.rejection_sample_ntt_poly_32bit(
+                        rho, i, j, _xof=_xof)
+                    A_data[i][j][1] = self.R.rejection_sample_ntt_poly_32bit(
+                        rho, i, j, _xof=_xof)
+            return self.M(A_data)
+        else:
+            A_data = [[0 for _ in range(self.l)] for _ in range(self.k)]
+            for i in range(self.k):
+                for j in range(self.l):
+                    A_data[i][j] = self.R.rejection_sample_ntt_poly_32bit(
+                        rho, i, j, _xof=_xof)
+            return self.M(A_data)
 
     def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
         """
@@ -80,7 +91,9 @@ class ETHDilithium(Dilithium):
         s1, s2 = self._expand_vector_from_seed(rho_prime)
         s1_hat = s1.to_ntt()
 
-        # Matrix multiplication
+        # Matrix
+        print("A_hat", A_hat.dim())
+        print("s1_hat", s1_hat.dim())
         t = (A_hat @ s1_hat).from_ntt() + s2
 
         t1, t0 = t.power_2_round(self.d)

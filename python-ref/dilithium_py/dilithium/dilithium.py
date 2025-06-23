@@ -3,10 +3,11 @@ import os
 from ..modules.modules import ModuleDilithium
 
 from ..shake.shake_wrapper import Shake, shake128, shake256
+from polyntt.field.prime_field import PrimeField
 
 
 class Dilithium:
-    def __init__(self, parameter_set, q=8380417, n=256):
+    def __init__(self, parameter_set, F=PrimeField(8380417), n=256):
         self.d = parameter_set["d"]
         self.k = parameter_set["k"]
         self.l = parameter_set["l"]
@@ -17,7 +18,7 @@ class Dilithium:
         self.gamma_2 = parameter_set["gamma_2"]
         self.beta = self.tau * self.eta
 
-        self.M = ModuleDilithium(q, n)
+        self.M = ModuleDilithium(F, n)
         self.R = self.M.ring
 
         # Use system randomness by default, for deterministic randomness
@@ -208,7 +209,7 @@ class Dilithium:
 
         # Generate the error vectors s1 ∈ R^l, s2 ∈ R^k
         s1, s2 = self._expand_vector_from_seed(rho_prime)
-        s1_hat = s1.to_ntt()
+        s1_hat = s1.to_ntt()  # TODO INTEGRATE NTT
 
         # Matrix multiplication
         t = (A_hat @ s1_hat).from_ntt() + s2
