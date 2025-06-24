@@ -198,11 +198,6 @@ class Matrix:
         if not n == n_:
             raise ValueError("Matrices are of incompatible dimensions")
 
-        # for i in range(m):
-        #     for j in range(l):
-        #         for k in range(n):
-        #             print(type(self[i, k]))
-        #             print(type(other[k, j]))
         zero = self.parent.ring([0 for _ in range(self.parent.ring.n)])
         return self.parent(
             [

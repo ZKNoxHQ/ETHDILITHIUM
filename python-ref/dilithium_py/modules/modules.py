@@ -162,14 +162,15 @@ class MatrixDilithium(Matrix):
         """
         Convert every element of the matrix into NTT form
         """
-        data = [[x.to_ntt() for x in row] for row in self._data]
+        data = [[self.parent.ring.ntt(x)
+                 for x in row] for row in self._data]
         return self.parent(data, transpose=self._transpose)
 
     def from_ntt(self):
         """
         Convert every element of the matrix from NTT form
         """
-        data = [[x.from_ntt() for x in row] for row in self._data]
+        data = [[self.parent.ring.intt(x) for x in row] for row in self._data]
         return self.parent(data, transpose=self._transpose)
 
     def high_bits(self, alpha, is_ntt=False):
@@ -222,4 +223,5 @@ class MatrixDilithium(Matrix):
         Helper function to count the number of coeffs == 1
         in all the polynomials of a matrix
         """
-        return sum(c for row in self._data for p in row for c in p)
+        # TODO MAKE IT WORK FOR Fp²?
+        return sum(c.coeffs for row in self._data for p in row for c in p)

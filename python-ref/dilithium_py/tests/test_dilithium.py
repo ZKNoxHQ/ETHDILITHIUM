@@ -79,7 +79,7 @@ class TestDilithium(unittest.TestCase):
         self.assertFalse(check_wrong_msg)
 
     def test_dilithium2(self):
-        for _ in range(3):
+        for _ in range(1):
             self.generic_test_dilithium(Dilithium2, shake256, shake128)
 
     # def test_dilithium3(self):

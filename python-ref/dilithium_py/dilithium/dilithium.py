@@ -209,11 +209,9 @@ class Dilithium:
 
         # Generate the error vectors s1 ∈ R^l, s2 ∈ R^k
         s1, s2 = self._expand_vector_from_seed(rho_prime)
-        s1_hat = s1.to_ntt()  # TODO INTEGRATE NTT
-
+        s1_hat = s1.to_ntt()
         # Matrix multiplication
         t = (A_hat @ s1_hat).from_ntt() + s2
-
         t1, t0 = t.power_2_round(self.d)
 
         # Pack up the bytes
@@ -262,7 +260,7 @@ class Dilithium:
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
             # Store c in NTT form
-            c = c.to_ntt()
+            c = c.parent.ntt(c)
 
             z = y + (s1.scale(c)).from_ntt()
             if z.check_norm_bound(self.gamma_1 - self.beta):
@@ -304,7 +302,7 @@ class Dilithium:
         c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
         # Convert to NTT for computation
-        c = c.to_ntt()
+        c = c.parent.ntt(c)
         z = z.to_ntt()
 
         t1 = t1.scale(1 << self.d)

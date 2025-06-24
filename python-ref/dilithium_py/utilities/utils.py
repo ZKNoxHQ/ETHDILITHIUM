@@ -27,7 +27,9 @@ def decompose(r, a, q):
 
     -(a << 1) < r0 <= (a << 1)
     """
-    rp = r % q
+    # TODO MAKE IT WORK FOR Fp²?
+    r._reduce()
+    rp = r.coeffs
     r0 = reduce_mod_pm(rp, a)
     r1 = rp - r0
     if rp - r0 == q - 1:
@@ -67,7 +69,9 @@ def make_hint_optimised(z0, r1, a, q):
     `w = (A_hat @ y_hat).from_ntt()` during signing
     """
     gamma2 = a >> 1
-    if z0 <= gamma2 or z0 > (q - gamma2) or (z0 == (q - gamma2) and r1 == 0):
+    # TODO MAKE IT WORK FOR Fp²?
+    z0_int = z0.coeffs
+    if z0_int <= gamma2 or z0_int > (q - gamma2) or (z0_int == (q - gamma2) and r1 == 0):
         return 0
     return 1
 
@@ -90,7 +94,9 @@ def check_norm_bound(n, b, q):
     x ∈ { (q-3)/2, ...,        0,       0, ..., (q-1)/2}
     x ∈ {0, 1,     ...,  (q-1)/2, (q-1)/2, ...,       1}
     """
-    x = n % q
+    # TODO MAKE IT WORK FOR Fp²?
+    n._reduce()
+    x = n.coeffs
     x = ((q - 1) >> 1) - x
     x = x ^ (x >> 31)
     x = ((q - 1) >> 1) - x
