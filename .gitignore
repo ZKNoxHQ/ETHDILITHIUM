@@ -3,3 +3,13 @@ out/
 
 __pycache__
 python-ref/myenv/
+
+
+dilizkium/howto/beamer.aux
+dilizkium/howto/beamer.log
+dilizkium/howto/beamer.nav
+dilizkium/howto/beamer.out
+dilizkium/howto/beamer.pdf
+dilizkium/howto/beamer.snm
+dilizkium/howto/beamer.toc
+
