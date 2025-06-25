@@ -66,12 +66,12 @@ class ModuleDilithium(Module):
         algorithm = self.ring.bit_unpack_z
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_1)
 
-    def bit_unpack_32(self, input_bytes, m, n, ntt=False):
+    def bit_unpack_32(self, input_bytes, m, n, is_ntt=False):
         """
         Unpack a Module element by unpacking all field elements by 32 bits.
         """
         packed_len = 1024
-        def algorithm(x): return self.ring.bit_unpack_32(x, ntt=True)
+        def algorithm(x): return self.ring.bit_unpack_32(x, is_ntt=is_ntt)
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
 
 
@@ -152,10 +152,7 @@ class MatrixDilithium(Matrix):
         """
         Pack a Module element by packing all its field element by 32 bits
         """
-        if is_ntt:
-            algorithm = self.parent.ring.element_ntt.bit_pack_32
-        else:
-            algorithm = self.parent.ring.element.bit_pack_32
+        algorithm = self.parent.ring.element.bit_pack_32
         return self.__bit_pack(algorithm)
 
     def to_ntt(self):

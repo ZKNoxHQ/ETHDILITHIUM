@@ -224,7 +224,7 @@ class PolynomialRingDilithium(PolynomialRingNTT):
 
     def bit_unpack_32(self, input_bytes, is_ntt=False):
         coefficients = self.__bit_unpack(input_bytes, 32)
-        return self(coefficients, is_ntt=is_ntt)
+        return self(coefficients, ntt=is_ntt)
 
     def bit_unpack_z(self, input_bytes, gamma_1):
         # Level 2 parameter set

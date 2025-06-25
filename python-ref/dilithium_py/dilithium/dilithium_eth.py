@@ -1,4 +1,5 @@
 from dilithium_py.dilithium.dilithium import Dilithium
+from dilithium_py.utilities.utils import decompose, reduce_mod_pm, use_hint
 
 from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 from ..shake.shake_wrapper import shake128, shake256
@@ -54,22 +55,22 @@ class ETHDilithium(Dilithium):
         Helper function which generates a element of size
         k x l from a seed `rho`.
         """
-        if self.M.ring.q == 2**31-1:
-            A_data = [[[0, 0] for _ in range(self.l)] for _ in range(self.k)]
-            for i in range(self.k):
-                for j in range(self.l):
-                    A_data[i][j][0] = self.R.rejection_sample_ntt_poly_32bit(
-                        rho, i, j, _xof=_xof)
-                    A_data[i][j][1] = self.R.rejection_sample_ntt_poly_32bit(
-                        rho, i, j, _xof=_xof)
-            return self.M(A_data)
-        else:
-            A_data = [[0 for _ in range(self.l)] for _ in range(self.k)]
-            for i in range(self.k):
-                for j in range(self.l):
-                    A_data[i][j] = self.R.rejection_sample_ntt_poly_32bit(
-                        rho, i, j, _xof=_xof)
-            return self.M(A_data)
+        # if self.M.ring.q == 2**31-1:
+        #     A_data = [[[0, 0] for _ in range(self.l)] for _ in range(self.k)]
+        #     for i in range(self.k):
+        #         for j in range(self.l):
+        #             A_data[i][j][0] = self.R.rejection_sample_ntt_poly_32bit(
+        #                 rho, i, j, _xof=_xof)
+        #             A_data[i][j][1] = self.R.rejection_sample_ntt_poly_32bit(
+        #                 rho, i, j, _xof=_xof)
+        #     return self.M(A_data)
+        # else:
+        A_data = [[0 for _ in range(self.l)] for _ in range(self.k)]
+        for i in range(self.k):
+            for j in range(self.l):
+                A_data[i][j] = self.R.rejection_sample_ntt_poly_32bit(
+                    rho, i, j, _xof=_xof)
+        return self.M(A_data)
 
     def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
         """
@@ -77,6 +78,7 @@ class ETHDilithium(Dilithium):
         """
         # Random seed
         zeta = self.random_bytes(32)
+        zeta = b'\xe4e\xba\xab:\x7f\x8b\x1a\xa95\xa4F\r\xab\x86{\xb0W\xe7\x9d\x19^1\x9dp\xe8N\xa7\xcf+`\x93'
 
         # Expand with an XOF (SHAKE256)
         seed_bytes = self._h(zeta, 128, _xof=_xof)
@@ -92,8 +94,6 @@ class ETHDilithium(Dilithium):
         s1_hat = s1.to_ntt()
 
         # Matrix
-        print("A_hat", A_hat.dim())
-        print("s1_hat", s1_hat.dim())
         t = (A_hat @ s1_hat).from_ntt() + s2
 
         t1, t0 = t.power_2_round(self.d)
@@ -145,7 +145,7 @@ class ETHDilithium(Dilithium):
             c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
 
             # Store c in NTT form
-            c_ntt = c.to_ntt()
+            c_ntt = c.parent.ntt(c)
 
             z = y + (s1.scale(c_ntt)).from_ntt()
             if z.check_norm_bound(self.gamma_1 - self.beta):

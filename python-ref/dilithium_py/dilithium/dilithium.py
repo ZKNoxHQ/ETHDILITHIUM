@@ -112,8 +112,9 @@ class Dilithium:
         return rho + K + tr + s1_bytes + s2_bytes + t0_bytes
 
     def _pack_h(self, h):
+        # TODO IMPLEMENT FOR Fp²
         non_zero_positions = [
-            [i for i, c in enumerate(poly.coeffs) if c == 1]
+            [i for i, c in enumerate(poly.coeffs) if c.coeffs == 1]
             for row in h._data
             for poly in row
         ]
@@ -313,5 +314,4 @@ class Dilithium:
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
-
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
