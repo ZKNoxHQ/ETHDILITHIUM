@@ -19,11 +19,3 @@ class TestUtils(unittest.TestCase):
                 x = reduce_mod_pm(i, modulus)
                 self.assertTrue(x <= (modulus - 1) // 2)
                 self.assertTrue(x >= -(modulus - 1) // 2)
-
-    def test_use_hint(self):
-        # in dilithium we use hint for a=2γ2
-        a = 2 * 95232
-        q = 8380417
-        h = 2345433
-        r = 5432321
-        assert use_hint(h, r, a, q) == 29

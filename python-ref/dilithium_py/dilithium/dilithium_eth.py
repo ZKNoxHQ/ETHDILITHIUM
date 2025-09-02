@@ -78,7 +78,6 @@ class ETHDilithium(Dilithium):
         """
         # Random seed
         zeta = self.random_bytes(32)
-        zeta = b'\xe4e\xba\xab:\x7f\x8b\x1a\xa95\xa4F\r\xab\x86{\xb0W\xe7\x9d\x19^1\x9dp\xe8N\xa7\xcf+`\x93'
 
         # Expand with an XOF (SHAKE256)
         seed_bytes = self._h(zeta, 128, _xof=_xof)
@@ -190,3 +189,9 @@ class ETHDilithium(Dilithium):
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
 
         return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
+
+
+class ETHDilithiumFP2(ETHDilithium):
+    def keygen(self, _xof=Keccak256PRNG, _xof2=Keccak256PRNG):
+        super().sign(_xof = _xof, _xof2 = _xof2)
+        

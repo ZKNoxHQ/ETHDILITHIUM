@@ -82,5 +82,6 @@ ETHDilithium2M31 = ETHDilithium(
         "gamma_2": 1015839,  # (q-1)/(2*7*151),
     },
     F=M31ExtensionField(),  # 2**31 - 1
-    n=256
+    # ARE WE SURE ABOUT THE SECURITY ? IS IT JUST A REPRESENTATION OF THE SAME RING as the ring of extension 256 of Fp[x]?
+    n=128
 )

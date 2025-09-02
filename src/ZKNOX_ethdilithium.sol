@@ -60,7 +60,7 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_ethdilithium {
-     ZKNOX_NTT ntt;
+    ZKNOX_NTT ntt;
     address public apsirev;
     address public apsiInvrev;
     bool immutableMe;

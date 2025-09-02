@@ -75,6 +75,25 @@ function dilithium_core_1(Signature memory signature)
     z = ZKNOX_Expand_Vec(signature.z);
 }
 
+function DILITHIUM_CORE_1(uint256[][] memory _h, uint256[][] memory _z)
+    pure
+    returns (uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
+{
+    h = ZKNOX_Expand_Vec(_h);
+    z = ZKNOX_Expand_Vec(_z);
+    uint256 i;
+    uint256 j;
+    norm_h = 0;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 256; j++) {
+            if (h[i][j] == 1) {
+                norm_h += 1;
+            }
+            // else { /* check that h[i][j] == 0 ? */}
+        }
+    }
+}
+
 function dilithium_core_2(
     address apsirev,
     address apsiInvrev,
@@ -91,6 +110,33 @@ function dilithium_core_2(
 
     // 1. A*z
     uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
+    z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
+
+    // 2. A*z - c*t1
+    for (uint256 i = 0; i < 4; i++) {
+        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
+    }
+
+    // 3. w_prime packed using a "solidity-friendly encoding"
+    w_prime_bytes = useHintDilithium(h, z);
+}
+
+function DILITHIUM_CORE_2(
+    address apsirev,
+    address apsiInvrev,
+    uint256[][][] memory a_hat,
+    uint256[][] memory z,
+    uint256[] memory c_ntt,
+    uint256[][] memory h,
+    uint256[][] memory t1_new
+) view returns (bytes memory w_prime_bytes) {
+    // NTT(z)
+    for (uint256 i = 0; i < 4; i++) {
+        z[i] = ZKNOX_NTTFW(z[i], apsirev);
+    }
+
+    // 1. A*z
+    uint256[][][] memory A_hat = ZKNOX_Expand_Mat(a_hat);
     z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
 
     // 2. A*z - c*t1

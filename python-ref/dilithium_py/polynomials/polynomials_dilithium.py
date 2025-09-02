@@ -108,12 +108,13 @@ class PolynomialRingDilithium(PolynomialRingNTT):
                 j &= 0xFFFFFFFF
                 if j < self.q:
                     return j
-
         # Initialise the XOF
         seed = rho + bytes([j, i])
         xof = _xof(seed)
         xof.flip()
-        coeffs = [rejection_sample(xof) for _ in range(256)]
+        coeffs = [rejection_sample(xof) for _ in range(self.n * self.F.degree)]
+        if self.F.degree == 2:
+            coeffs = [coeffs[i:i+2] for i in range(0, len(coeffs), 2)]
         return self(coeffs, ntt=True)
 
     def rejection_bounded_poly(self, rho_prime, i, eta, _xof=shake256):
@@ -140,7 +141,7 @@ class PolynomialRingDilithium(PolynomialRingNTT):
         # Sample bytes for all n coeffs
         i = 0
         coeffs = [0 for _ in range(256)]
-        while i < 256:
+        while i < self.n * self.F.degree:
             # Consider two values for each byte (top and bottom four bits)
             j = xof.read(1)[0]
 
@@ -154,6 +155,8 @@ class PolynomialRingDilithium(PolynomialRingNTT):
                 coeffs[i] = c1
                 i += 1
 
+        if self.F.degree == 2:
+            coeffs = [coeffs[i:i+2] for i in range(0, len(coeffs), 2)]
         return self(coeffs)
 
     def sample_mask_polynomial(self, rho_prime, i, kappa, gamma_1, _xof=shake256):
@@ -266,11 +269,22 @@ class PolynomialDilithium(PolynomialNTT):
         power_2 = 1 << d
         r1_coeffs = []
         r0_coeffs = []
+        if self.parent.F.degree == 2:
+            print(self.parent)
+            ω = self.parent.F([252929270, 793810598])
+            print(self.to_fp_ring(ω))
         for c in self.coeffs:
             # r = c % self.parent.q
-            # TODO IMPLEMENT A Fp² VERSION?
-            c._reduce()
-            r = c.coeffs
+            if self.parent.F.degree == 1:
+                c._reduce()
+                r = c.coeffs
+            elif self.parent.F.degree == 2:
+                x, y = c.coeffs
+                x._reduce()
+                y._reduce()
+                print(c.coeffs)
+                r = x + ω * y
+                print(r)
             r0 = reduce_mod_pm(r, power_2)
             r1_coeffs.append((r - r0) >> d)
             r0_coeffs.append(r0)
