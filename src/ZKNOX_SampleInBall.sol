@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./ZKNOX_shake.sol";
+import "./ZKNOX_keccak_prng.sol";
 
 // SampleInBall as specified in Dilithium
 function sampleInBallNIST(bytes memory c_tilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {
@@ -37,58 +38,6 @@ function sampleInBallNIST(bytes memory c_tilde, uint256 tau, uint256 q) pure ret
 }
 
 // SampleInBall with KeccakPRNG
-struct KeccakPRNG {
-    bytes32 state; // keccak256(c_tilde)
-    uint64 counter; // block counter
-    uint256 pool; // current 32-byte block as uint256
-    uint8 remaining; // remaining bytes in pool [0..32]
-}
-
-// Initialize PRNG with keccak256(c_tilde).
-function initPRNG(bytes memory c_tilde) pure returns (KeccakPRNG memory prng) {
-    prng.state = keccak256(c_tilde);
-    // Preload first block to make the first 32 bytes available immediately
-    bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));
-    prng.pool = uint256(blk);
-    prng.remaining = 32;
-    prng.counter = 1;
-}
-
-// Pull next 32-byte block into the pool.
-function refill(KeccakPRNG memory prng) pure {
-    bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
-    prng.pool = uint256(blk);
-    prng.remaining = 32;
-    unchecked {
-        prng.counter += 1;
-    }
-    assembly {
-        // write-back struct (since prng is memory)
-        mstore(prng, mload(prng)) // no-op to silence "unused" in some toolchains
-    }
-}
-
-// Get one random byte (little-endian consumption from pool).
-function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
-    if (prng.remaining == 0) {
-        bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
-        prng.pool = uint256(blk);
-        prng.remaining = 32;
-        unchecked {
-            prng.counter += 1;
-        }
-    }
-    b = uint8(prng.pool >> 248); // top 8 bits
-    prng.pool <<= 8; // shift left so next MSB moves into place
-
-    unchecked {
-        prng.remaining -= 1;
-    }
-    assembly {
-        mstore(prng, mload(prng))
-    } // write-back
-}
-
 function sampleInBallKeccakPRNG(bytes memory c_tilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {
     KeccakPRNG memory prng = initPRNG(c_tilde);
 

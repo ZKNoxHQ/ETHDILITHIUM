@@ -83,39 +83,6 @@ contract ZKNOX_dilithium {
         immutableMe = true;
     }
 
-    // function compute_c_ntt(Signature memory signature) internal view returns (uint256[] memory c) {
-    //     ctx_shake memory ctx;
-    //     ctx = shake_update(ctx, signature.c_tilde);
-    //     bytes memory sign_bytes = shake_digest(ctx, 8);
-    //     uint256 sign_int = 0;
-    //     for (uint256 i = 0; i < 8; i++) {
-    //         sign_int |= uint256(uint8(sign_bytes[i])) << (8 * i);
-    //     }
-
-    //     // Now set tau values of c to be ±1
-    //     c = new uint256[](256);
-    //     uint256 j;
-    //     bytes memory bytes_j;
-    //     for (uint256 i = 256 - tau; i < 256; i++) {
-    //         // Rejects values until a value j <= i is found
-    //         while (true) {
-    //             (ctx, bytes_j) = shake_squeeze(ctx, 1);
-    //             j = uint256(uint8(bytes_j[0]));
-    //             if (j <= i) {
-    //                 break;
-    //             }
-    //         }
-    //         c[i] = c[j];
-    //         if (sign_int & 1 == 1) {
-    //             c[j] = q - 1;
-    //         } else {
-    //             c[j] = 1;
-    //         }
-    //         sign_int >>= 1;
-    //     }
-    //     c = ZKNOX_NTTFW(c, apsirev);
-    // }
-
     function verify(PubKey memory pk, bytes memory msgs, Signature memory signature) external view returns (bool) {
         // FIRST CORE STEP
         (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);

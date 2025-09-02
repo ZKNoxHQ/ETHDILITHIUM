@@ -110,13 +110,11 @@ c_tilde, z, h, c_ntt = D._unpack_sig(sig)
 # Compact SIG for Solidity
 z_compact = z.compact_256(32)
 h_compact = h.compact_256(32)
-c_ntt_compact = c_ntt.compact_256(32)
 
 file.write("\n// Signature\n")
 file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
 file.write(solidity_compact_vec(z_compact, 'z'))
 file.write(solidity_compact_vec(h_compact, 'h'))
-file.write(solidity_compact_elt(c_ntt_compact, 'c_ntt'))
 
 file.write("""
         // CREATE PK OBJECT
@@ -130,7 +128,6 @@ file.write("""
         sig.c_tilde = c_tilde;
         sig.z = z;
         sig.h = h;
-        sig.c_ntt = c_ntt;
 
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";

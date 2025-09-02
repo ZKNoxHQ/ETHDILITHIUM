@@ -220,7 +220,6 @@ struct Signature {
     bytes c_tilde;
     uint256[][] z;
     uint256[][] h;
-    uint256[] c_ntt;
 }
 
 struct PubKey {
