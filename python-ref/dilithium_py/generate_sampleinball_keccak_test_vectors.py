@@ -16,6 +16,14 @@ A_hat_compact = A_hat.compact_256(32)
 t1_new_compact = t1_new.compact_256(32)
 
 
+def solidity_poly(h, name):
+    out = "uint256[256] memory {} = [uint256({})".format(name, h[0])
+    for (i, coeff) in enumerate(h):
+        if i > 0:
+            out += ",{}".format(coeff % D.M.ring.q)
+    return out+"];\n"
+
+
 def solidity_compact_elt(h, name):
     out = "uint256[] memory {} = new uint256[](32);".format(name)
     for (i, coeff) in enumerate(h):
@@ -55,7 +63,7 @@ def solidity_compact_mat(h, name):
 
 XOF = Keccak256PRNG
 file = open(
-    "../test/ZKNOX_ethdilithium.t.sol", 'w')
+    "../test/ZKNOX_ethsampleinball.t.sol", 'w')
 file.write("""
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
@@ -67,7 +75,8 @@ import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 import "../src/ZKNOX_dilithium_deploy.sol";
 
-contract ETHDilithiumTest is Test {
+
+contract ETHSampleInBallTest is Test {
     ZKNOX_ethdilithium dilithium;
 
     // forgefmt: disable-next-line
@@ -98,48 +107,22 @@ contract ETHDilithiumTest is Test {
     function testVerify() public {
 """)
 
-file.write("// Public key\n")
-file.write(solidity_compact_mat(A_hat_compact, 'A_hat'))
-file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
-file.write(solidity_compact_vec(t1_new_compact, 't1'))
-
 # SIG
 sig = D.sign(sk, msg, _xof=XOF)
 assert D.verify(pk, msg, sig, _xof=XOF)
 c_tilde, z, h, c_ntt = D._unpack_sig(sig)
 # Compact SIG for Solidity
-z_compact = z.compact_256(32)
-h_compact = h.compact_256(32)
 c_ntt_compact = c_ntt.compact_256(32)
 
-file.write("\n// Signature\n")
+c = D.R.sample_in_ball(c_tilde, D.tau, _xof=XOF)
+
 file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
-file.write(solidity_compact_vec(z_compact, 'z'))
-file.write(solidity_compact_vec(h_compact, 'h'))
-file.write(solidity_compact_elt(c_ntt_compact, 'c_ntt'))
-
-file.write("""
-        // CREATE PK OBJECT
-        PubKey memory pk;
-        pk.a_hat = A_hat;
-        pk.tr = tr;
-        pk.t1 = t1;
-
-        // CREATE SIG OBJECT
-        Signature memory sig;
-        sig.c_tilde = c_tilde;
-        sig.z = z;
-        sig.h = h;
-        sig.c_ntt = c_ntt;
-
-        // MESSAGE
-        bytes memory msgs = "We are ZKNox.";
-        uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(pk, msgs, sig);
-        uint256 gasUsed = gasStart - gasleft();
-        console.log("Gas used:", gasUsed);
-        assertTrue(ver);
-    }
-}
-""")
+file.write("    // forgefmt: disable-next-line\n")
+file.write(solidity_poly(c.coeffs, 'expected_c'))
+file.write("    // forgefmt: disable-next-line\n")
+file.write(solidity_poly(c.to_ntt().coeffs, 'expected_c_ntt'))
+file.write("uint256[] memory c = dilithium.compute_c(c_tilde);\n")
+file.write("for (uint256 i = 0 ; i < 256 ; i++) {\n")
+file.write("assertEq(c[i], expected_c[i]);\n}\n")
+file.write("}\n}\n")
 file.close()

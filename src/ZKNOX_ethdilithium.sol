@@ -60,7 +60,7 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_ethdilithium {
-     ZKNOX_NTT ntt;
+    ZKNOX_NTT ntt;
     address public apsirev;
     address public apsiInvrev;
     bool immutableMe;
@@ -79,6 +79,42 @@ contract ZKNOX_ethdilithium {
         ntt = i_ntt;
         EIP7885 = true;
         immutableMe = true;
+    }
+
+    function compute_c(bytes memory c_tilde) public view returns (uint256[] memory c) {
+        // test with KeccakPRNG
+        bytes32[] memory out = KeccakPRNG(c_tilde, 2);
+        // assertEq(output_2, abi.encodePacked(out[1]));
+
+        ctx_shake memory ctx;
+        ctx = shake_update(ctx, c_tilde);
+        bytes memory sign_bytes = shake_digest(ctx, 8);
+        uint256 sign_int = 0;
+        for (uint256 i = 0; i < 8; i++) {
+            sign_int |= uint256(uint8(sign_bytes[i])) << (8 * i);
+        }
+
+        // Now set tau values of c to be ±1
+        c = new uint256[](256);
+        uint256 j;
+        bytes memory bytes_j;
+        for (uint256 i = 256 - tau; i < 256; i++) {
+            // Rejects values until a value j <= i is found
+            while (true) {
+                (ctx, bytes_j) = shake_squeeze(ctx, 1);
+                j = uint256(uint8(bytes_j[0]));
+                if (j <= i) {
+                    break;
+                }
+            }
+            c[i] = c[j];
+            if (sign_int & 1 == 1) {
+                c[j] = q - 1;
+            } else {
+                c[j] = 1;
+            }
+            sign_int >>= 1;
+        }
     }
 
     function verify(PubKey memory pk, bytes memory msgs, Signature memory signature)

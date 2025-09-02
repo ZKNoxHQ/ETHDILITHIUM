@@ -47,7 +47,7 @@ function ZKNOX_NTTFW(uint256[] memory a, address apsirev) view returns (uint256[
     uint256 m = 1;
 
     uint256[1] memory S;
-    
+
     assembly ("memory-safe") {
         for {} gt(n, m) {} {
             //while(m<n)
@@ -81,7 +81,7 @@ function ZKNOX_NTTFW_Compact(uint256[] memory a, address apsirev) view returns (
     uint256 m = 1;
 
     uint256[1] memory S;
-    
+
     assembly ("memory-safe") {
         for {} gt(n, m) {} {
             //while(m<n)

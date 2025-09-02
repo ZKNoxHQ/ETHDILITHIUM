@@ -1,94 +1,15 @@
-from .dilithium.default_parameters import Dilithium2 as D
-from .shake.shake_wrapper import shake256, shake128
-from .tests.test_dilithium import parse_kat_data
-from dilithium_py.drbg.aes256_ctr_drbg import AES256_CTR_DRBG
-
-entropy_input = bytes([i for i in range(48)])
-drbg = AES256_CTR_DRBG(entropy_input)
-
-with open(f"assets/PQCsignKAT_Dilithium2.rsp") as f:
-    # extract data from KAT
-    kat_data = f.read()
-    parsed_data = parse_kat_data(kat_data)
-
-count = 0  # for count in range(100):
-data = parsed_data[count]
-
-seed = drbg.random_bytes(48)
-
-msg_len = data["mlen"]
-msg = drbg.random_bytes(msg_len)
-
-D.set_drbg_seed(seed)
-pk, sk = D.keygen()
-
-# Check that the signature matches
-sm_KAT = data["sm"]
-sig_KAT = sm_KAT[:-msg_len]
-
-# PK
-ρ, t1 = D._unpack_pk(pk)
-A_hat = D._expand_matrix_from_seed(ρ, _xof=shake128)
-tr = D._h(pk, 32, _xof=shake256)
-
-# Compact PK for Solidity
-A_hat_compact = A_hat.compact_256(32)
-t1_compact = t1.compact_256(32)
-
-
-def solidity_compact_elt(h, name):
-    out = "uint256[] memory {} = new uint256[](32);".format(name)
-    for (i, coeff) in enumerate(h):
-        out += '{}[{}] = uint256(0x00{:x});'.format(name, i, coeff)
-    return out+"\n"
-
-
-def solidity_compact_vec(h, name):
-    n = len(h)
-    out = 'uint256[][] memory {} = new uint256[][]({});\n'.format(name, n)
-    out += "for (uint256 i = 0 ; i < 4 ; i ++) {\n"
-    out += "\t{}[i] = new uint256[](32);\n".format(name)
-    out += "}\n"
-
-    for (i, a) in enumerate(h):
-        for (j, b) in enumerate(a[0]):  # len(a) = 1...
-            out += "{}[{}][{}] = uint256(0x00{:x});".format(name, i, j, b)
-    return out+"\n"
-
-
-def solidity_compact_mat(h, name):
-    n, m = len(h), len(h[0])
-    out = 'uint256[][][] memory {} = new uint256[][][]({});\n'.format(name, n)
-    out += "for (uint256 i = 0 ; i < {} ; i++) {{\n".format(n)
-    out += "\t{}[i] = new uint256[][]({});\n".format(name, m)
-    out += "\tfor (uint256 j = 0 ; j < {}; j++) {{\n".format(m)
-    out += "\t\t{}[i][j] = new uint256[](32);\n".format(name)
-    out += "\t}\n"
-    out += "}\n"
-    for (i, a) in enumerate(h):
-        for (j, b) in enumerate(a):
-            for (k, c) in enumerate(b):
-                out += "{}[{}][{}][{}] = uint256(0x00{:x});".format(
-                    name, i, j, k, c)
-    return out+"\n"
-
-
-XOF = shake256
-file = open(
-    "../test/ZKNOX_dilithiumKATS.t.sol", 'w')
-file.write("""
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 //  Code obtained from `generate_test_vectors.py` python file
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_dilithium_utils.sol";
-import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
+import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 import "../src/ZKNOX_dilithium_deploy.sol";
 
-contract ETHDilithiumTest is Test {
-    ZKNOX_dilithium dilithium;
+contract ETHSampleInBallTest is Test {
+    ZKNOX_ethdilithium dilithium;
 
     // forgefmt: disable-next-line
     uint256[512] psi_rev = [uint256(1), 4808194, 3765607, 3761513, 5178923, 5496691, 5234739, 5178987, 7778734, 3542485, 2682288, 2129892, 3764867, 7375178, 557458, 7159240, 5010068, 4317364, 2663378, 6705802, 4855975, 7946292, 676590, 7044481, 5152541, 1714295, 2453983, 1460718, 7737789, 4795319, 2815639, 2283733, 3602218, 3182878, 2740543, 4793971, 5269599, 2101410, 3704823, 1159875, 394148, 928749, 1095468, 4874037, 2071829, 4361428, 3241972, 2156050, 3415069, 1759347, 7562881, 4805951, 3756790, 6444618, 6663429, 4430364, 5483103, 3192354, 556856, 3870317, 2917338, 1853806, 3345963, 1858416, 3073009, 1277625, 5744944, 3852015, 4183372, 5157610, 5258977, 8106357, 2508980, 2028118, 1937570, 4564692, 2811291, 5396636, 7270901, 4158088, 1528066, 482649, 1148858, 5418153, 7814814, 169688, 2462444, 5046034, 4213992, 4892034, 1987814, 5183169, 1736313, 235407, 5130263, 3258457, 5801164, 1787943, 5989328, 6125690, 3482206, 4197502, 7080401, 6018354, 7062739, 2461387, 3035980, 621164, 3901472, 7153756, 2925816, 3374250, 1356448, 5604662, 2683270, 5601629, 4912752, 2312838, 7727142, 7921254, 348812, 8052569, 1011223, 6026202, 4561790, 6458164, 6143691, 1744507, 1753, 6444997, 5720892, 6924527, 2660408, 6600190, 8321269, 2772600, 1182243, 87208, 636927, 4415111, 4423672, 6084020, 5095502, 4663471, 8352605, 822541, 1009365, 5926272, 6400920, 1596822, 4423473, 4620952, 6695264, 4969849, 2678278, 4611469, 4829411, 635956, 8129971, 5925040, 4234153, 6607829, 2192938, 6653329, 2387513, 4768667, 8111961, 5199961, 3747250, 2296099, 1239911, 4541938, 3195676, 2642980, 1254190, 8368000, 2998219, 141835, 8291116, 2513018, 7025525, 613238, 7070156, 6161950, 7921677, 6458423, 4040196, 4908348, 2039144, 6500539, 7561656, 6201452, 6757063, 2105286, 6006015, 6346610, 586241, 7200804, 527981, 5637006, 6903432, 1994046, 2491325, 6987258, 507927, 7192532, 7655613, 6545891, 5346675, 8041997, 2647994, 3009748, 5767564, 4148469, 749577, 4357667, 3980599, 2569011, 6764887, 1723229, 1665318, 2028038, 1163598, 5011144, 3994671, 8368538, 7009900, 3020393, 3363542, 214880, 545376, 7609976, 3105558, 7277073, 508145, 7826699, 860144, 3430436, 140244, 6866265, 6195333, 3123762, 2358373, 6187330, 5365997, 6663603, 2926054, 7987710, 8077412, 3531229, 4405932, 4606686, 1900052, 7598542, 1054478, 7648983];
@@ -110,60 +31,19 @@ contract ETHDilithiumTest is Test {
         a_psiInvrev = address(uint160(0xa5a5)); //here it is etched, use create in the future
         vm.etch(a_psiInvrev, bytecode_psiInvrev); //pushing psirev bytecode into contract todo : replace with create
 
-        dilithium = new ZKNOX_dilithium();
+        dilithium = new ZKNOX_ethdilithium();
         dilithium.update(a_psirev, a_psiInvrev);
-
     }
 
     function testVerify() public {
-""")
-
-file.write("// Public key\n")
-file.write(solidity_compact_mat(A_hat_compact, 'A_hat'))
-file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
-file.write(solidity_compact_vec(t1_compact, 't1'))
-
-# SIG
-sig = D.sign(sk, msg, _xof=XOF)
-assert D.verify(pk, msg, sig, _xof=XOF)
-c_tilde, z, h = D._unpack_sig(sig)
-# z with only positive coefficients
-for i in range(4):
-    assert len(z._data[i]) == 1
-    for j in range(256):
-        if z._data[i][0].coeffs[j] < 0:
-            z._data[i][0].coeffs[j] += 8380417
-# Compact SIG for Solidity
-z_compact = z.compact_256(32)
-h_compact = h.compact_256(32)
-
-file.write("\n// Signature\n")
-file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
-file.write(solidity_compact_vec(z_compact, 'z'))
-file.write(solidity_compact_vec(h_compact, 'h'))
-file.write("""
-        // CREATE PK OBJECT
-        PubKey memory pk;
-        pk.a_hat = A_hat;
-        pk.tr = tr;
-        pk.t1 = t1;
-
-        // CREATE SIG OBJECT
-        Signature memory sig;
-        sig.c_tilde = c_tilde;
-        sig.z = z;
-        sig.h = h;
-
-        // MESSAGE
-        """)
-file.write("bytes memory msgs = hex\"{}\";\n".format(msg.hex()))
-file.write("""
-        uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(pk, msgs, sig);
-        uint256 gasUsed = gasStart - gasleft();
-        console.log("Gas used:", gasUsed);
-        assertTrue(ver);
+        bytes memory c_tilde = hex"cc501e9f471a004d2d3f60894d12aad3114e8abf62e413a800b7e7987ec5100b";
+        // forgefmt: disable-next-line
+        uint256[256] memory expected_c = [uint256(0),0,0,0,0,0,1,0,0,8380416,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,8380416,0,0,0,0,0,0,8380416,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8380416,0,8380416,0,8380416,8380416,0,0,0,0,8380416,8380416,8380416,0,0,0,0,0,0,8380416,0,0,0,0,1,0,8380416,8380416,0,0,0,0,0,0,0,8380416,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8380416,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,8380416,0,0,0,8380416,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,8380416,8380416,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8380416,0,0,8380416,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0];
+        // forgefmt: disable-next-line
+        uint256[256] memory expected_c_ntt = [uint256(2433239),5742823,2158789,2070120,404194,4430001,2742945,5696018,5897339,1742045,128893,5483873,4658280,7222093,3646239,2250103,1249702,2133199,8268988,6748079,4347044,5211967,2912391,3380244,7515923,1112173,958704,5887348,1171763,1507441,4335748,1995326,2608351,3799245,6575540,1037234,7431277,4384344,2638449,1915689,4889025,4677662,622746,7324468,865561,3758105,6888828,8011610,3012430,3475102,1595103,8234322,253936,7577691,2337117,2625320,3314161,737499,4455350,3794454,3058041,286306,1344046,5679630,7658046,2503627,3073818,1842684,5376064,1985957,5799585,6857071,2355112,8032259,7252416,6194585,4050618,3178182,815030,2228009,7148203,2565226,7082147,2836585,4087611,47253,2446202,7633165,2905104,3059441,2424380,3490203,5311831,2837384,6479496,4434733,4120310,5465037,1370094,509230,7536409,4740889,1165176,1014983,249908,5025219,7543031,1469685,8136948,2867139,7787654,5145249,3274672,3508451,346166,5871281,1192181,8352242,5044211,2144340,7482556,1993279,7615967,2475403,3226673,4529463,7875514,5101957,6544496,4004093,5577416,5297897,3070973,8093622,8099157,6614924,4741382,1828250,7930004,5350999,3369554,2832924,5440823,7737308,5417571,6997392,1472196,8161152,8358261,8043225,974728,1860009,2337498,4670682,6230499,2136255,6645572,1161912,1287619,6842838,3464890,7251184,1091931,3789099,2411174,7210893,7018484,6334626,1996732,6757248,4378591,35041,7937954,1923872,7101081,7308210,7624348,1744560,1048159,2296656,1154423,3752211,6175696,6585320,3844129,3957110,4787878,8353481,5453391,997695,2756520,6021194,5404349,2381445,7280012,461418,2340021,3020204,1526401,3516599,5681912,7416515,5657808,517900,2836015,7191461,3782131,5513814,1366392,963188,3975002,6418550,2820351,4018302,1651258,2299363,5677669,3444819,985793,7112515,5849567,1318867,189489,2825952,4397122,7254223,30759,2194126,462029,8380357,4288286,3944653,6451115,612401,4481641,1739847,5915539,6137370,5840180,5177056,6063274,6633352,5894654,3213205,5196943,133200,6704214,4188383,4021643,6310892,589496,6793370,2061397,7531526,7195655,4509937];
+        uint256[] memory c = dilithium.compute_c(c_tilde);
+        for (uint256 i = 0; i < 256; i++) {
+            assertEq(c[i], expected_c[i]);
+        }
     }
 }
-""")
-file.close()
