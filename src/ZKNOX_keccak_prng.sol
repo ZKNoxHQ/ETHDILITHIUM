@@ -6,7 +6,7 @@ import {console} from "forge-std/Test.sol";
 struct KeccakPRNG {
     bytes32 state; // keccak256(c_tilde)
     uint64 counter; // block counter
-    uint256 pool; // current 32-byte block as uint256
+    bytes32 pool; // current 32-byte block
     uint8 remaining; // remaining bytes in pool [0..32]
 }
 
@@ -15,7 +15,7 @@ function initPRNG(bytes memory c_tilde) pure returns (KeccakPRNG memory prng) {
     prng.state = keccak256(c_tilde);
     // Preload first block to make the first 32 bytes available immediately
     bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));
-    prng.pool = uint256(blk);
+    prng.pool = blk;
     prng.remaining = 32;
     prng.counter = 1;
 }
@@ -23,7 +23,7 @@ function initPRNG(bytes memory c_tilde) pure returns (KeccakPRNG memory prng) {
 // Pull next 32-byte block into the pool.
 function refill(KeccakPRNG memory prng) pure {
     bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
-    prng.pool = uint256(blk);
+    prng.pool = blk;
     prng.remaining = 32;
     unchecked {
         prng.counter += 1;
@@ -38,14 +38,15 @@ function refill(KeccakPRNG memory prng) pure {
 function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
     if (prng.remaining == 0) {
         bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
-        prng.pool = uint256(blk);
+        prng.pool = blk;
         prng.remaining = 32;
         unchecked {
             prng.counter += 1;
         }
     }
-    b = uint8(prng.pool >> 248); // top 8 bits
-    prng.pool <<= 8; // shift left so next MSB moves into place
+    uint256 poolInt = uint256(prng.pool);
+    b = uint8(poolInt >> 248);
+    prng.pool = bytes32(poolInt << 8);
 
     unchecked {
         prng.remaining -= 1;
@@ -53,20 +54,4 @@ function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
     assembly {
         mstore(prng, mload(prng))
     } // write-back
-}
-
-function KeccakPRNGGetWords(bytes memory input, uint256 n) pure returns (bytes32[] memory output) {
-    output = new bytes32[](n);
-    bytes32 state;
-
-    // Initial state
-    state = keccak256(input);
-
-    uint64 counter = 0;
-    uint256 i = 0;
-    while (i < n) {
-        output[i] = keccak256(abi.encodePacked(state, counter));
-        i += 1;
-        counter += 1;
-    }
 }

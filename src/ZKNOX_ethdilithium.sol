@@ -109,16 +109,13 @@ contract ZKNOX_ethdilithium {
         bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
 
         // FINAL HASH
-        bytes32 final_hash = KeccakPRNGGetWords(
-            abi.encodePacked(KeccakPRNGGetWords(abi.encodePacked(pk.tr, msgs), 2), w_prime_bytes), 1
-        )[0];
-
-        for (uint256 i = 0; i < 32; i++) {
-            if (signature.c_tilde[i] != final_hash[i]) {
-                return false;
-            }
-        }
-        return true;
+        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, msgs));
+        bytes32 out1 = prng.pool;
+        refill(prng);
+        bytes32 out2 = prng.pool;
+        prng = initPRNG(abi.encodePacked(out1, out2, w_prime_bytes));
+        bytes32 final_hash = prng.pool;
+        return final_hash == bytes32(signature.c_tilde);
     }
 }
 
