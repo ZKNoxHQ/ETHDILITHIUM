@@ -38,7 +38,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import "../src/ZKNOX_NTT_dilithium.sol";
 import "../src/ZKNOX_dilithium.sol";
 import "../src/ZKNOX_dilithium_deploy.sol";

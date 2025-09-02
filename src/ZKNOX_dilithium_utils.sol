@@ -35,8 +35,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
-
 uint256 constant ID_keccak = 0x00;
 uint256 constant ID_tetration = 0x01;
 uint256 constant ID_shake = 0x02;
