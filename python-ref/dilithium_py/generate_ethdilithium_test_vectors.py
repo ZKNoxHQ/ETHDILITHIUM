@@ -106,7 +106,7 @@ file.write(solidity_compact_vec(t1_new_compact, 't1'))
 # SIG
 sig = D.sign(sk, msg, _xof=XOF)
 assert D.verify(pk, msg, sig, _xof=XOF)
-c_tilde, z, h, c_ntt = D._unpack_sig(sig)
+c_tilde, z, h = D._unpack_sig(sig)
 # Compact SIG for Solidity
 z_compact = z.compact_256(32)
 h_compact = h.compact_256(32)

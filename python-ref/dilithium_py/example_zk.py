@@ -5,13 +5,9 @@ from dilithium_py.dilithium.default_parameters import ETHDilithium2KoalaBear as 
 msg = b"We are ZKNox."
 
 for D in [ETHDilithiumBB, ETHDilithiumKB]:
-    print("KG")
     pk, sk = D.keygen()
-    print("sign")
     sig = D.sign(sk, msg)
-    print("sig fake")
     sig_fake = D.sign(sk, msg)
-    print('verify')
     assert D.verify(pk, msg, sig)
 
     # PK
@@ -21,11 +17,10 @@ for D in [ETHDilithiumBB, ETHDilithiumKB]:
     t1_new_compact = t1_new.compact_256(32)
 
     # SIG
-    c_tilde, z, h, c_ntt = D._unpack_sig(sig)
+    c_tilde, z, h = D._unpack_sig(sig)
     # Compact SIG for Solidity
     z_compact = z.compact_256(32)
     h_compact = h.compact_256(32)
-    c_ntt_compact = c_ntt.compact_256(32)
 
     print("WARNING -- SECURITY MAY BE AFFECTED BY THESE PARAMETERS!")
     print("\tPK:")
@@ -37,4 +32,3 @@ for D in [ETHDilithiumBB, ETHDilithiumKB]:
     print("\t\tc_tilde:\t{} bytes".format(len(c_tilde)))
     print("\t\tz:\t\tdimension {}".format(z.dim()))
     print("\t\th:\t\tdimension {}".format(h.dim()))
-    print("\t\tc_ntt:\t\tdimension {}".format((1, 1)))
