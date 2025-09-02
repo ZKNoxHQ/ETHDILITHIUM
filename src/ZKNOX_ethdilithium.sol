@@ -82,9 +82,17 @@ contract ZKNOX_ethdilithium {
     }
 
     function compute_c(bytes memory c_tilde) public view returns (uint256[] memory c) {
-        // test with KeccakPRNG
-        bytes32[] memory out = KeccakPRNG(c_tilde, 2);
-        // assertEq(output_2, abi.encodePacked(out[1]));
+        // Initial state
+        bytes32 state = keccak256(c_tilde);
+        // counter mode prng
+        bytes32[] memory output = new bytes32[](n);
+        uint64 counter = 0;
+        uint256 i = 0;
+        while (i < n) {
+            output[i] = keccak256(abi.encodePacked(state, counter));
+            i += 1;
+            counter += 1;
+        }
 
         ctx_shake memory ctx;
         ctx = shake_update(ctx, c_tilde);
