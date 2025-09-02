@@ -4,15 +4,15 @@ pragma solidity ^0.8.18;
 import {console} from "forge-std/Test.sol";
 
 struct KeccakPRNG {
-    bytes32 state; // keccak256(c_tilde)
+    bytes32 state; // keccak256(input)
     uint64 counter; // block counter
     bytes32 pool; // current 32-byte block
     uint8 remaining; // remaining bytes in pool [0..32]
 }
 
-// Initialize PRNG with keccak256(c_tilde).
-function initPRNG(bytes memory c_tilde) pure returns (KeccakPRNG memory prng) {
-    prng.state = keccak256(c_tilde);
+// Initialize PRNG with keccak256(input).
+function initPRNG(bytes memory input) pure returns (KeccakPRNG memory prng) {
+    prng.state = keccak256(input);
     // Preload first block to make the first 32 bytes available immediately
     bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));
     prng.pool = blk;
