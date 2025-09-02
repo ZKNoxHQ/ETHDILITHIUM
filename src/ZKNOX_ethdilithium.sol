@@ -42,8 +42,7 @@ import {ZKNOX_NTT} from "./ZKNOX_NTT.sol";
 import "./ZKNOX_NTT_dilithium.sol";
 import "./ZKNOX_dilithium_core.sol";
 import "./ZKNOX_dilithium_utils.sol";
-
-import {KeccakPRNG} from "./ZKNOX_keccak_prng.sol";
+import "./ZKNOX_SampleInBall.sol";
 import "./ZKNOX_shake.sol";
 import {
     q,
@@ -60,7 +59,7 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_ethdilithium {
-     ZKNOX_NTT ntt;
+    ZKNOX_NTT ntt;
     address public apsirev;
     address public apsiInvrev;
     bool immutableMe;
@@ -99,8 +98,9 @@ contract ZKNOX_ethdilithium {
                 }
             }
         }
-        // CNTT
-        uint256[] memory c_ntt = ZKNOX_Expand(signature.c_ntt);
+        // C_NTT
+        uint256[] memory c_ntt = sampleInBallKeccakPRNG(signature.c_tilde, tau, q);
+        c_ntt = ZKNOX_NTTFW(c_ntt, apsirev);
 
         // t1_new
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
@@ -109,14 +109,13 @@ contract ZKNOX_ethdilithium {
         bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
 
         // FINAL HASH
-        bytes32 final_hash =
-            KeccakPRNG(abi.encodePacked(KeccakPRNG(abi.encodePacked(pk.tr, msgs), 2), w_prime_bytes), 1)[0];
-        for (uint256 i = 0; i < 32; i++) {
-            if (signature.c_tilde[i] != final_hash[i]) {
-                return false;
-            }
-        }
-        return true;
+        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, msgs));
+        bytes32 out1 = prng.pool;
+        refill(prng);
+        bytes32 out2 = prng.pool;
+        prng = initPRNG(abi.encodePacked(out1, out2, w_prime_bytes));
+        bytes32 final_hash = prng.pool;
+        return final_hash == bytes32(signature.c_tilde);
     }
 }
 

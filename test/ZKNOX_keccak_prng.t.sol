@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-import {KeccakPRNG} from "../src/ZKNOX_keccak_prng.sol";
+import "../src/ZKNOX_keccak_prng.sol";
 
 contract KeccakPRNGTest is Test {
     // Input and output provided by
@@ -28,45 +28,31 @@ contract KeccakPRNGTest is Test {
 
     function test_keccak_prng_test_vectors() public {
         // Test vector 1
-        bytes32[] memory out = KeccakPRNG(input_1, 1);
+        KeccakPRNG memory prng = initPRNG(input_1);
+        bytes32 out = prng.pool;
         assertEq(output_1, abi.encodePacked(out));
         // Test vector 2
-        out = KeccakPRNG(input_2, 2);
-        assertEq(output_2, abi.encodePacked(out[1]));
+        prng = initPRNG(input_2);
+        refill(prng);
+        out = prng.pool;
+        assertEq(output_2, abi.encodePacked(out));
 
         // Test vector 3
-        out = KeccakPRNG(input_3, 1);
+        prng = initPRNG(input_3);
+        out = prng.pool;
         assertEq(output_3, abi.encodePacked(out));
 
         // Test vector 4
-        out = KeccakPRNG(input_4, 1);
-        // console.logBytes32(out[0]);
-        // console.log(output_4_1);
-        // bytes memory out_4_1 = keccak_prng.extract(32);
-        // // get a sub array
-        // uint256 computed_output_4_1;
-        // assembly {
-        //     computed_output_4_1 := mload(add(out_4_1, 32))
-        // }
-        // computed_output_4_1 = computed_output_4_1 >> 128;
-        // assertEq(computed_output_4_1, output_4_1);
+        prng = initPRNG(input_4);
+        uint256 out_4_1 = uint256(prng.pool);
+        assertEq(out_4_1 >> 128, output_4_1);
 
-        // bytes memory out_4_2 = keccak_prng.extract(32);
-        // // get a sub array
-        // uint256 computed_output_4_2;
-        // assembly {
-        //     computed_output_4_2 := mload(add(out_4_2, 32))
-        // }
-        // computed_output_4_2 = computed_output_4_2 >> 128;
-        // assertEq(computed_output_4_2, output_4_2);
+        refill(prng);
+        uint256 out_4_2 = uint256(prng.pool);
+        assertEq(out_4_2 >> 128, output_4_2);
 
-        // bytes memory out_4_3 = keccak_prng.extract(32);
-        // // get a sub array
-        // uint256 computed_output_4_3;
-        // assembly {
-        //     computed_output_4_3 := mload(add(out_4_3, 32))
-        // }
-        // computed_output_4_3 = computed_output_4_3 >> 128;
-        // assertEq(computed_output_4_3, output_4_3);
+        refill(prng);
+        uint256 out_4_3 = uint256(prng.pool);
+        assertEq(out_4_3 >> 128, output_4_3);
     }
 }

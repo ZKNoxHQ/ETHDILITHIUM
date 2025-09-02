@@ -38,8 +38,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-
-
 function _Swap32(uint256 inw) pure returns (uint256 outw) {
     for (uint256 i = 0; i < 256; i += 32) {
         outw ^= (inw >> (224 - i) & 0xffffffff) << (i);
@@ -73,8 +71,6 @@ function _Compact(uint256[] memory a) pure returns (uint256[] memory b) {
 
     return b;
 }
-
-
 
 //stateful initialisation
 function Deploy(bytes32 salt) returns (address a_psirev, address a_psiInvrev) {

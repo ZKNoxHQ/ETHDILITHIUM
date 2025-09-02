@@ -12,10 +12,10 @@ class ETHDilithium(Dilithium):
     def _pack_pk(A_hat, tr, t1_new):
         return A_hat.bit_pack_32(is_ntt=True) + tr + t1_new.bit_pack_32(is_ntt=True)
 
-    def _pack_sig(self, c_tilde, z, h, c_ntt):
+    def _pack_sig(self, c_tilde, z, h):
         gamma_1_minus_z = self.M(
             [[(self.gamma_1 - elt) for elt in row] for row in z._data])
-        return c_tilde + gamma_1_minus_z.bit_pack_32() + self._pack_h(h) + c_ntt.bit_pack_32()
+        return c_tilde + gamma_1_minus_z.bit_pack_32() + self._pack_h(h)
 
     def _unpack_pk(self, pk_bytes):
         # A_hat is a matrix 4x4 of elements of 256 coefficients of 32 bits
@@ -38,15 +38,13 @@ class ETHDilithium(Dilithium):
         # z is l Fq²⁵⁶ elements and q is 4 bytes long
         z_bytes = sig_bytes[32: 32 + self.l * 256*4]
         # h is k Fq²⁵⁶ elements and q is 4 bytes long
-        h_bytes = sig_bytes[32 + self.l * 256*4: -256*4]
-        c_ntt_bytes = sig_bytes[-256*4:]
+        h_bytes = sig_bytes[32 + self.l * 256*4:]
 
         gamma_minus_z = self.M.bit_unpack_32(z_bytes, self.l, 1)
         z = self.M(
             [[(self.gamma_1 - elt) for elt in row] for row in gamma_minus_z._data])
         h = self._unpack_h(h_bytes)
-        c_ntt = self.R.bit_unpack_32(c_ntt_bytes, is_ntt=True)
-        return c_tilde, z, h, c_ntt
+        return c_tilde, z, h
 
     def _expand_matrix_from_seed(self, rho, _xof=shake128):
         """
@@ -151,7 +149,7 @@ class ETHDilithium(Dilithium):
             if h.sum_hint() > self.omega:
                 continue
 
-            return self._pack_sig(c_tilde, z, h, c_ntt)
+            return self._pack_sig(c_tilde, z, h)
 
     def verify(self, pk_bytes, m, sig_bytes, _xof=Keccak256PRNG):
         """
@@ -159,7 +157,7 @@ class ETHDilithium(Dilithium):
         signature
         """
         A_hat, tr, t1_new = self._unpack_pk(pk_bytes)
-        c_tilde, z, h, c_ntt = self._unpack_sig(sig_bytes)
+        c_tilde, z, h = self._unpack_sig(sig_bytes)
 
         if h.sum_hint() > self.omega:
             return False
@@ -168,9 +166,13 @@ class ETHDilithium(Dilithium):
             return False
 
         mu = self._h(tr + m, 64, _xof=_xof)
+        c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
+
+        # Convert to NTT for computation
+        c = c.to_ntt()
         z = z.to_ntt()
 
-        Az_minus_ct1 = (A_hat @ z) - t1_new.scale(c_ntt)
+        Az_minus_ct1 = (A_hat @ z) - t1_new.scale(c)
         Az_minus_ct1 = Az_minus_ct1.from_ntt()
 
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
