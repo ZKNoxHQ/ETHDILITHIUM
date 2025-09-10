@@ -103,7 +103,10 @@ class ETHDilithium(Dilithium):
         # Generate matrix A ∈ R^(kxl) in the NTT domain
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
         # Set seeds and nonce (kappa)
+        print("tr = ", tr.hex())
+        print("m = ", m.hex())
         mu = self._h(tr + m, 64, _xof=_xof)
+        print("μ = ", mu.hex())
         kappa = 0
         rho_prime = self._h(K + mu, 64, _xof=_xof)
 
@@ -114,7 +117,7 @@ class ETHDilithium(Dilithium):
 
         alpha = self.gamma_2 << 1
         while True:
-            y = self._expand_mask_vector(rho_prime, kappa)
+            y = self._expand_mask_vector(rho_prime, kappa, _xof=_xof)
             y_hat = y.to_ntt()
 
             # increment the nonce

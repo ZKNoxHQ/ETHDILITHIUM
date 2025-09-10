@@ -93,9 +93,10 @@ class Dilithium:
         s2 = self.M.vector(s2_elements)
         return s1, s2
 
-    def _expand_mask_vector(self, rho_prime, kappa):
+    def _expand_mask_vector(self, rho_prime, kappa, _xof=shake256):
         elements = [
-            self.R.sample_mask_polynomial(rho_prime, i, kappa, self.gamma_1)
+            self.R.sample_mask_polynomial(
+                rho_prime, i, kappa, self.gamma_1, _xof=_xof)
             for i in range(self.l)
         ]
         return self.M.vector(elements)
@@ -233,7 +234,10 @@ class Dilithium:
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
 
         # Set seeds and nonce (kappa)
+        print("tr = ", tr.hex())
+        print("m = ", m.hex())
         mu = self._h(tr + m, 64, _xof=_xof)
+        print("μ = ", mu.hex()  )
         kappa = 0
         rho_prime = self._h(K + mu, 64, _xof=_xof)
 

@@ -171,7 +171,9 @@ class PolynomialRingDilithium(PolynomialRing):
 
         # Initialise the XOF
         seed = rho_prime + int.to_bytes(kappa + i, 2, "little")
-        xof_bytes = _xof(seed).read(total_bytes)
+        hash = _xof(seed)
+        hash.flip()
+        xof_bytes = hash.read(total_bytes)
         r = int.from_bytes(xof_bytes, "little")
         mask = (1 << bit_count) - 1
         coeffs = [gamma_1 - ((r >> bit_count * i) & mask)
