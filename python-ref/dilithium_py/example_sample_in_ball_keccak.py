@@ -1,4 +1,4 @@
-from .dilithium.default_parameters import ETHDilithium2 as D
+from .dilithium.default_parameters import Dilithium2 as D
 from .keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
 print("SAMPLE IN BALL")

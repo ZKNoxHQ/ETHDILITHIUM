@@ -3,6 +3,7 @@ import os
 from ..modules.modules import ModuleDilithium
 
 from ..shake.shake_wrapper import Shake, shake128, shake256
+from ..keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
 
 class Dilithium:
@@ -555,6 +556,12 @@ class Dilithium:
             sk, mu, rnd, external_mu=True, _xof=_xof, _xof2=_xof2)
         return sig
 
-    def t1_preprocessing(self, t1):
-        # a preprocessing on t1 for ETHDilithium
-        return t1.scale(1 << self.d).to_ntt()
+    def pk_for_eth(self, pk):
+        # a preprocessing for ETHDilithium
+        # - tr is computed for saving one hash
+        # - t1 is computed in the NTT domain (and shifted by d).
+        rho, t1 = self._unpack_pk(pk)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=Keccak256PRNG)
+        t1_new = t1.scale(1 << self.d).to_ntt()
+        tr = self._h(pk, 64, _xof=Keccak256PRNG)
+        return A_hat, tr, t1_new
