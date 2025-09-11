@@ -490,7 +490,7 @@ class Dilithium:
         t1, _ = t.power_2_round(self.d)
 
         # The packed public key is made from rho || t1
-        pk = self._pack_pk(rho, t1)
+        pk = self._pack_pk(rho, t1, _xof=_xof)
 
         # Ensure the public key matches the hash within the secret key
         if tr != self._h(pk, 64, _xof=_xof):
@@ -561,7 +561,7 @@ class Dilithium:
         # - tr is computed for saving one hash
         # - t1 is computed in the NTT domain (and shifted by d).
         rho, t1 = self._unpack_pk(pk)
+        tr = self._h(pk, 64, _xof=Keccak256PRNG)
         A_hat = self._expand_matrix_from_seed(rho, _xof=Keccak256PRNG)
         t1_new = t1.scale(1 << self.d).to_ntt()
-        tr = self._h(pk, 64, _xof=Keccak256PRNG)
         return A_hat, tr, t1_new

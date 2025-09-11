@@ -83,28 +83,52 @@ contract ZKNOX_dilithium {
         immutableMe = true;
     }
 
-    function verify(PubKey memory pk, bytes memory msgs, Signature memory signature) external view returns (bool) {
-        // FIRST CORE STEP
-        (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
+    function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
+        external
+        view
+        returns (bool)
+    {
+        // Step 1: check ctx length
+        if (ctx.length > 255) {
+            revert("ctx bytes must have length at most 255");
+        }
+
+        // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
+        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
+
+        // Step 3: delegate to internal verify
+        return verify_internal(pk, m_prime, signature);
+    }
+
+    function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
+        internal
+        view
+        returns (bool)
+    {
         uint256 i;
         uint256 j;
+
+        // FIRST CORE STEP
+        (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
+
         if (norm_h > omega) {
             return false;
         }
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
-                if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
+                uint256 zij = z[i][j];
+                if (zij > gamma_1_minus_beta && (q - zij) > gamma_1_minus_beta) {
                     return false;
                 }
             }
         }
+
         // C_NTT
         uint256[] memory c_ntt = sampleInBallNIST(signature.c_tilde, tau, q);
         c_ntt = ZKNOX_NTTFW(c_ntt, apsirev);
 
-        // computation of NTT_FW((1<<d) * t1)
+        // compute NTT_FW((1<<d) * t1)
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
-        // scale by 1<<d
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
                 t1_new[i][j] <<= d;
@@ -116,16 +140,19 @@ contract ZKNOX_dilithium {
         bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
 
         // FINAL HASH
-        bytes32 final_hash;
-        ctx_shake memory ctx;
-        ctx = shake_update(ctx, pk.tr);
-        ctx = shake_update(ctx, msgs);
-        bytes memory mu = shake_digest(ctx, 64);
+        ctx_shake memory sctx;
+        sctx = shake_update(sctx, pk.tr);
+        sctx = shake_update(sctx, m_prime);
+        bytes memory mu = shake_digest(sctx, 64);
 
-        ctx_shake memory ctx2;
-        ctx2 = shake_update(ctx2, mu);
-        ctx2 = shake_update(ctx2, w_prime_bytes);
-        final_hash = bytes32(shake_digest(ctx2, 32));
+        ctx_shake memory sctx2;
+        sctx2 = shake_update(sctx2, mu);
+        sctx2 = shake_update(sctx2, w_prime_bytes);
+        bytes32 final_hash = bytes32(shake_digest(sctx2, 32));
+
+        if (signature.c_tilde.length < 32) {
+            return false;
+        }
         for (i = 0; i < 32; i++) {
             if (signature.c_tilde[i] != final_hash[i]) {
                 return false;

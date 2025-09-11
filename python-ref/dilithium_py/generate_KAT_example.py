@@ -29,7 +29,7 @@ sig_KAT = sm_KAT[:-msg_len]
 # PK
 ρ, t1 = D._unpack_pk(pk)
 A_hat = D._expand_matrix_from_seed(ρ, _xof=shake128)
-tr = D._h(pk, 32, _xof=shake256)
+tr = D._h(pk, 64, _xof=shake256)
 
 # Compact PK for Solidity
 A_hat_compact = A_hat.compact_256(32)
@@ -159,7 +159,7 @@ file.write("""
 file.write("bytes memory msgs = hex\"{}\";\n".format(msg.hex()))
 file.write("""
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(pk, msgs, sig);
+        bool ver = dilithium.verify(pk, msgs, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
