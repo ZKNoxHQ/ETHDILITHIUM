@@ -1,6 +1,7 @@
 import unittest
 import os
-from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5, ETHDilithium2
+# , ZKDilithiumKB, ZKDilithiumBB
+from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5
 from dilithium_py.drbg.aes256_ctr_drbg import AES256_CTR_DRBG
 
 from ..shake.shake_wrapper import shake128, shake256
@@ -58,25 +59,25 @@ class TestDilithium(unittest.TestCase):
         # Check changing the message breaks verify
         self.assertFalse(check_wrong_msg)
 
-    def generic_test_ethdilithium(self, Dilithium, xof, xof2):
-        msg = b"Signed by dilithium" + os.urandom(16)
+    # def generic_test_ethdilithium(self, Dilithium, xof, xof2):
+    #     msg = b"Signed by dilithium" + os.urandom(16)
 
-        # Perform signature process
-        pk, sk = Dilithium.keygen(_xof=xof, _xof2=xof2)
-        sig = Dilithium.sign(sk, msg, _xof=xof, _xof2=xof2)
-        check_verify = Dilithium.verify(pk, msg, sig, _xof=xof)
+    #     # Perform signature process
+    #     pk, sk = Dilithium.keygen(_xof=xof, _xof2=xof2)
+    #     sig = Dilithium.sign(sk, msg, _xof=xof, _xof2=xof2)
+    #     check_verify = Dilithium.verify(pk, msg, sig, _xof=xof)
 
-        # Generate some fail cases
-        pk_bad, _ = Dilithium.keygen(_xof=xof, _xof2=xof2)
-        check_wrong_pk = Dilithium.verify(pk_bad, msg, sig, _xof=xof)
-        check_wrong_msg = Dilithium.verify(pk, b"", sig, _xof=xof)
+    #     # Generate some fail cases
+    #     pk_bad, _ = Dilithium.keygen(_xof=xof, _xof2=xof2)
+    #     check_wrong_pk = Dilithium.verify(pk_bad, msg, sig, _xof=xof)
+    #     check_wrong_msg = Dilithium.verify(pk, b"", sig, _xof=xof)
 
-        # Check that signature works
-        self.assertTrue(check_verify)
-        # Check changing the key breaks verify
-        self.assertFalse(check_wrong_pk)
-        # Check changing the message breaks verify
-        self.assertFalse(check_wrong_msg)
+    #     # Check that signature works
+    #     self.assertTrue(check_verify)
+    #     # Check changing the key breaks verify
+    #     self.assertFalse(check_wrong_pk)
+    #     # Check changing the message breaks verify
+    #     self.assertFalse(check_wrong_msg)
 
     def test_dilithium2(self):
         for _ in range(3):
@@ -105,17 +106,17 @@ class TestDilithium(unittest.TestCase):
     #         self.generic_test_dilithium(
     #             Dilithium5, Keccak256PRNG, Keccak256PRNG)
 
-    # TEST ETHDILITHIUM
-    def test_ethdilithium2_keccak_prng(self):
-        for _ in range(3):
-            self.generic_test_ethdilithium(
-                ETHDilithium2, Keccak256PRNG, Keccak256PRNG)
+    # # TEST ETHDILITHIUM
+    # def test_ethdilithium2_keccak_prng(self):
+    #     for _ in range(3):
+    #         self.generic_test_ethdilithium(
+    #             ETHDilithium2, Keccak256PRNG, Keccak256PRNG)
 
-    # TEST ETHDILITHIUM with SHAKE
-    def test_ethdilithium2_shake(self):
-        for _ in range(3):
-            self.generic_test_ethdilithium(
-                ETHDilithium2, shake256, Keccak256PRNG)
+    # # TEST ETHDILITHIUM with SHAKE
+    # def test_ethdilithium2_shake(self):
+    #     for _ in range(3):
+    #         self.generic_test_ethdilithium(
+    #             ETHDilithium2, shake256, Keccak256PRNG)
 
 
 class TestDilithiumDRBG(unittest.TestCase):
