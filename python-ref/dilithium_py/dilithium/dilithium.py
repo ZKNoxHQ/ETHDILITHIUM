@@ -257,38 +257,6 @@ class Dilithium:
 
         return pk, sk
 
-    # def keygen(self, _xof=shake256, _xof2=shake128):
-    #     """
-    #     Generates a public-private keyair
-    #     """
-    #     # Random seed
-    #     zeta = self.random_bytes(32)
-
-    #     # Expand with an XOF (SHAKE256)
-    #     seed_bytes = self._h(zeta, 128, _xof=_xof)
-
-    #     # Split bytes into suitable chunks
-    #     rho, rho_prime, K = seed_bytes[:32], seed_bytes[32:96], seed_bytes[96:]
-
-    #     # Generate matrix A ∈ R^(kxl) in the NTT domain
-    #     A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
-
-    #     # Generate the error vectors s1 ∈ R^l, s2 ∈ R^k
-    #     s1, s2 = self._expand_vector_from_seed(rho_prime)
-    #     s1_hat = s1.to_ntt()
-
-    #     # Matrix multiplication
-    #     t = (A_hat @ s1_hat).from_ntt() + s2
-
-    #     t1, t0 = t.power_2_round(self.d)
-
-    #     # Pack up the bytes
-    #     pk = self._pack_pk(rho, t1)
-    #     tr = self._h(pk, 32, _xof=_xof)
-
-    #     sk = self._pack_sk(rho, K, tr, s1, s2, t0)
-    #     return pk, sk
-
     def _sign_internal(
         self,
         sk: bytes,
@@ -370,67 +338,6 @@ class Dilithium:
 
             return self._pack_sig(c_tilde, z, h)
 
-    # def sign(self, sk_bytes, m, _xof=shake256, _xof2=shake128):
-    #     """
-    #     Generates a signature for a message m from a byte-encoded private key
-    #     """
-    #     # unpack the secret key
-    #     rho, K, tr, s1, s2, t0 = self._unpack_sk(sk_bytes)
-
-    #     # Generate matrix A ∈ R^(kxl) in the NTT domain
-    #     A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
-
-    #     # Set seeds and nonce (kappa)
-    #     mu = self._h(tr + m, 64, _xof=_xof)
-    #     kappa = 0
-    #     rho_prime = self._h(K + mu, 64, _xof=_xof)
-
-    #     # Precompute NTT representation
-    #     s1 = s1.to_ntt()
-    #     s2 = s2.to_ntt()
-    #     t0 = t0.to_ntt()
-
-    #     alpha = self.gamma_2 << 1
-    #     while True:
-    #         y = self._expand_mask_vector(rho_prime, kappa)
-    #         y_hat = y.to_ntt()
-
-    #         # increment the nonce
-    #         kappa += self.l
-
-    #         w = (A_hat @ y_hat).from_ntt()
-
-    #         # Extract out both the high and low bits
-    #         w1, w0 = w.decompose(alpha)
-
-    #         # Create challenge polynomial
-    #         w1_bytes = w1.bit_pack_w(self.gamma_2)
-    #         c_tilde = self._h(mu + w1_bytes, 32, _xof=_xof)
-    #         c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
-
-    #         # Store c in NTT form
-    #         c = c.to_ntt()
-
-    #         z = y + (s1.scale(c)).from_ntt()
-    #         if z.check_norm_bound(self.gamma_1 - self.beta):
-    #             continue
-
-    #         w0_minus_cs2 = w0 - s2.scale(c).from_ntt()
-    #         if w0_minus_cs2.check_norm_bound(self.gamma_2 - self.beta):
-    #             continue
-
-    #         c_t0 = t0.scale(c).from_ntt()
-    #         if c_t0.check_norm_bound(self.gamma_2):
-    #             continue
-
-    #         w0_minus_cs2_plus_ct0 = w0_minus_cs2 + c_t0
-
-    #         h = w0_minus_cs2_plus_ct0.make_hint_optimised(w1, alpha)
-    #         if h.sum_hint() > self.omega:
-    #             continue
-
-    #         return self._pack_sig(c_tilde, z, h)
-
     def _verify_internal(
         self,
         pk: bytes,
@@ -475,40 +382,6 @@ class Dilithium:
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
 
         return c_tilde == self._h(mu + w_prime_bytes, self.c_tilde_bytes, _xof=_xof)
-
-    # def verify(self, pk_bytes, m, sig_bytes, _xof=shake256, _xof2=shake128):
-    #     """
-    #     Verifies a signature for a message m from a byte encoded public key and
-    #     signature
-    #     """
-    #     rho, t1 = self._unpack_pk(pk_bytes)
-    #     c_tilde, z, h = self._unpack_sig(sig_bytes)
-    #     if h.sum_hint() > self.omega:
-    #         return False
-
-    #     if z.check_norm_bound(self.gamma_1 - self.beta):
-    #         return False
-
-    #     A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
-
-    #     tr = self._h(pk_bytes, 32, _xof=_xof)
-    #     mu = self._h(tr + m, 64, _xof=_xof)
-    #     c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
-
-    #     # Convert to NTT for computation
-    #     c = c.to_ntt()
-    #     z = z.to_ntt()
-
-    #     t1 = t1.scale(1 << self.d)
-    #     t1 = t1.to_ntt()
-
-    #     Az_minus_ct1 = (A_hat @ z) - t1.scale(c)
-    #     Az_minus_ct1 = Az_minus_ct1.from_ntt()
-
-    #     w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
-    #     w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
-
-    #     return c_tilde == self._h(mu + w_prime_bytes, 32, _xof=_xof)
 
     def keygen(self, _xof=shake256, _xof2=shake128) -> tuple[bytes, bytes]:
         """
@@ -681,3 +554,7 @@ class Dilithium:
         sig = self._sign_internal(
             sk, mu, rnd, external_mu=True, _xof=_xof, _xof2=_xof2)
         return sig
+
+    def t1_preprocessing(self, t1):
+        # a preprocessing on t1 for ETHDilithium
+        return t1.scale(1 << self.d).to_ntt()
