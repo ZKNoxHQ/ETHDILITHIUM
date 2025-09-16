@@ -245,9 +245,6 @@ class Dilithium:
         # Split bytes into suitable chunks
         rho, rho_prime, K = seed_bytes[:32], seed_bytes[32:96], seed_bytes[96:]
 
-        print("ρ = {}".format(rho.hex()))
-        print("ρ' = {}".format(rho_prime.hex()))
-        print("k = {}".format(K.hex()))
         # Generate matrix A ∈ R^(kxl) in the NTT domain
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
 
@@ -263,10 +260,7 @@ class Dilithium:
 
         # Pack up the bytes
         pk = self._pack_pk(rho, t1)
-        print("innput pk : {}".format(pk.hex()))
-        print(_xof)
         tr = self._h(pk, 64, _xof=_xof)
-        print("tr = {}".format(tr.hex()))
         sk = self._pack_sk(rho, K, tr, s1, s2, t0)
 
         return pk, sk
@@ -314,7 +308,7 @@ class Dilithium:
         kappa = 0
         alpha = self.gamma_2 << 1
         while True:
-            y = self._expand_mask_vector(rho_prime, kappa)
+            y = self._expand_mask_vector(rho_prime, kappa, _xof=shake256)
             y_hat = y.to_ntt()
             w = (A_hat @ y_hat).from_ntt()
 
@@ -355,8 +349,6 @@ class Dilithium:
             h = (-c_t0).make_hint(w - c_s2 + c_t0, alpha)
             if h.sum_hint() > self.omega:
                 continue
-            print("ctilde = {}".format(c_tilde.hex()))
-            print("csign: {}".format(c.coeffs))
             return self._pack_sig(c_tilde, z, h)
 
     def _verify_internal(

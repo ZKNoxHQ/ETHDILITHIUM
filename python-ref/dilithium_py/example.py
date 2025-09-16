@@ -39,14 +39,14 @@ msg = bytes.fromhex(
     "D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8")
 Dilithium2.set_drbg_seed(seed)
 pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
-print("pk = {}".format(pk.hex()))
-print("sk = {}".format(sk.hex()))
 
-# sig = Dilithium2.sign(sk, msg, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
-# assert Dilithium2.verify(pk, msg, sig, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
-# # print("sig = {}".format(sig.hex()))
+sig = Dilithium2.sign(sk, msg, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+assert Dilithium2.verify(pk, msg, sig, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+print("sig = {}".format(sig.hex()))
+
 
 # test poly uniforom eta
+
 seed = bytes.fromhex(
     "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001")
 # counter = 0
