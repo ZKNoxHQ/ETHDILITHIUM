@@ -71,7 +71,7 @@ class Dilithium:
         h.flip()
         return h.read(length)
 
-    def _expand_matrix_from_seed(self, rho, _xof=shake128):
+    def _expand_matrix_from_seed(self, rho, _xof=shake128, zk=False):
         """
         Helper function which generates a element of size
         k x l from a seed `rho`.
@@ -79,8 +79,12 @@ class Dilithium:
         A_data = [[0 for _ in range(self.l)] for _ in range(self.k)]
         for i in range(self.k):
             for j in range(self.l):
-                A_data[i][j] = self.R.rejection_sample_ntt_poly(
-                    rho, i, j, _xof=_xof)
+                if zk:
+                    A_data[i][j] = self.R.rejection_sample_ntt_poly_babybear(
+                        rho, i, j, _xof=_xof)
+                else:
+                    A_data[i][j] = self.R.rejection_sample_ntt_poly(
+                        rho, i, j, _xof=_xof)
         return self.M(A_data)
 
     def _expand_vector_from_seed(self, rho_prime):
@@ -227,7 +231,7 @@ class Dilithium:
         h = self._unpack_h(h_bytes)
         return c_tilde, z, h
 
-    def _keygen_internal(self, zeta: bytes, _xof=shake256, _xof2=shake128) -> tuple[bytes, bytes]:
+    def _keygen_internal(self, zeta: bytes, _xof=shake256, _xof2=shake128, zk=False) -> tuple[bytes, bytes]:
         """
         Generates a public-private key pair from a seed following
         Algorithm 6 (FIPS 204)
@@ -239,11 +243,16 @@ class Dilithium:
         # Split bytes into suitable chunks
         rho, rho_prime, K = seed_bytes[:32], seed_bytes[32:96], seed_bytes[96:]
 
+        print("ρ = {}".format(rho.hex()))
+        print("ρ' = {}".format(rho_prime.hex()))
+        print("k = {}".format(K.hex()))
         # Generate matrix A ∈ R^(kxl) in the NTT domain
-        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
 
         # Generate the error vectors s1 ∈ R^l, s2 ∈ R^k
         s1, s2 = self._expand_vector_from_seed(rho_prime)
+        print("s1 = {}".format(s1))
+
         s1_hat = s1.to_ntt()
 
         # Matrix multiplication
@@ -265,7 +274,8 @@ class Dilithium:
         rnd: bytes,
         external_mu: bool = False,
         _xof=shake256,
-        _xof2=shake128
+        _xof2=shake128,
+        zk=False
     ) -> bytes:
         """
         Deterministic algorithm to generate a signature for a formatted message
@@ -283,13 +293,18 @@ class Dilithium:
         t0_hat = t0.to_ntt()
 
         # Generate matrix A ∈ R^(kxl) in the NTT domain
-        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
 
         # Set seeds and nonce (kappa)
         if external_mu:
             mu = m
         else:
             mu = self._h(tr + m, 64, _xof=_xof)
+        print()
+        print("tr = {}".format(tr.hex()))
+        print("m = {}".format(m.hex()))
+        print("μ = {}".format(mu.hex()))
+
         rho_prime = self._h(k + rnd + mu, 64, _xof=_xof)
 
         kappa = 0
@@ -336,7 +351,8 @@ class Dilithium:
             h = (-c_t0).make_hint(w - c_s2 + c_t0, alpha)
             if h.sum_hint() > self.omega:
                 continue
-
+            print("ctilde = {}".format(c_tilde.hex()))
+            print("csign: {}".format(c.coeffs))
             return self._pack_sig(c_tilde, z, h)
 
     def _verify_internal(
@@ -345,7 +361,8 @@ class Dilithium:
         m: bytes,
         sig: bytes,
         _xof=shake256,
-        _xof2=shake128
+        _xof2=shake128,
+        zk=False
     ) -> bool:
         """
         Internal function to verify a signature sigma for a formatted message M'
@@ -363,12 +380,13 @@ class Dilithium:
         if z.check_norm_bound(self.gamma_1 - self.beta):
             return False
 
-        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
 
         tr = self._h(pk, 64, _xof=_xof)
         mu = self._h(tr + m, 64, _xof=_xof)
+        print("μ = {}".format(mu.hex()))
         c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
-
+        print(c.coeffs)
         # Convert to NTT for computation
         c = c.to_ntt()
         z = z.to_ntt()
@@ -384,16 +402,16 @@ class Dilithium:
 
         return c_tilde == self._h(mu + w_prime_bytes, self.c_tilde_bytes, _xof=_xof)
 
-    def keygen(self, _xof=shake256, _xof2=shake128) -> tuple[bytes, bytes]:
+    def keygen(self, _xof=shake256, _xof2=shake128, zk=False) -> tuple[bytes, bytes]:
         """
         Generates a public-private key pair following
         Algorithm 1 (FIPS 204)
         """
         zeta = self.random_bytes(32)
-        pk, sk = self._keygen_internal(zeta, _xof=_xof, _xof2=_xof2)
+        pk, sk = self._keygen_internal(zeta, _xof=_xof, _xof2=_xof2, zk=zk)
         return (pk, sk)
 
-    def key_derive(self, seed: bytes, _xof=shake256, _xof2=shake128) -> tuple[bytes, bytes]:
+    def key_derive(self, seed: bytes, _xof=shake256, _xof2=shake128, zk=False) -> tuple[bytes, bytes]:
         """
         Derive a verification key and corresponding signing key
         following the approach from Section 6.1 (FIPS 204)
@@ -407,7 +425,7 @@ class Dilithium:
         if len(seed) != 32:
             raise ValueError("The seed must be 32 bytes long")
 
-        pk, sk = self._keygen_internal(seed, _xof=_xof, _xof2=_xof2)
+        pk, sk = self._keygen_internal(seed, _xof=_xof, _xof2=_xof2, zk=zk)
         return (pk, sk)
 
     def sign(
@@ -417,7 +435,8 @@ class Dilithium:
         ctx: bytes = b"",
         deterministic: bool = False,
         _xof=shake256,
-        _xof2=shake128
+        _xof2=shake128,
+        zk=False
     ) -> bytes:
         """
         Generates an ML-DSA signature following
@@ -438,7 +457,7 @@ class Dilithium:
 
         # Compute the signature of m_prime
         sig_bytes = self._sign_internal(
-            sk, m_prime, rnd, _xof=_xof, _xof2=_xof2)
+            sk, m_prime, rnd, _xof=_xof, _xof2=_xof2, zk=zk)
         return sig_bytes
 
     def verify(
@@ -448,7 +467,8 @@ class Dilithium:
         sig: bytes,
         ctx: bytes = b"",
         _xof=shake256,
-        _xof2=shake128
+        _xof2=shake128,
+        zk=False
     ) -> bool:
         """
         Verifies a signature sigma for a message M following
@@ -462,7 +482,7 @@ class Dilithium:
         # Format the message using the context
         m_prime = bytes([0]) + bytes([len(ctx)]) + ctx + m
 
-        return self._verify_internal(pk, m_prime, sig, _xof=_xof, _xof2=_xof2)
+        return self._verify_internal(pk, m_prime, sig, _xof=_xof, _xof2=_xof2, zk=zk)
 
     """
     The following additional function follows an outline from:
@@ -470,7 +490,7 @@ class Dilithium:
     which computes pk_bytes when only the sk_bytes are known.
     """
 
-    def pk_from_sk(self, sk: bytes, _xof=shake256, _xof2=shake128) -> bytes:
+    def pk_from_sk(self, sk: bytes, _xof=shake256, _xof2=shake128, zk=False) -> bytes:
         """
         Given the packed representation of a ML-DSA secret key,
         compute the corresponding packed public key bytes.
@@ -479,7 +499,7 @@ class Dilithium:
         rho, _, tr, s1, s2, _ = self._unpack_sk(sk)
 
         # Compute the matrix A from rho in NTT form
-        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
 
         # Convert s1 to NTT form
         s1_hat = s1.to_ntt()
@@ -556,12 +576,12 @@ class Dilithium:
             sk, mu, rnd, external_mu=True, _xof=_xof, _xof2=_xof2)
         return sig
 
-    def pk_for_eth(self, pk):
+    def pk_for_eth(self, pk, zk=False):
         # a preprocessing for ETHDilithium
         # - tr is computed for saving one hash
         # - t1 is computed in the NTT domain (and shifted by d).
         rho, t1 = self._unpack_pk(pk)
         tr = self._h(pk, 64, _xof=Keccak256PRNG)
-        A_hat = self._expand_matrix_from_seed(rho, _xof=Keccak256PRNG)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=Keccak256PRNG, zk=zk)
         t1_new = t1.scale(1 << self.d).to_ntt()
         return A_hat, tr, t1_new
