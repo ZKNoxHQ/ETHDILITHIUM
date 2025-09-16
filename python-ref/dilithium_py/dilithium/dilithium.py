@@ -87,12 +87,13 @@ class Dilithium:
                         rho, i, j, _xof=_xof)
         return self.M(A_data)
 
-    def _expand_vector_from_seed(self, rho_prime):
+    def _expand_vector_from_seed(self, rho_prime, _xof=shake256):
         s1_elements = [
-            self.R.rejection_bounded_poly(rho_prime, i, self.eta) for i in range(self.l)
+            self.R.rejection_bounded_poly(rho_prime, i, self.eta, _xof=_xof) for i in range(self.l)
         ]
         s2_elements = [
-            self.R.rejection_bounded_poly(rho_prime, i, self.eta)
+            self.R.rejection_bounded_poly(
+                rho_prime, i, self.eta, _xof=_xof)
             for i in range(self.l, self.l + self.k)
         ]
 
@@ -116,6 +117,7 @@ class Dilithium:
         s1_bytes = s1.bit_pack_s(self.eta)
         s2_bytes = s2.bit_pack_s(self.eta)
         t0_bytes = t0.bit_pack_t0()
+        print("tr = {}".format(tr.hex()))
         return rho + K + tr + s1_bytes + s2_bytes + t0_bytes
 
     def _pack_h(self, h):
@@ -250,8 +252,7 @@ class Dilithium:
         A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
 
         # Generate the error vectors s1 ∈ R^l, s2 ∈ R^k
-        s1, s2 = self._expand_vector_from_seed(rho_prime)
-        print("s1 = {}".format(s1))
+        s1, s2 = self._expand_vector_from_seed(rho_prime, _xof=_xof)
 
         s1_hat = s1.to_ntt()
 
@@ -262,7 +263,10 @@ class Dilithium:
 
         # Pack up the bytes
         pk = self._pack_pk(rho, t1)
+        print("innput pk : {}".format(pk.hex()))
+        print(_xof)
         tr = self._h(pk, 64, _xof=_xof)
+        print("tr = {}".format(tr.hex()))
         sk = self._pack_sk(rho, K, tr, s1, s2, t0)
 
         return pk, sk

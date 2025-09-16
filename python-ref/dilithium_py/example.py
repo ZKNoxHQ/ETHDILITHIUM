@@ -32,15 +32,15 @@ from .keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 # assert sig + msg == sm
 # # print("Signature from Python: {}".format(sig.hex()))
 
-# # EXAMPLE WITH ETHDILITHIUM
-# seed = bytes.fromhex(
-#     "061550234D158C5EC95595FE04EF7A25767F2E24CC2BC479D09D86DC9ABCFDE7056A8C266F9EF97ED08541DBD2E1FFA1")
-# msg = bytes.fromhex(
-#     "D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8")
-# Dilithium2.set_drbg_seed(seed)
-# pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
-# print("pk = {}".format(pk.hex()))
-# # print("sk = {}".format(sk.hex()))
+# EXAMPLE WITH ETHDILITHIUM
+seed = bytes.fromhex(
+    "061550234D158C5EC95595FE04EF7A25767F2E24CC2BC479D09D86DC9ABCFDE7056A8C266F9EF97ED08541DBD2E1FFA1")
+msg = bytes.fromhex(
+    "D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8")
+Dilithium2.set_drbg_seed(seed)
+pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+print("pk = {}".format(pk.hex()))
+print("sk = {}".format(sk.hex()))
 
 # sig = Dilithium2.sign(sk, msg, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
 # assert Dilithium2.verify(pk, msg, sig, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
@@ -56,4 +56,17 @@ seed = bytes.fromhex(
 counter = 0
 p = Dilithium2.R.rejection_bounded_poly(
     seed,  counter, Dilithium2.eta, _xof=Keccak256PRNG)
-print("coefficients:", p.coeffs)
+# print("coefficients:", p.coeffs)
+
+
+# test poly uniform
+rho = bytes.fromhex(
+    "7a32415741a9357cdb07a5853f80d18a7a2aaabcde441b44a03a0e3f844d4a19")
+p = Dilithium2.R.rejection_sample_ntt_poly(rho, 0, 0, _xof=Keccak256PRNG)
+# print(p.coeffs)
+
+# test poly uniform
+rho = bytes.fromhex(
+    "7a32415741a9357cdb07a5853f80d18a7a2aaabcde441b44a03a0e3f844d4a19")
+p = Dilithium2.R.rejection_sample_ntt_poly(rho, 0, 0, _xof=Keccak256PRNG)
+# print(p.coeffs)
