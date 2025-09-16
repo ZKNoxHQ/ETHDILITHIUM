@@ -308,7 +308,7 @@ class Dilithium:
         kappa = 0
         alpha = self.gamma_2 << 1
         while True:
-            y = self._expand_mask_vector(rho_prime, kappa, _xof=shake256)
+            y = self._expand_mask_vector(rho_prime, kappa, _xof=_xof)
             y_hat = y.to_ntt()
             w = (A_hat @ y_hat).from_ntt()
 
