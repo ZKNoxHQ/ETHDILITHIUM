@@ -137,14 +137,14 @@ class PolynomialRingDilithium(PolynomialRing):
         # Initialise the XOF
         seed = rho_prime + int.to_bytes(i, 2, "little")
         xof = _xof(seed)
-
+        if _xof != shake256:
+            xof.flip()
         # Sample bytes for all n coeffs
         i = 0
         coeffs = [0 for _ in range(256)]
         while i < 256:
             # Consider two values for each byte (top and bottom four bits)
             j = xof.read(1)[0]
-
             c0 = coefficient_from_half_byte(j % 16, eta)
             if c0 is not False:
                 coeffs[i] = c0
@@ -154,7 +154,6 @@ class PolynomialRingDilithium(PolynomialRing):
             if c1 is not False and i < 256:
                 coeffs[i] = c1
                 i += 1
-
         return self(coeffs)
 
     def sample_mask_polynomial(self, rho_prime, i, kappa, gamma_1, _xof=shake256):

@@ -80,24 +80,46 @@ contract ZKNOX_ethdilithium {
         immutableMe = true;
     }
 
-    function verify(PubKey memory pk, bytes memory msgs, Signature memory signature)
+    function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
         view
-        returns (bool result)
+        returns (bool)
     {
+        // Step 1: check ctx length
+        if (ctx.length > 255) {
+            revert("ctx bytes must have length at most 255");
+        }
+
+        // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
+        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
+
+        // Step 3: delegate to internal verify
+        return verify_internal(pk, m_prime, signature);
+    }
+
+    function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
+        internal
+        view
+        returns (bool)
+    {
+        uint256 i;
+        uint256 j;
+
         // FIRST CORE STEP
         (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
 
         if (norm_h > omega) {
             return false;
         }
-        for (uint256 i = 0; i < 4; i++) {
-            for (uint256 j = 0; j < 256; j++) {
-                if (z[i][j] > gamma_1_minus_beta && 8380417 - z[i][j] > gamma_1_minus_beta) {
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 256; j++) {
+                uint256 zij = z[i][j];
+                if (zij > gamma_1_minus_beta && (q - zij) > gamma_1_minus_beta) {
                     return false;
                 }
             }
         }
+
         // C_NTT
         uint256[] memory c_ntt = sampleInBallKeccakPRNG(signature.c_tilde, tau, q);
         c_ntt = ZKNOX_NTTFW(c_ntt, apsirev);
@@ -109,7 +131,7 @@ contract ZKNOX_ethdilithium {
         bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
 
         // FINAL HASH
-        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, msgs));
+        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, m_prime));
         bytes32 out1 = prng.pool;
         refill(prng);
         bytes32 out2 = prng.pool;

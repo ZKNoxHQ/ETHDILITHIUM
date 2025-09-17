@@ -1,6 +1,7 @@
 import unittest
 import os
-from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5, ETHDilithium2
+# , ZKDilithiumKB, ZKDilithiumBB
+from dilithium_py.dilithium import Dilithium2, Dilithium3, Dilithium5
 from dilithium_py.drbg.aes256_ctr_drbg import AES256_CTR_DRBG
 
 from ..shake.shake_wrapper import shake128, shake256
@@ -58,25 +59,25 @@ class TestDilithium(unittest.TestCase):
         # Check changing the message breaks verify
         self.assertFalse(check_wrong_msg)
 
-    def generic_test_ethdilithium(self, Dilithium, xof, xof2):
-        msg = b"Signed by dilithium" + os.urandom(16)
+    # def generic_test_ethdilithium(self, Dilithium, xof, xof2):
+    #     msg = b"Signed by dilithium" + os.urandom(16)
 
-        # Perform signature process
-        pk, sk = Dilithium.keygen(_xof=xof, _xof2=xof2)
-        sig = Dilithium.sign(sk, msg, _xof=xof, _xof2=xof2)
-        check_verify = Dilithium.verify(pk, msg, sig, _xof=xof)
+    #     # Perform signature process
+    #     pk, sk = Dilithium.keygen(_xof=xof, _xof2=xof2)
+    #     sig = Dilithium.sign(sk, msg, _xof=xof, _xof2=xof2)
+    #     check_verify = Dilithium.verify(pk, msg, sig, _xof=xof)
 
-        # Generate some fail cases
-        pk_bad, _ = Dilithium.keygen(_xof=xof, _xof2=xof2)
-        check_wrong_pk = Dilithium.verify(pk_bad, msg, sig, _xof=xof)
-        check_wrong_msg = Dilithium.verify(pk, b"", sig, _xof=xof)
+    #     # Generate some fail cases
+    #     pk_bad, _ = Dilithium.keygen(_xof=xof, _xof2=xof2)
+    #     check_wrong_pk = Dilithium.verify(pk_bad, msg, sig, _xof=xof)
+    #     check_wrong_msg = Dilithium.verify(pk, b"", sig, _xof=xof)
 
-        # Check that signature works
-        self.assertTrue(check_verify)
-        # Check changing the key breaks verify
-        self.assertFalse(check_wrong_pk)
-        # Check changing the message breaks verify
-        self.assertFalse(check_wrong_msg)
+    #     # Check that signature works
+    #     self.assertTrue(check_verify)
+    #     # Check changing the key breaks verify
+    #     self.assertFalse(check_wrong_pk)
+    #     # Check changing the message breaks verify
+    #     self.assertFalse(check_wrong_msg)
 
     def test_dilithium2(self):
         for _ in range(3):
@@ -105,17 +106,17 @@ class TestDilithium(unittest.TestCase):
     #         self.generic_test_dilithium(
     #             Dilithium5, Keccak256PRNG, Keccak256PRNG)
 
-    # TEST ETHDILITHIUM
-    def test_ethdilithium2_keccak_prng(self):
-        for _ in range(3):
-            self.generic_test_ethdilithium(
-                ETHDilithium2, Keccak256PRNG, Keccak256PRNG)
+    # # TEST ETHDILITHIUM
+    # def test_ethdilithium2_keccak_prng(self):
+    #     for _ in range(3):
+    #         self.generic_test_ethdilithium(
+    #             ETHDilithium2, Keccak256PRNG, Keccak256PRNG)
 
-    # TEST ETHDILITHIUM with SHAKE
-    def test_ethdilithium2_shake(self):
-        for _ in range(3):
-            self.generic_test_ethdilithium(
-                ETHDilithium2, shake256, Keccak256PRNG)
+    # # TEST ETHDILITHIUM with SHAKE
+    # def test_ethdilithium2_shake(self):
+    #     for _ in range(3):
+    #         self.generic_test_ethdilithium(
+    #             ETHDilithium2, shake256, Keccak256PRNG)
 
 
 class TestDilithiumDRBG(unittest.TestCase):
@@ -176,7 +177,7 @@ class TestDilithiumDRBG(unittest.TestCase):
 
 
 class TestKnownTestValuesDilithium(unittest.TestCase):
-    def generic_test_dilithium(self, Dilithium, file_name):
+    def generic_test_dilithium(self, Dilithium, file_name, _xof=shake256, _xof2=shake128):
         entropy_input = bytes([i for i in range(48)])
         drbg = AES256_CTR_DRBG(entropy_input)
 
@@ -196,7 +197,7 @@ class TestKnownTestValuesDilithium(unittest.TestCase):
             self.assertEqual(data["msg"], msg)
 
             Dilithium.set_drbg_seed(seed)
-            pk, sk = Dilithium.keygen()
+            pk, sk = Dilithium.keygen(_xof=_xof, _xof2=_xof2)
 
             # Check that the keygen matches
             self.assertEqual(data["pk"], pk)
@@ -211,16 +212,20 @@ class TestKnownTestValuesDilithium(unittest.TestCase):
 
             # Ensure that a generated signature matches
             # the one extracted from the KAT
-            sig = Dilithium.sign(sk, msg)
+            sig = Dilithium.sign(sk, msg, _xof=_xof, _xof2=_xof2)
             self.assertEqual(sig, sig_KAT)
 
             # Finally, make sure that the signature is
             # valid for the message
-            verify_KAT = Dilithium.verify(pk, msg, sig)
+            verify_KAT = Dilithium.verify(pk, msg, sig, _xof=_xof, _xof2=_xof2)
             self.assertTrue(verify_KAT)
 
     def test_dilithium2(self):
         self.generic_test_dilithium(Dilithium2, "PQCsignKAT_Dilithium2.rsp")
+
+    def test_dilithium2_eth(self):
+        self.generic_test_dilithium(
+            Dilithium2, "PQCsignKAT_Dilithium2_ETH.rsp", _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
 
     def test_dilithium3(self):
         self.generic_test_dilithium(Dilithium3, "PQCsignKAT_Dilithium3.rsp")
