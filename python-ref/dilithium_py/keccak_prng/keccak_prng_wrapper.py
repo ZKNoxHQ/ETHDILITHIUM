@@ -11,8 +11,10 @@ import struct
 
 
 # Constants
-# SIMON CHANGED 1024 to 4160, IS IT SECURE?????????????????
-MAX_BUFFER_SIZE = 33000  # Adjust based on needs
+# !WARNING!
+# This limits the size of the messages we can sign!
+# !WARNING!
+MAX_BUFFER_SIZE = 4096  # Adjust based on needs
 KECCAK_OUTPUT = 32  # Keccak output size in bytes
 
 
