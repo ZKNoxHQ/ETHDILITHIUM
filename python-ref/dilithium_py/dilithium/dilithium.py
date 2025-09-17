@@ -117,7 +117,6 @@ class Dilithium:
         s1_bytes = s1.bit_pack_s(self.eta)
         s2_bytes = s2.bit_pack_s(self.eta)
         t0_bytes = t0.bit_pack_t0()
-        print("tr = {}".format(tr.hex()))
         return rho + K + tr + s1_bytes + s2_bytes + t0_bytes
 
     def _pack_h(self, h):
@@ -298,10 +297,6 @@ class Dilithium:
             mu = m
         else:
             mu = self._h(tr + m, 64, _xof=_xof)
-        print()
-        print("tr = {}".format(tr.hex()))
-        print("m = {}".format(m.hex()))
-        print("μ = {}".format(mu.hex()))
 
         rho_prime = self._h(k + rnd + mu, 64, _xof=_xof)
 
@@ -380,9 +375,7 @@ class Dilithium:
 
         tr = self._h(pk, 64, _xof=_xof)
         mu = self._h(tr + m, 64, _xof=_xof)
-        print("μ = {}".format(mu.hex()))
         c = self.R.sample_in_ball(c_tilde, self.tau, _xof=_xof)
-        print(c.coeffs)
         # Convert to NTT for computation
         c = c.to_ntt()
         z = z.to_ntt()
