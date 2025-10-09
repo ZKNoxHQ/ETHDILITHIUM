@@ -1,1 +1,1 @@
-../ref/ntt.c
+../c-ref/ntt.c

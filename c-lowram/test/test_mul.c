@@ -1,1 +1,1 @@
-../../ref/test/test_mul.c
+../../c-ref/test/test_mul.c

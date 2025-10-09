@@ -1,1 +1,1 @@
-../../ref/test/test_dilithium.c
+../../c-ref/test/test_dilithium.c

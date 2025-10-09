@@ -1,1 +1,1 @@
-../../ref/nistkat/example.c
+../../c-ref/nistkat/example.c

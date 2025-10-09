@@ -1,1 +1,1 @@
-../../ref/test/cpucycles.c
+../../c-ref/test/cpucycles.c

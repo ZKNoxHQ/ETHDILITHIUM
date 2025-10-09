@@ -1,1 +1,1 @@
-../../ref/nistkat/example_eth.c
+../../c-ref/nistkat/example_eth.c

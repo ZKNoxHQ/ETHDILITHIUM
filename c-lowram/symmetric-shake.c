@@ -1,1 +1,1 @@
-../ref/symmetric-shake.c
+../c-ref/symmetric-shake.c

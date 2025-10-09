@@ -1,1 +1,1 @@
-../ref/reduce.c
+../c-ref/reduce.c

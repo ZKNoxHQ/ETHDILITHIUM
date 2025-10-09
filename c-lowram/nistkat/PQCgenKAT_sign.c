@@ -1,1 +1,1 @@
-../../ref/nistkat/PQCgenKAT_sign.c
+../../c-ref/nistkat/PQCgenKAT_sign.c

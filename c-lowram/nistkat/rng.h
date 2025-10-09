@@ -1,1 +1,1 @@
-../../ref/nistkat/rng.h
+../../c-ref/nistkat/rng.h

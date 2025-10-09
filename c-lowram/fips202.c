@@ -1,1 +1,1 @@
-../ref/fips202.c
+../c-ref/fips202.c

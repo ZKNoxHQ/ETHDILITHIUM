@@ -1,1 +1,1 @@
-../ref/symmetric.h
+../c-ref/symmetric.h

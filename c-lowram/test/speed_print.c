@@ -1,1 +1,1 @@
-../../ref/test/speed_print.c
+../../c-ref/test/speed_print.c
