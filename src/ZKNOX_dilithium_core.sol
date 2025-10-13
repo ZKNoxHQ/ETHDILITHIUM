@@ -51,15 +51,73 @@ import {
     ZKNOX_Expand_Mat,
     ZKNOX_MatVecProductDilithium,
     ZKNOX_VECMULMOD,
-    ZKNOX_VECSUBMOD
+    ZKNOX_VECSUBMOD,
+    omega,
+    k,
+    n
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
+
+function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
+    require(hBytes.length >= omega + k, "Invalid h bytes length");
+
+    h = new uint256[][](k); // outer array length k
+    for (uint256 i = 0; i < k; i++) {
+        h[i] = new uint256[](n); // inner array length n
+    }
+    uint256 k_idx = 0;
+
+    for (uint256 i = 0; i < k; i++) {
+        // Initialize h[i] coefficients to 0
+        for (uint256 j = 0; j < n; j++) {
+            h[i][j] = 0;
+        }
+
+        // Read the position indicator for this polynomial
+        uint256 omegaVal = uint8(hBytes[omega + i]);
+
+        // Check bounds for strong unforgeability
+        if (omegaVal < k_idx || omegaVal > omega) {
+            return (false, h);
+        }
+
+        // Set hint bits based on the indices
+        for (uint256 j = k_idx; j < omegaVal; j++) {
+            // Check ordering for strong unforgeability
+            // Coefficients must be in strictly increasing order
+            if (j > k_idx && uint8(hBytes[j]) <= uint8(hBytes[j - 1])) {
+                return (false, h);
+            }
+
+            // Get the coefficient index and validate it
+            uint256 coeffIdx = uint8(hBytes[j]);
+            if (coeffIdx >= n) {
+                return (false, h);
+            }
+
+            // Set the hint bit
+            h[i][coeffIdx] = 1;
+        }
+
+        k_idx = omegaVal;
+    }
+
+    // Check extra indices are zero for strong unforgeability
+    for (uint256 j = k_idx; j < omega; j++) {
+        if (uint8(hBytes[j]) != 0) {
+            return (false, h);
+        }
+    }
+
+    return (true, h);
+}
 
 function dilithium_core_1(Signature memory signature)
     pure
     returns (uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
 {
-    h = ZKNOX_Expand_Vec(signature.h);
+    bool foo;
+    (foo, h) = unpack_h(signature.h);
     uint256 i;
     uint256 j;
     norm_h = 0;

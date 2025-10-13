@@ -51,6 +51,7 @@ uint256 constant omega = 80;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
 uint256 constant tau = 39;
 uint256 constant d = 13;
+uint256 constant k = 4;
 
 function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
     b = new uint256[][][](4);
@@ -217,7 +218,7 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
 struct Signature {
     bytes c_tilde;
     uint256[][] z;
-    uint256[][] h;
+    bytes h;
 }
 
 struct PubKey {

@@ -104,6 +104,7 @@ file.write(solidity_compact_vec(t1_new_compact, 't1'))
 
 # SIG
 sig = D.sign(sk, msg, _xof=XOF, _xof2=XOF)
+h_bytes = sig[-(D.k + D.omega):]
 assert D.verify(pk, msg, sig, _xof=XOF, _xof2=XOF)
 c_tilde, z, h = D._unpack_sig(sig)
 # z with only positive coefficients
@@ -114,12 +115,13 @@ for i in range(4):
             z._data[i][0].coeffs[j] += 8380417
 # Compact SIG for Solidity
 z_compact = z.compact_256(32)
-h_compact = h.compact_256(32)
+# h_compact = h.compact_256(32)
 
 file.write("\n// Signature\n")
 file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
 file.write(solidity_compact_vec(z_compact, 'z'))
-file.write(solidity_compact_vec(h_compact, 'h'))
+# file.write(solidity_compact_vec(h_compact, 'h'))
+file.write("bytes memory h_bytes = hex\"{}\";".format(h_bytes.hex()))
 
 file.write("""
         // CREATE PK OBJECT
@@ -132,7 +134,7 @@ file.write("""
         Signature memory sig;
         sig.c_tilde = c_tilde;
         sig.z = z;
-        sig.h = h;
+        sig.h = h_bytes;
 
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";
