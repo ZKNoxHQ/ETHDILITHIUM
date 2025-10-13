@@ -33,9 +33,10 @@ Integrating post-quantum signature schemes is crucial to future-proof Ethereum a
 
 Dilithium, a lattice-based scheme standardized by NIST as ML-DSA, offers high security against both classical and quantum adversaries. As the main winner of the standardization, the scheme has been selected as the main alternative to elliptic curve signature algorithms, making it a serious option for Ethereum.
 
-While the signature size (2.4kB) and public key size (1.3kB) are larger than other post-quantum candidates such as FALCON, this scheme is more flexible in terms of parameters. It is thus possible to derive a zero-knowledge version of Dilithium, keeping the security of the scheme with an efficient in-circuit verification. This EIP does not dig into details this instance.
-Also, ML-DSA has a simpler signer algorithm, making hardware implementation easier.
-Finally, ML-DSA is based on the same mathematical construction as Kyber, the Post-Quantum Key Exchange standardized by NIST.
+While the signature size (2.4kB) and public key size (1.3kB) are larger than other post-quantum candidates such as Falcon FN-DSA, this scheme is more flexible in terms of parameters. It is thus possible to derive a zero-knowledge version of Dilithium, keeping the security of the scheme toegether with an efficient in-circuit verification. This EIP does not dig into details this instance.
+
+ML-DSA has a simpler signer algorithm than FN-DSA, making hardware implementation easier.
+Finally, ML-DSA is based on the same mathematical construction as Kyber, the Post-Quantum Key Exchange algorithm standardized by NIST.
 All these properties make ML-DSA well-suited for blockchain applications.
 
 In the context of the Ethereum Virtual Machine, a precompile for Keccak256 hash function is already available, making ML-DSA verification much faster when instantiated with an extendable output function derived from Keccak than with SHAKE256, as specified in NIST submission. This EIP specifies two version of ML-DSA enabling two important features: one version being fully compliant with the NIST specification, the other deviating from the standard in order to reduce the gas cost.
@@ -49,81 +50,296 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 While ML-DSA can be instantiated for three security levels: NIST level II, III and IV, this EIP only covers NIST level II, corresponding to 128 bits of security.
 
 For the two variants of ML-DSA of this EIP, the following parameters are fixed:
-- Polynomial degree `n = 256`
-- Field modulus `q = 8380417`
-- Matrix dimensions: `k=4`, `l=4`
-- `γ_1 = 2**17`, `γ_2 = (q-1)/88`, `η = 2`, `τ = 39`,
-- `ζ = 350209`, `ζ' = 380929`, `d = 13`.
+- Polynomial degree: `n = 256`,
+- Field modulus: `q = 8380417`,
+- Matrix dimensions: `k=4`, `l=4`,
+- Bounds of rejection: `γ_1 = 2¹⁷`, `γ_2 = (q-1)/88`,
+- Additional parameters: `η = 2`, `τ = 39`, `d = 13`.
 
-These parameters strictly follows NIST standard ML-DSA. More precisely, `q`, `n`, `k`, `l` and `η` are chosen in order to ensure a hard MLWE related problem, and the remaining parameters are chosen for the hardness of MSIS.
+These parameters strictly follows NIST standard ML-DSA. More precisely, `q`, `n`, `k`, `l` and `η` are chosen in order to ensure a hard MLWE related problem, and the remaining parameters are chosen for the hardness of MSIS as well as for the efficiency of the scheme.
 
-ML-DSA requires the following storage:
-- 2420 bytes for the signature
-- 1312 bytes for the public key.
+In terms of storage, ML-DSA public key can be derived by the verifier, making the overall public key of 1312 bytes. However, this increases the verifier cost, making the on-chain verification too expensive from a practical point of view. In this EIP, the verification algorithm takes the public key in raw format, meaning that the storage for the public key is:
+- The full matrix `A_hat` of 16 384 bytes,
+- `tr` is stored in order to save one hash, with 32 bytes,
+- `t1` is stored in the NTT domain in order to save one NTT, with 4096 bytes.
 
+The overall storage for the **public key** is **20512 bytes**. The signature follows the same format as specified in NIST standard: 32 bytes for `c_tilde`, 2304 bytes for the coefficients of `z`, and 84 bytes for `h`. In total, a **signature** requires **2420 bytes**.
 
-### 3.1. ML-DSA verificationalgorithm
-TODO
+### 3.0. Sub-algorithms of ML-DSA
+
+#### Number Theoretic Transform
+Polynomial arithmetic is computed efficiency using Number Theoretic Transform (NTT). Efficient polynomial multiplication can be implemented following EIP 7885 (draft). NTT inverse cost is roughly the same as an NTT: $n\log(n)$ additions and $n/2 \log(n)$ multiplications over the field $\mathbb F_q$, where $q=8380417$ and $n=256$.
+
+#### EXtendable Output Function
+The verification algorithm requires an eXtendable Output Function (XOF) made from a hash function.
+This EIP provides two instantiations of a XOF:
+- SHAKE256 is the XOF provided in NIST submission, a sponge construction derived from SHA256. Extracting bytes using SHAKE256 calls the `Keccak_f` permutation:
+```python
+def SHAKE256_init():
+    create an empty sponge state
+
+def SHAKE256_inject(data):
+    absorb into Keccak sponge state
+
+def SHAKE256_flip():
+    pad input and finalize sponge
+    (no fixed-length digest yet)
+
+def SHAKE256_extract(state, length):
+    output = []
+    while output.size < length:
+        block = Keccak_f(state)
+        output.append(state_part)
+    return first 'length' bytes of output
+```
+While this construction is standardized, it is expensive when computed in the Ethereum Virtual Machine because `Keccak_f` has no EVM opcode.
+- Keccak-PRNG is a XOF that is build from a counter-mode PRNG based on Keccak256. Generating new chunks of bytes requires an incrementing counter.
+```python
+def KeccakPRNG_init():
+    create an empty buffer
+
+def KeccakPRNG_inject(data):
+    buffer.append(data)
+
+def KeccakPRNG_flip():
+    state = Keccak256(buffer) 
+    counter = 0
+
+def KeccakPRNG_extract(state, length):
+    output = []
+    counter = 0
+    while output.size < length:
+        block = Keccak256(state || counter)
+        output.append(block)
+        counter = counter + 1
+    return first 'length' bytes of output
+```
+Precompile of `Keccak256` are available in the Ethereum Virtual Machine, making this XOF very efficient in the EVM.
+
+#### Hints in ML-DSA
+ML-DSA requires some hint computation. More precisely, 
+```python
+def Decompose(r, α):
+    """
+    Decomposes r modulo q into high and low parts using α.
+    Returns (r1, r0) such that r = r1 * α + r0 (mod q)
+    """
+    r0 = r % α 
+    if r - r0 == q - 1:
+        r1 = 0
+        r0 = r0 - 1
+    else:
+        r1 = (r - r0) // α
+    return r1, r0
+
+def UseHint(h, r, α):
+    """
+    Computes r1 using a hint bit h and decomposition.
+    """
+    m = (q - 1) // α
+    r1, r0 = Decompose(r, α, q)
+    
+    if h == 1 and r0 > 0:
+        return (r1 + 1) % m
+    if h == 1 and r0 ≤ 0:
+        return (r1 - 1) % m
+    return r1
+```
+The hint in ML-DSA is a polynomial with coefficients in {0,1}. Another function `sum_hint` is required. It counts the number of non-zero values of the hint.
+
+#### Sample In Ball Challenge
+In ML-DSA, a challenge is computed using a XOF.
+This algorithm `sample_in_ball` outputs a polynomial with τ small coefficients (in {-1,1}).
+The values of the coefficients as well as the position in the coefficients list is obtained using the XOF:
+
+```python
+def sample_in_ball(seed, tau, xof_impl=XOF):
+    """
+    Sample a 256-element array with τ coefficients equal to ±1
+    and (256 − τ) coefficients equal to 0.
+    """
+
+    Initialize the XOF, inject the seed, and flip.
+    
+    coeffs = [0 for i in range(256)]
+    
+    for i in range(256-τ, 256):
+        Extract a byte j ≤ i (from the XOF)
+        coeffs[i] = coeffs[j]
+        coeffs[j] = +1 or -1 (from the XOF)
+    return coeffs
+```
+
+### 3.1. ML-DSA verification algorithm
+```python
+def VERIFY_MLDSA(public_key, message, signature) -> bool:
+    A_hat, tr, t_1 = pk
+    c_tilde, z, h = sig
+
+    if sum_hint(h) > ω:
+        return False
+
+    if check_norm_bound(z, γ_1 - β):
+        return False
+
+    μ = shake_256(tr+m).extract(64)
+    c = sample_in_ball_shake_256(c_tilde, τ)
+    # Convert to NTT for computation
+    c,z = (c,z).to_ntt()
+
+    Az_minus_ct1 = (A_hat * z - c * t1).from_ntt()
+
+    w_prime = h.use_hint(Az_minus_ct1, 2*γ_2)
+
+    return c_tilde == shake_256(μ + w_prime).extract(32)
+```
+
 
 ### 3.2. ML-DSA-ETH verification algorithm
-TODO
+```python
+def VERIFY_MLDSA_ETH(public_key, message, signature) -> bool:
+    A_hat, tr, t_1 = pk
+    c_tilde, z, h = sig
+
+    if sum_hint(h) > ω:
+        return False
+
+    if check_norm_bound(z, γ_1 - β):
+        return False
+
+    μ = keccak_prng(tr+m).extract(64)
+    c = sample_in_ball_keccak_prng(c_tilde, τ)
+    # Convert to NTT for computation
+    c,z = (c,z).to_ntt()
+
+    Az_minus_ct1 = (A_hat * z - c * t1).from_ntt()
+
+    w_prime = h.use_hint(Az_minus_ct1, 2*γ_2)
+
+    return c_tilde == keccak_prng(μ + w_prime).extract(32)
+```
 
 ### 3.3. Required checks in ML-DSA(-ETH) verification
-TODO
+```
+ if len(ctx) > 255:
+    raise ValueError(
+        f"ctx bytes must have length at most 255, ctx has length {len(ctx)=}"
+    )
+
+# Format the message using the context
+m_prime = bytes([0]) + bytes([len(ctx)]) + ctx + m
+```
 
 ## 4. Precompiled contract specification
 
 ### 4.1. ML-DSA precompiled contract 
+The precompiled contract VERIFY_MLDSA is proposed with the following input and outputs, which are big-endian values:
+
+- **Input data**
+    - 32 bytes for the message
+    - 2420 bytes for ML-DSA signature
+    - 20512 bytes for the ML-DSA expanded public key
+- **Output data**:
+   - If the algorithm process succeeds, it returns 1 in 32 bytes format.
+    - If the core algorithm process fails, it does not return any output data <span style="text-color:red;">?????</span>.
+
+#### Error Cases
+- Invalid input length (not compliant to described input)
+- Invalid field element encoding (≥ q)
+- Invalid norm  bound 
+- Invalid hint check
+- Signature verification failure
+
 
 ### 4.2. ML-DSA-ETH precompiled contract 
+The precompiled contract VERIFY_MLDSA_ETH is proposed with the following input and outputs, which are big-endian values:
+
+- **Input data**
+    - 32 bytes for the message
+    - 2420 bytes for ML-DSA-ETH signature
+    - 20512 bytes for the ML-DSA-ETH expanded public key
+- **Output data**:
+   - If the algorithm process succeeds, it returns 1 in 32 bytes format.
+    - If the core algorithm process fails, it does not return any output data <span style="text-color:red;">?????</span>.
+
+#### Error Cases
+- Invalid input length (not compliant to described input)
+- Invalid field element encoding (≥ q)
+- Invalid norm  bound 
+- Invalid hint check
+- Signature verification failure
 
 ### 4.3. Precompiled contract gas usage
 
+The cost of the **VERIFY_MLDSA** and **VERIFY_MLDSA_ETH** functions is dominated by the call to two NTTs and one iNTT, and the required hash calls for sampling in the ball (and for μ and the final check).
+It represents in average 5 calls to the hash function. Taking linearly the cost of keccak256, and avoiding the context switching it represents 3000 gas.
+
+
 ## 5. Rationale
 
+The ML-DSA scheme was selected as a NIST-standardized post-quantum cryptographic algorithm due to its strong security guarantees and efficiency.
 
----------------------------------
+ML-DSA is a signature algorithm build from lattice-based cryptography. Specifically, its hardness relies on the Short Integer Solution (SIS) problem and the Learning With Errors (LWE) problem, which is believed to be hard for both classical and quantum computers.
+
+ML-DSA (based on CRYSTALS-Dilithium) offers a strong balance between security, efficiency, and practicality compared to classical ECC and other post-quantum schemes. Its signature and key sizes remain reasonably small, making it practical for real-world deployments such as Ethereum blockchain. As the main winner of the NIST PQC standardization process, it benefits from a broad community consensus on its security, which is not yet the case for many alternatives. Moreover, its lattice-based structure allows flexible parameter tuning, making it easier to adapt for specialized contexts like zero-knowledge proofs. Schemes like Falcon (FN-DSA, another signature scheme built on top of lattice-based assumptions) have a more rigid parameterization, making zero-knowledge circuits larger, and thus proof computation more expensive.
+
+Given the increasing urgency of transitioning to quantum-resistant cryptographic primitives or even having them ready in the event that research into quantum computers speeds up.
 
 
-> **Note:** exact byte sizes for public keys and signatures depend on chosen parameter set and the canonical packing. Replace the example sizes and placeholders below with values from the ML-DSA reference implementation you adopt.
+## 6. Backwards Compatibility
 
-### 3.1 High-level verification split & interplay with sampling
-ML-DSA verification requires:
-
-1. Parsing the public key `pk = (rho, t1)` (packaged with `t1` compressed). In our modified **NTT-aware** public-key encoding, we store:
-   - `rho` (seed, typically 32 bytes),
-   - `t1`: a vector of `k` polynomials compressed as usual,
-   - **one polynomial of `t` or one precomputed evaluation** (call it `t_ntt_0`) stored already in NTT/evaluation domain (this polynomial corresponds to one row/column chosen by implementer; keep format fixed).
-2. Reconstructing the message digest and Fiat–Shamir challenge `c` from the message and public-seed and optionally parts of the signature.
-3. Running the core verification that:
-   - decompresses signature components (`z`, `h`/`w1`/hints),
-   - performs necessary NTT multiplications (one of the public polynomials already in NTT to save one transform),
-   - checks norms and hints,
-   - returns success/failure.
-
-Splitting the hash/challenge computation from numeric algebra allows two XOF instantiations. **Important note:** ML-DSA signing uses randomized sampling (centered binomial / sampling in a ball) in the signing algorithm. In verification, however, only the challenge `c` (sparse vector/polynomial) is needed. Because `sample_in_ball` and rejection sampling are used only during signing, the verifier only requires the same challenge derivation function (Fiat–Shamir output) as used by signing; if you change the XOF from SHAKE256 to KeccakPRNG you must ensure signers used the same XOF. In particular, if you want to use the KeccakPRNG instantiation in the EVM, you must ensure **all signatures verified under that mode were produced using the matching KeccakPRNG behavior**.
-
-### 3.2 Precompile names / opcodes
-
-We suggest the following precompiles (names are examples):
-
-- `MLDSA_HASH_TO_CHALLENGE` (NIST SHAKE256-based XOF) — computes Fiat–Shamir challenge `c` (sparse indices ± signs or other canonical encoding).
-- `ETH_MLDSA_HASH` (KeccakPRNG-based XOF) — same functionality, implemented using Keccak256 counter-mode PRNG for EVM efficiency.
-- `MLDSA_CORE` — core verification algorithm. Expects the `c` produced by one of the two hash precompiles.
-
-### 3.3 Pseudocode (verification flow)
-
-The following pseudo-code shows the verification flow. This is *conceptual* and matches the split described above.
+In compliance with EIP-7932,  the necessary parameters and structure for its integration are provided. `ALG_TYPE = 0xD1`  uniquely identifies ML-DSA transactions, set MAX_SIZE = 2420 bytes to accommodate the fixed-length signature_info container, and recommend a `GAS_PENALTY` of approximately `3000` gas subject to benchmarking. The verification function follows the EIP-7932 model, parsing the signature_info, recovering the corresponding Dilithium public key, verifying the signature against the transaction payload hash, and deriving the signer’s Ethereum address as the last 20 bytes of keccak256(pubkey). This definition ensures that ML-DSA can be cleanly adopted within the `AlgorithmicTransaction` container specified by EIP-7932.
 
 ```python
-# High-level verification wrapper (NIST mode)
-def mldsa_verify_sha(message: bytes, signature: bytes, pubkey: bytes) -> bool:
-    # 1. Compute the Fiat-Shamir challenge using SHAKE256
-    c = MLDSA_HASH_TO_CHALLENGE(message, signature, pubkey)
-    # 2. Run core verification
-    return MLDSA_CORE(signature, pubkey, c)
+signature_info = Container[
+    # 0xD1 for ML-DSA (NIST-compliant version),
+    # 0xD2 for ML-DSA-ETH (EVM-friendly version),
+    version: uint8
+    # ML-DSA signature
+    signature: ByteVector[2420]
+    # keccak256(pubkey)[12:]
+    pubkey_hash: ByteVector[20]
+]
+```
 
-# EVM-friendly wrapper (Keccak PRNG)
-def mldsa_verify_keccak(message: bytes, signature: bytes, pubkey: bytes) -> bool:
-    c = ETH_MLDSA_HASH(message, signature, pubkey)
-    return MLDSA_CORE(signature, pubkey, c)
+In the format of EIP-7932:
+- For the NIST-compliant version:
+    ```python
+    verify(signature_info: bytes, payload_hash: Hash32) -> ExecutionAddress:
+        assert len(signature_info) == 699
+        version      = signature_info[0]
+        signature    = signature_info[1:2421]
+        pubkey_hash  = signature_info[2421:2441]
+        assert version == 0xD1
+        pubkey = lookup_pubkey(pubkey_hash)
+        assert VERIFY_MLDSA(pubkey, payload_hash, signature)
+        return ExecutionAddress(keccak256(pubkey)[12:])
+    ```
+- For the EVM-friendly version:
+    ```python
+    verify(signature_info: bytes, payload_hash: Hash32) -> ExecutionAddress:
+        assert len(signature_info) == 699
+        version      = signature_info[0]
+        signature    = signature_info[1:2421]
+        pubkey_hash  = signature_info[2421:2441]
+        assert version == 0xD2
+        pubkey = lookup_pubkey(pubkey_hash)
+        assert VERIFY_MLDSA_ETH(pubkey, payload_hash, signature)
+        return ExecutionAddress(keccak256(pubkey)[12:])
+    ```
+
+## 7. Test Cases
+
+A set of test vectors for verifying implementations is located in a separate file (to be provided for each opcode). For the NIST compliant version, KATS are reproduced.
+
+
+## 8. Reference Implementation
+
+An implementation is provided in `assets` (TODO). For the NIST-compliant version, KAT vectors of the NIST submission are valid. 
+
+## 9. Security Considerations
+
+The derivation path to obtain the private key from the seed is (tbd).
+
+## 10. Copyright
+Copyright and related rights waived via [CC0](../LICENSE.md).
