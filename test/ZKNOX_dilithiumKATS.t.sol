@@ -8,7 +8,7 @@ import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 import "../src/ZKNOX_dilithium_deploy.sol";
 
-contract ETHDilithiumTest is Test {
+contract KATDilithiumTest is Test {
     ZKNOX_dilithium dilithium;
 
     // forgefmt: disable-next-line
