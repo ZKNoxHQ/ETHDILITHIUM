@@ -56,41 +56,33 @@ uint256 constant k = 4;
 uint256 constant l = 4;
 
 /**
- * @notice Generic bit unpacking function
+ * @notice Unpacks coefficients starting at a specific bit offset
  * @param inputBytes The packed data
  * @param coeffBits Number of bits per coefficient (18 or 20)
- * @return result Array of 256 unpacked coefficients
+ * @param startBitOffset Starting bit position
+ * @param numCoeffs Number of coefficients to unpack
+ * @return result Array of unpacked coefficients
  */
-function bitUnpack(bytes memory inputBytes, uint256 coeffBits) pure returns (uint256[] memory result) {
-    result = new uint256[](n);
-    uint256 coeffMask = (1 << coeffBits) - 1;
-    uint256 bitOffset = 0;
-
-    for (uint256 i = 0; i < n; i++) {
-        uint256 byteOffset = bitOffset / 8;
-        uint256 bitInByte = bitOffset % 8;
-
-        // Read enough bytes to capture the coefficient
-        // For 18 bits, read 3 bytes (24 bits)
-        // For 20 bits, read 3 bytes (24 bits)
+function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 startBitOffset, uint256 numCoeffs)
+    pure
+    returns (uint256[] memory result)
+{
+    require(coeffBits > 0 && coeffBits <= 256, "invalid coeffBits");
+    result = new uint256[](numCoeffs);
+    uint256 coeffMask = coeffBits == 256 ? type(uint256).max : ((uint256(1) << coeffBits) - 1);
+    uint256 bitOffset = startBitOffset;
+    for (uint256 i = 0; i < numCoeffs; i++) {
+        uint256 byteOffset = bitOffset >> 3;
+        uint256 bitInByte = bitOffset & 7;
+        uint256 neededBits = bitInByte + coeffBits;
+        uint256 neededBytes = (neededBits + 7) >> 3;
         uint256 value = 0;
-
-        if (byteOffset < inputBytes.length) {
-            value |= uint256(uint8(inputBytes[byteOffset])) << 16;
+        for (uint256 j = 0; j < neededBytes; j++) {
+            if (byteOffset + j < inputBytes.length) value |= uint256(uint8(inputBytes[byteOffset + j])) << (8 * j);
         }
-        if (byteOffset + 1 < inputBytes.length) {
-            value |= uint256(uint8(inputBytes[byteOffset + 1])) << 8;
-        }
-        if (byteOffset + 2 < inputBytes.length) {
-            value |= uint256(uint8(inputBytes[byteOffset + 2]));
-        }
-
-        // Shift to align the desired bits and mask
-        result[i] = (value >> (8 - bitInByte)) & coeffMask;
-
+        result[i] = (value >> bitInByte) & coeffMask;
         bitOffset += coeffBits;
     }
-
     return result;
 }
 

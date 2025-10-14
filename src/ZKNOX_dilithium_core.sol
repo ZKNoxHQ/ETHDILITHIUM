@@ -52,6 +52,7 @@ import {
     ZKNOX_MatVecProductDilithium,
     ZKNOX_VECMULMOD,
     ZKNOX_VECSUBMOD,
+    bitUnpackAtOffset,
     omega,
     k,
     l,
@@ -150,37 +151,6 @@ function unpack_z(bytes memory inputBytes) pure returns (uint256[][] memory coef
     }
 
     return coefficients;
-}
-
-/**
- * @notice Unpacks coefficients starting at a specific bit offset
- * @param inputBytes The packed data
- * @param coeffBits Number of bits per coefficient (18 or 20)
- * @param startBitOffset Starting bit position
- * @param numCoeffs Number of coefficients to unpack
- * @return result Array of unpacked coefficients
- */
-function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 startBitOffset, uint256 numCoeffs)
-    pure
-    returns (uint256[] memory result)
-{
-    require(coeffBits > 0 && coeffBits <= 256, "invalid coeffBits");
-    result = new uint256[](numCoeffs);
-    uint256 coeffMask = coeffBits == 256 ? type(uint256).max : ((uint256(1) << coeffBits) - 1);
-    uint256 bitOffset = startBitOffset;
-    for (uint256 i = 0; i < numCoeffs; i++) {
-        uint256 byteOffset = bitOffset >> 3;
-        uint256 bitInByte = bitOffset & 7;
-        uint256 neededBits = bitInByte + coeffBits;
-        uint256 neededBytes = (neededBits + 7) >> 3;
-        uint256 value = 0;
-        for (uint256 k = 0; k < neededBytes; k++) {
-            if (byteOffset + k < inputBytes.length) value |= uint256(uint8(inputBytes[byteOffset + k])) << (8 * k);
-        }
-        result[i] = (value >> bitInByte) & coeffMask;
-        bitOffset += coeffBits;
-    }
-    return result;
 }
 
 function dilithium_core_1(Signature memory signature)
