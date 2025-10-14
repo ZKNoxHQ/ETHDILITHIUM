@@ -166,28 +166,20 @@ function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 s
 {
     require(coeffBits > 0 && coeffBits <= 256, "invalid coeffBits");
     result = new uint256[](numCoeffs);
-
     uint256 coeffMask = coeffBits == 256 ? type(uint256).max : ((uint256(1) << coeffBits) - 1);
     uint256 bitOffset = startBitOffset;
-
     for (uint256 i = 0; i < numCoeffs; i++) {
-        uint256 byteOffset = bitOffset / 8;
-        uint256 bitInByte = bitOffset % 8;
-
+        uint256 byteOffset = bitOffset >> 3;
+        uint256 bitInByte = bitOffset & 7;
         uint256 neededBits = bitInByte + coeffBits;
-        uint256 neededBytes = (neededBits + 7) / 8;
-
+        uint256 neededBytes = (neededBits + 7) >> 3;
         uint256 value = 0;
         for (uint256 k = 0; k < neededBytes; k++) {
-            if (byteOffset + k < inputBytes.length) {
-                value |= uint256(uint8(inputBytes[byteOffset + k])) << (8 * k);
-            }
+            if (byteOffset + k < inputBytes.length) value |= uint256(uint8(inputBytes[byteOffset + k])) << (8 * k);
         }
-
         result[i] = (value >> bitInByte) & coeffMask;
         bitOffset += coeffBits;
     }
-
     return result;
 }
 
