@@ -104,23 +104,14 @@ file.write(solidity_compact_vec(t1_new_compact, 't1'))
 
 # SIG
 sig = D.sign(sk, msg, _xof=XOF, _xof2=XOF)
+z_bytes = sig[D.c_tilde_bytes: -(D.k + D.omega)]
 h_bytes = sig[-(D.k + D.omega):]
 assert D.verify(pk, msg, sig, _xof=XOF, _xof2=XOF)
 c_tilde, z, h = D._unpack_sig(sig)
-# z with only positive coefficients
-for i in range(4):
-    assert len(z._data[i]) == 1
-    for j in range(256):
-        if z._data[i][0].coeffs[j] < 0:
-            z._data[i][0].coeffs[j] += 8380417
-# Compact SIG for Solidity
-z_compact = z.compact_256(32)
-# h_compact = h.compact_256(32)
 
 file.write("\n// Signature\n")
 file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
-file.write(solidity_compact_vec(z_compact, 'z'))
-# file.write(solidity_compact_vec(h_compact, 'h'))
+file.write("bytes memory z_bytes = hex\"{}\";".format(z_bytes.hex()))
 file.write("bytes memory h_bytes = hex\"{}\";".format(h_bytes.hex()))
 
 file.write("""
@@ -133,7 +124,7 @@ file.write("""
         // CREATE SIG OBJECT
         Signature memory sig;
         sig.c_tilde = c_tilde;
-        sig.z = z;
+        sig.z = z_bytes;
         sig.h = h_bytes;
 
         // MESSAGE

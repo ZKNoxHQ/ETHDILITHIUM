@@ -54,55 +54,50 @@ import {
     ZKNOX_VECSUBMOD,
     omega,
     k,
-    n
+    l,
+    n,
+    gamma_1
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= omega + k, "Invalid h bytes length");
 
-    h = new uint256[][](k); // outer array length k
-    for (uint256 i = 0; i < k; i++) {
-        h[i] = new uint256[](n); // inner array length n
-    }
     uint256 k_idx = 0;
 
+    h = new uint256[][](k);
     for (uint256 i = 0; i < k; i++) {
-        // Initialize h[i] coefficients to 0
+        h[i] = new uint256[](n);
         for (uint256 j = 0; j < n; j++) {
             h[i][j] = 0;
         }
 
-        // Read the position indicator for this polynomial
         uint256 omegaVal = uint8(hBytes[omega + i]);
 
-        // Check bounds for strong unforgeability
+        // Check bound on omegaVal
         if (omegaVal < k_idx || omegaVal > omega) {
             return (false, h);
         }
 
-        // Set hint bits based on the indices
         for (uint256 j = k_idx; j < omegaVal; j++) {
-            // Check ordering for strong unforgeability
             // Coefficients must be in strictly increasing order
             if (j > k_idx && uint8(hBytes[j]) <= uint8(hBytes[j - 1])) {
                 return (false, h);
             }
 
-            // Get the coefficient index and validate it
-            uint256 coeffIdx = uint8(hBytes[j]);
-            if (coeffIdx >= n) {
+            // Coefficients must be < n
+            uint256 index = uint8(hBytes[j]);
+            if (index >= n) {
                 return (false, h);
             }
 
-            // Set the hint bit
-            h[i][coeffIdx] = 1;
+            h[i][index] = 1;
         }
 
         k_idx = omegaVal;
     }
 
-    // Check extra indices are zero for strong unforgeability
+    // Check extra indices are zero
     for (uint256 j = k_idx; j < omega; j++) {
         if (uint8(hBytes[j]) != 0) {
             return (false, h);
@@ -112,11 +107,94 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
     return (true, h);
 }
 
+function unpack_z(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
+    uint256 coeffBits;
+    uint256 requiredBytes;
+
+    // Level 2 parameter set
+    if (gamma_1 == (1 << 17)) {
+        coeffBits = 18;
+        requiredBytes = (n * l * 18) / 8; // Total bytes for all polynomials
+    }
+    // Level 3 and 5 parameter set
+    else if (gamma_1 == (1 << 19)) {
+        coeffBits = 20;
+        requiredBytes = (n * l * 20) / 8; // Total bytes for all polynomials
+    } else {
+        revert("gamma_1 must be either 2^17 or 2^19");
+    }
+
+    require(inputBytes.length >= requiredBytes, "Insufficient data");
+
+    // Initialize 2D array
+    coefficients = new uint256[][](l);
+
+    uint256 bitOffset = 0;
+
+    for (uint256 i = 0; i < l; i++) {
+        // Unpack the altered coefficients for polynomial i
+        uint256[] memory alteredCoeffs = bitUnpackAtOffset(inputBytes, coeffBits, bitOffset, n);
+
+        // Compute coefficients as gamma_1 - c
+        coefficients[i] = new uint256[](n);
+        for (uint256 j = 0; j < n; j++) {
+            if (alteredCoeffs[j] < gamma_1) {
+                coefficients[i][j] = gamma_1 - alteredCoeffs[j];
+            } else {
+                coefficients[i][j] = q + gamma_1 - alteredCoeffs[j];
+            }
+        }
+
+        // Move to next polynomial
+        bitOffset += n * coeffBits;
+    }
+
+    return coefficients;
+}
+
+/**
+ * @notice Unpacks coefficients starting at a specific bit offset
+ * @param inputBytes The packed data
+ * @param coeffBits Number of bits per coefficient (18 or 20)
+ * @param startBitOffset Starting bit position
+ * @param numCoeffs Number of coefficients to unpack
+ * @return result Array of unpacked coefficients
+ */
+function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 startBitOffset, uint256 numCoeffs)
+    pure
+    returns (uint256[] memory result)
+{
+    require(coeffBits > 0 && coeffBits <= 256, "invalid coeffBits");
+    result = new uint256[](numCoeffs);
+
+    uint256 coeffMask = coeffBits == 256 ? type(uint256).max : ((uint256(1) << coeffBits) - 1);
+    uint256 bitOffset = startBitOffset;
+
+    for (uint256 i = 0; i < numCoeffs; i++) {
+        uint256 byteOffset = bitOffset / 8;
+        uint256 bitInByte = bitOffset % 8;
+
+        uint256 neededBits = bitInByte + coeffBits;
+        uint256 neededBytes = (neededBits + 7) / 8;
+
+        uint256 value = 0;
+        for (uint256 k = 0; k < neededBytes; k++) {
+            if (byteOffset + k < inputBytes.length) {
+                value |= uint256(uint8(inputBytes[byteOffset + k])) << (8 * k);
+            }
+        }
+
+        result[i] = (value >> bitInByte) & coeffMask;
+        bitOffset += coeffBits;
+    }
+
+    return result;
+}
+
 function dilithium_core_1(Signature memory signature)
     pure
-    returns (uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
+    returns (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
 {
-    bool foo;
     (foo, h) = unpack_h(signature.h);
     uint256 i;
     uint256 j;
@@ -130,7 +208,7 @@ function dilithium_core_1(Signature memory signature)
         }
     }
 
-    z = ZKNOX_Expand_Vec(signature.z);
+    z = unpack_z(signature.z);
 }
 
 function dilithium_core_2(

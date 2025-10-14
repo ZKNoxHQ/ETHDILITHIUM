@@ -48,10 +48,51 @@ uint256 constant q = 8380417;
 uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
+uint256 constant gamma_1 = 131072;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
 uint256 constant tau = 39;
 uint256 constant d = 13;
 uint256 constant k = 4;
+uint256 constant l = 4;
+
+/**
+ * @notice Generic bit unpacking function
+ * @param inputBytes The packed data
+ * @param coeffBits Number of bits per coefficient (18 or 20)
+ * @return result Array of 256 unpacked coefficients
+ */
+function bitUnpack(bytes memory inputBytes, uint256 coeffBits) pure returns (uint256[] memory result) {
+    result = new uint256[](n);
+    uint256 coeffMask = (1 << coeffBits) - 1;
+    uint256 bitOffset = 0;
+
+    for (uint256 i = 0; i < n; i++) {
+        uint256 byteOffset = bitOffset / 8;
+        uint256 bitInByte = bitOffset % 8;
+
+        // Read enough bytes to capture the coefficient
+        // For 18 bits, read 3 bytes (24 bits)
+        // For 20 bits, read 3 bytes (24 bits)
+        uint256 value = 0;
+
+        if (byteOffset < inputBytes.length) {
+            value |= uint256(uint8(inputBytes[byteOffset])) << 16;
+        }
+        if (byteOffset + 1 < inputBytes.length) {
+            value |= uint256(uint8(inputBytes[byteOffset + 1])) << 8;
+        }
+        if (byteOffset + 2 < inputBytes.length) {
+            value |= uint256(uint8(inputBytes[byteOffset + 2]));
+        }
+
+        // Shift to align the desired bits and mask
+        result[i] = (value >> (8 - bitInByte)) & coeffMask;
+
+        bitOffset += coeffBits;
+    }
+
+    return result;
+}
 
 function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
     b = new uint256[][][](4);
@@ -217,7 +258,7 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
 
 struct Signature {
     bytes c_tilde;
-    uint256[][] z;
+    bytes z;
     bytes h;
 }
 
