@@ -48,9 +48,43 @@ uint256 constant q = 8380417;
 uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
+uint256 constant gamma_1 = 131072;
 uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
 uint256 constant tau = 39;
 uint256 constant d = 13;
+uint256 constant k = 4;
+uint256 constant l = 4;
+
+/**
+ * @notice Unpacks coefficients starting at a specific bit offset
+ * @param inputBytes The packed data
+ * @param coeffBits Number of bits per coefficient (18 or 20)
+ * @param startBitOffset Starting bit position
+ * @param numCoeffs Number of coefficients to unpack
+ * @return result Array of unpacked coefficients
+ */
+function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 startBitOffset, uint256 numCoeffs)
+    pure
+    returns (uint256[] memory result)
+{
+    require(coeffBits > 0 && coeffBits <= 256, "invalid coeffBits");
+    result = new uint256[](numCoeffs);
+    uint256 coeffMask = coeffBits == 256 ? type(uint256).max : ((uint256(1) << coeffBits) - 1);
+    uint256 bitOffset = startBitOffset;
+    for (uint256 i = 0; i < numCoeffs; i++) {
+        uint256 byteOffset = bitOffset >> 3;
+        uint256 bitInByte = bitOffset & 7;
+        uint256 neededBits = bitInByte + coeffBits;
+        uint256 neededBytes = (neededBits + 7) >> 3;
+        uint256 value = 0;
+        for (uint256 j = 0; j < neededBytes; j++) {
+            if (byteOffset + j < inputBytes.length) value |= uint256(uint8(inputBytes[byteOffset + j])) << (8 * j);
+        }
+        result[i] = (value >> bitInByte) & coeffMask;
+        bitOffset += coeffBits;
+    }
+    return result;
+}
 
 function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
     b = new uint256[][][](4);
@@ -216,8 +250,8 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
 
 struct Signature {
     bytes c_tilde;
-    uint256[][] z;
-    uint256[][] h;
+    bytes z;
+    bytes h;
 }
 
 struct PubKey {
