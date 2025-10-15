@@ -15,10 +15,12 @@ created: 2025-10-15
 ## 1. Abstract
 This proposal adds precompiled contracts that perform signature verifications using the NIST-standard module-lattice signature scheme. Two instantiations are supported:
 
-* **ML-DSA** — NIST-compliant instantiation built on top of SHAKE256 (fully compatible with FIPS-204 standard),
-* **ML-DSA-ETH** — an EVM-friendly instantiation optimized for reduced on-chain verification:
-    - The eXtendable Output Function (XOF) used in the algorithm is replaced by a Keccak-based counter PRNG (leveraging the native `KECCAK256` precompile), to reduce gas and make on-chain verification cheaper.
-    - The public-key encoding is slightly modified: the polynomial `t1` is stored in the NTT domain in order to skip one NTT for the on-chain verification. This is a *representation* change only, meaning that public key can be also represented as in NIST standard ML-DSA. The conversion with standard public key encodings can be converted offline (or validated by the precompile with a pre-step).
+
+
+* **ML-DSA** — NIST-compliant version using SHAKE256 (FIPS-204 standard),
+* **ML-DSA-ETH** — EVM-optimized version for cheaper on-chain verification:
+    - Uses Keccak-based PRNG instead of SHAKE256 (leverages native KECCAK256 precompile)
+    - Stores public-key polynomial `t1` in the NTT domain to skip one NTT during verification (convertible to standard encoding offline)
 
 Two precompile contracts are specified:
 - `VERIFY_MLDSA` — verifies a ML-DSA signature compliant to FIPS-204 standard.
