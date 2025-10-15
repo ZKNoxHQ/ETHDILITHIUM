@@ -1,7 +1,7 @@
 # Dilithium Python
 
 
-Implementation based on [this repository](https://github.com/GiacomoPope/dilithium-py/). We use the NTT implemented by ZKNOX [here](https://github.com/zkNoxHQ/ntt) and the first task is to replace SHAKE by Keccak_prng.
+Implementation based on [this repository](https://github.com/GiacomoPope/dilithium-py/). We use the NTT implemented by ZKNOX [here](https://github.com/zkNoxHQ/ntt).
 
 :warning: This is a work in progress. Do not use in production.
 
