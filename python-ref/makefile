@@ -25,6 +25,6 @@ generate_test_vectors:
 	
 clean:
 	rm -f $(AUX)
-	rm -rf __pycache__ */__pycache__
+	find . -type d -name "__pycache__" -exec rm -rf {} +
 	rm -rf scripts/*.sage.py
 	@echo "Clean done"
