@@ -106,8 +106,11 @@ contract ZKNOX_ethdilithium {
         uint256 j;
 
         // FIRST CORE STEP
-        (uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
+        (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
 
+        if (foo == false) {
+            return false;
+        }
         if (norm_h > omega) {
             return false;
         }
