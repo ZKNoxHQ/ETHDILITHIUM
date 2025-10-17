@@ -21,6 +21,7 @@ contract DilithiumTest is Test {
     function setUp() public {
         bytes memory bytecode_psirev = abi.encodePacked(psi_rev);
 
+        /*
         address a_psirev; //address of the precomputations bytecode contract
         a_psirev = address(uint160(0xcaca)); //here it is etched, use create in the future
         vm.etch(a_psirev, bytecode_psirev); //pushing psirev bytecode into contract todo : replace with create
@@ -30,9 +31,9 @@ contract DilithiumTest is Test {
         address a_psiInvrev; //address of the precomputations bytecode contract
         a_psiInvrev = address(uint160(0xa5a5)); //here it is etched, use create in the future
         vm.etch(a_psiInvrev, bytecode_psiInvrev); //pushing psirev bytecode into contract todo : replace with create
-
+        */
         dilithium = new ZKNOX_dilithium();
-        dilithium.update(a_psirev, a_psiInvrev);
+       // dilithium.update(a_psirev, a_psiInvrev);
     }
 
     function testVerify() public {

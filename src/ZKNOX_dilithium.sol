@@ -62,27 +62,7 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_dilithium {
-    ZKNOX_NTT ntt;
-    address public apsirev;
-    address public apsiInvrev;
-    bool immutableMe;
-    bool EIP7885;
-
-    function update(address i_psirev, address i_psiInvrev) public {
-        if (immutableMe == true) revert();
-        apsirev = i_psirev;
-        apsiInvrev = i_psiInvrev;
-        EIP7885 = false;
-        immutableMe = true;
-    }
-
-    function updateNTT(ZKNOX_NTT i_ntt) public {
-        if (immutableMe == true) revert();
-        ntt = i_ntt;
-        EIP7885 = true;
-        immutableMe = true;
-    }
-
+   
     function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
         view
@@ -128,7 +108,7 @@ contract ZKNOX_dilithium {
 
         // C_NTT
         uint256[] memory c_ntt = sampleInBallNIST(signature.c_tilde, tau, q);
-        c_ntt = ZKNOX_NTTFW(c_ntt, apsirev);
+        c_ntt = _ZKNOX_NTTFW_vectorized(c_ntt);
 
         // compute NTT_FW((1<<d) * t1)
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
@@ -136,11 +116,11 @@ contract ZKNOX_dilithium {
             for (j = 0; j < 256; j++) {
                 t1_new[i][j] <<= d;
             }
-            t1_new[i] = ZKNOX_NTTFW(t1_new[i], apsirev);
+            t1_new[i] = _ZKNOX_NTTFW_vectorized(t1_new[i]);
         }
 
         // SECOND CORE STEP
-        bytes memory w_prime_bytes = dilithium_core_2(apsirev, apsiInvrev, pk, z, c_ntt, h, t1_new);
+        bytes memory w_prime_bytes = dilithium_core_2(pk, z, c_ntt, h, t1_new);
 
         // FINAL HASH
         ctx_shake memory sctx;

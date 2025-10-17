@@ -174,8 +174,6 @@ function dilithium_core_1(Signature memory signature)
 }
 
 function dilithium_core_2(
-    address apsirev,
-    address apsiInvrev,
     PubKey memory pk,
     uint256[][] memory z,
     uint256[] memory c_ntt,
@@ -184,7 +182,7 @@ function dilithium_core_2(
 ) view returns (bytes memory w_prime_bytes) {
     // NTT(z)
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTFW(z[i], apsirev);
+        z[i] = _ZKNOX_NTTFW_vectorized(z[i]);
     }
 
     // 1. A*z
@@ -193,7 +191,7 @@ function dilithium_core_2(
 
     // 2. A*z - c*t1
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)), apsiInvrev);
+        z[i] = _ZKNOX_NTTINV_vectorized(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)));
     }
 
     // 3. w_prime packed using a "solidity-friendly encoding"
