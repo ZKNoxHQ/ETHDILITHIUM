@@ -3,7 +3,6 @@ pragma solidity ^0.8.25;
 import {Script} from "../lib/forge-std/src/Script.sol";
 import {BaseScript} from "./BaseScript.sol";
 import "../src/ZKNOX_ethdilithium.sol";
-import "../src/ZKNOX_dilithium_deploy.sol";
 
 import {console} from "forge-std/Test.sol";
 //deploy the precomputed tables for psirev and psiInvrev
