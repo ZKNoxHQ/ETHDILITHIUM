@@ -42,7 +42,7 @@ import "./ZKNOX_dilithium_utils.sol";
 
 //// internal version to spare call data cost
 
-function _ZKNOX_NTTFW_vectorized(uint256[] memory a) pure returns (uint256[] memory) {
+function ZKNOX_NTTFW(uint256[] memory a) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         uint256(0x4f066b004fe0330053df73004f062b003965690039756700495e0200000001),
         0x6d3dc8000881920070894a0039728300207fe40028edb000360dd50076b1ae,
@@ -113,7 +113,7 @@ function _ZKNOX_NTTFW_vectorized(uint256[] memory a) pure returns (uint256[] mem
     return a;
 }
 
-function _ZKNOX_NTTINV_vectorized(uint256[] memory a) pure returns (uint256[] memory) {
+function ZKNOX_NTTINV(uint256[] memory a) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         uint256(0x30d9d6002c008e002fffce0030d99600466a9a00467a98003681ff00000001),
         0x92e530049d22c0056f251005f601d00466d7e000f56b700775e6f0012a239,

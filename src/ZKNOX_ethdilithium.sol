@@ -103,7 +103,7 @@ contract ZKNOX_ethdilithium {
 
         // C_NTT
         uint256[] memory c_ntt = sampleInBallKeccakPRNG(signature.c_tilde, tau, q);
-        c_ntt = _ZKNOX_NTTFW_vectorized(c_ntt);
+        c_ntt = ZKNOX_NTTFW(c_ntt);
 
         // t1_new
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);

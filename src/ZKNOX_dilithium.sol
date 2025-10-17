@@ -106,7 +106,7 @@ contract ZKNOX_dilithium {
 
         // C_NTT
         uint256[] memory c_ntt = sampleInBallNIST(signature.c_tilde, tau, q);
-        c_ntt = _ZKNOX_NTTFW_vectorized(c_ntt);
+        c_ntt = ZKNOX_NTTFW(c_ntt);
 
         // compute NTT_FW((1<<d) * t1)
         uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
@@ -114,7 +114,7 @@ contract ZKNOX_dilithium {
             for (j = 0; j < 256; j++) {
                 t1_new[i][j] <<= d;
             }
-            t1_new[i] = _ZKNOX_NTTFW_vectorized(t1_new[i]);
+            t1_new[i] = ZKNOX_NTTFW(t1_new[i]);
         }
 
         // SECOND CORE STEP
