@@ -5,7 +5,7 @@
 
 // This param can be set to 1 in order to enable Keccak-PRNG.
 #ifndef ETHDILITHIUM
-#define ETHDILITHIUM 0
+#define ETHDILITHIUM 1
 #endif
 
 #define EVMMODE 1
