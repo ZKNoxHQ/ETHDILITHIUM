@@ -52,4 +52,7 @@ echo "balance:"
 
 cast balance $PUB_KEY --rpc-url $RPC
 
-forge script $CONTRACT_NAME --rpc-url $RPC --private-key $PRIVATE_KEY --broadcast --tc $CONTRACT_NAME --etherscan-api-key $API_KEY --verify --priority-gas-price 1
+forge script $CONTRACT_NAME --rpc-url $RPC --private-key $PRIVATE_KEY --broadcast --tc Script_Deploy_ETHDilithium --etherscan-api-key $API_KEY --verify --priority-gas-price 1
+
+# # with ledger
+# forge script $CONTRACT_NAME --rpc-url $RPC --ledger --broadcast --tc Script_Deploy_ETHDilithium --etherscan-api-key $API_KEY_OPTIMISM --verify --priority-gas-price 1
