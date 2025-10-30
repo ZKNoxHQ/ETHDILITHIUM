@@ -1,26 +1,28 @@
-# /script/ethdilithium_cast.py
+# /script/dilithium_cast.py
 import json
 import localdeps
 import subprocess
 from dilithium_py.dilithium.default_parameters import Dilithium2 as D
 
 rpc = "wss://ethereum-sepolia-rpc.publicnode.com"
-contract_address = "0x4E086d551a2FA9269193056616ac8bd63cf5bE15"
+contract_address = "0x9B26cBD1643ba392a9a040529c0035693a4f6806"
 
 # Public key, signature and message from the Ledger signer
-# with ETHDILITHIUM in the KAT format
-with open("data_dilithium.json", "r") as f:
+# with DILITHIUM in the KAT format
+with open("data_ethdilithium.json", "r") as f:
     data = json.load(f)
 pk = bytes.fromhex(data["pk"])
 sig = bytes.fromhex(data["sig"])
 msg = bytes.fromhex(data["msg"])
 
-# parsing public key for ETHDILITHIUM contract format
-A_hat, tr, t1 = D.pk_for_eth(pk)
+ρ, t1 = D._unpack_pk(pk)
+A_hat = D._expand_matrix_from_seed(ρ)
+tr = D._h(pk, 64)
+
 A_hat_compact = A_hat.compact_256(32)
 t1_compact = t1.compact_256(32)
 
-# parsing signature for ETHDILITHIUM contract format
+# parsing signature for DILITHIUM contract format
 sig = sig[:]
 z_bytes = sig[D.c_tilde_bytes: -(D.k + D.omega)]
 h_bytes = sig[-(D.k + D.omega):]

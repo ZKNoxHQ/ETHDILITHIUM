@@ -5,7 +5,6 @@ import {BaseScript} from "./BaseScript.sol";
 import "../src/ZKNOX_ethdilithium.sol";
 
 import {console} from "forge-std/Test.sol";
-//deploy the precomputed tables for psirev and psiInvrev
 
 contract Script_Deploy_ETHDilithium is BaseScript {
     // SPDX-License-Identifier: MIT
@@ -13,7 +12,7 @@ contract Script_Deploy_ETHDilithium is BaseScript {
     function run() external {
         vm.startBroadcast();
 
-        bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.17"));
+        bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.23"));
 
         ZKNOX_ethdilithium ETHDILITHIUM = new ZKNOX_ethdilithium{salt: salty}();
 

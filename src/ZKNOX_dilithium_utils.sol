@@ -255,5 +255,5 @@ struct PubKey {
     uint256[][][] a_hat;
     bytes tr;
     uint256[][] t1;
-    uint256 hashID; //identifier for the internal XOF
 }
+
