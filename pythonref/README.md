@@ -17,13 +17,13 @@ make test
 
 ## Example
 
-We provide an example of {keygen/signature/verification/verification on chain} for both ML-DSA (FIPS-204) and our EVM-friendly version. The contracts are available on Sepolia testnet.
+We provide an example of {keygen/signature/verification/verification on chain} for both MLDSA (FIPS-204) and our EVM-friendly version. The contracts are available on Sepolia testnet.
 
-### Example with ML-DSA (NIST-compliant)
+### Example with MLDSA (NIST-compliant)
 ```bash
 # key generation
 # pk and sk are saved into files
-./sign_cli.py keygen --version ML-DSA
+./sign_cli.py keygen --version MLDSA
 # signing a message using the previously saved private_key.pem
 # the signature is saved into a file
 ./sign_cli.py sign --data "deadbeef" --privkey private_key.pem
@@ -40,11 +40,11 @@ STDERR:
 RETURN CODE: 0
 ```
 
-### Example with ML-DSA-ETH (EVM-friendly)
+### Example with MLDSAETH (EVM-friendly)
 ```bash
 # key generation
 # pk and sk are saved into files
-./sign_cli.py keygen --version ML-DSA-ETH
+./sign_cli.py keygen --version MLDSAETH
 # signing a message using the previously saved private_key.pem
 # the signature is saved into a file
 ./sign_cli.py sign --data "cafe" --privkey private_key.pem
