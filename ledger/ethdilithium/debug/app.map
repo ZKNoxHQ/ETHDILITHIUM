@@ -2,7 +2,7 @@
        0        0        0     1 PAGE_SIZE = 512
        0        0        0     1 STACK_MIN_SIZE = DEFINED ( stack_min_size ) ? stack_min_size : 1500
        0        0        0     1 END_STACK = ORIGIN ( SRAM ) + LENGTH ( SRAM )
-c0de0000 c0de0000     f768     4 .text
+c0de0000 c0de0000     f76b     4 .text
 c0de0000 c0de0000        0     1         _text = .
 c0de0000 c0de0000        0     1         _nvram_start = .
 c0de0000 c0de0000       14     2         build/flex/obj/sdk/lib_standard_app/main.o:(.boot)
@@ -1806,57 +1806,57 @@ c0ded0b4 c0ded0b4       ef     1         build/flex/gen_src/glyphs.o:(.rodata.C_
 c0ded0b4 c0ded0b4       ef     1                 C_Warning_40px_bitmap
 c0ded1a3 c0ded1a3        a     1         build/flex/gen_src/glyphs.o:(.rodata.C_Warning_40px)
 c0ded1a3 c0ded1a3        a     1                 C_Warning_40px
-c0ded1ad c0ded1ad      993     1         <internal>:(.text)
-c0dedb40 c0dedb40      1a0     4         <internal>:(.text)
-c0dedce0 c0dedce0      995     1         build/flex/obj/app/src/handler/zkn_magicbox.o:(.rodata.handler_cmd_verify_dilithium.sig)
-c0dedce0 c0dedce0      995     1                 handler_cmd_verify_dilithium.sig
-c0dee675 c0dee675      520     1         build/flex/obj/app/src/handler/zkn_magicbox.o:(.rodata.handler_cmd_verify_dilithium.pk)
-c0dee675 c0dee675      520     1                 handler_cmd_verify_dilithium.pk
-c0deeb98 c0deeb98        c     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.settingContents)
-c0deeb98 c0deeb98        c     1                 settingContents
-c0deeba4 c0deeba4       10     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.infoList)
-c0deeba4 c0deeba4       10     1                 infoList
-c0deebb4 c0deebb4       38     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.contents)
-c0deebb4 c0deebb4       38     1                 contents
-c0deebec c0deebec        8     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.INFO_TYPES)
-c0deebec c0deebec        8     1                 INFO_TYPES
-c0deebf4 c0deebf4        8     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.INFO_CONTENTS)
-c0deebf4 c0deebf4        8     1                 INFO_CONTENTS
-c0deebfc c0deebfc      400     4         build/flex/obj/app/src/zknox/dilithium/ntt.o:(.rodata.zetas)
-c0deebfc c0deebfc      400     1                 zetas
-c0deeffc c0deeffc      100     2         build/flex/obj/app/src/zknox/dilithium/smallntt_3329.o:(.rodata.small_zetas)
-c0deeffc c0deeffc      100     1                 small_zetas
-c0def0fc c0def0fc        c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.nbgl_useCaseStatus.ticker)
-c0def0fc c0def0fc        c     1                 .L__const.nbgl_useCaseStatus.ticker
-c0def108 c0def108       28     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata.blindSigningWarning)
-c0def108 c0def108       28     1                 blindSigningWarning
-c0def130 c0def130       36     4         <internal>:(.text)
-c0def166 c0def166        b     1         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata.nbMaxElementsPerContentType)
-c0def166 c0def166        b     1                 nbMaxElementsPerContentType
-c0def174 c0def174       50     4         <internal>:(.text)
-c0def1c4 c0def1c4       20     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displaySkipWarning.info)
-c0def1c4 c0def1c4       20     1                 .L__const.displaySkipWarning.info
-c0def1e4 c0def1e4       3c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata.securityReportItems)
-c0def1e4 c0def1e4       3c     1                 securityReportItems
-c0def220 c0def220       1c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displayCustomizedSecurityReport.layoutDescription)
-c0def220 c0def220       1c     1                 .L__const.displayCustomizedSecurityReport.layoutDescription
-c0def23c c0def23c       1c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displayInfosListModal.info)
-c0def23c c0def23c       1c     1                 .L__const.displayInfosListModal.info
-c0def258 c0def258       10     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displayInitialWarning.buttonsInfo)
-c0def258 c0def258       10     1                 .L__const.displayInitialWarning.buttonsInfo
-c0def268 c0def268        0     1         . = ALIGN ( 4 )
-c0def268 c0def268        0     1         _etext = .
-c0def268 c0def268      198     1         . = ALIGN ( PAGE_SIZE )
+c0ded1ad c0ded1ad      996     1         <internal>:(.text)
+c0dedb44 c0dedb44      1a0     4         <internal>:(.text)
+c0dedce4 c0dedce4      995     1         build/flex/obj/app/src/handler/zkn_magicbox.o:(.rodata.handler_cmd_verify_dilithium.sig)
+c0dedce4 c0dedce4      995     1                 handler_cmd_verify_dilithium.sig
+c0dee679 c0dee679      520     1         build/flex/obj/app/src/handler/zkn_magicbox.o:(.rodata.handler_cmd_verify_dilithium.pk)
+c0dee679 c0dee679      520     1                 handler_cmd_verify_dilithium.pk
+c0deeb9c c0deeb9c        c     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.settingContents)
+c0deeb9c c0deeb9c        c     1                 settingContents
+c0deeba8 c0deeba8       10     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.infoList)
+c0deeba8 c0deeba8       10     1                 infoList
+c0deebb8 c0deebb8       38     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.contents)
+c0deebb8 c0deebb8       38     1                 contents
+c0deebf0 c0deebf0        8     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.INFO_TYPES)
+c0deebf0 c0deebf0        8     1                 INFO_TYPES
+c0deebf8 c0deebf8        8     4         build/flex/obj/app/src/ui/menu_nbgl.o:(.rodata.INFO_CONTENTS)
+c0deebf8 c0deebf8        8     1                 INFO_CONTENTS
+c0deec00 c0deec00      400     4         build/flex/obj/app/src/zknox/dilithium/ntt.o:(.rodata.zetas)
+c0deec00 c0deec00      400     1                 zetas
+c0def000 c0def000      100     2         build/flex/obj/app/src/zknox/dilithium/smallntt_3329.o:(.rodata.small_zetas)
+c0def000 c0def000      100     1                 small_zetas
+c0def100 c0def100        c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.nbgl_useCaseStatus.ticker)
+c0def100 c0def100        c     1                 .L__const.nbgl_useCaseStatus.ticker
+c0def10c c0def10c       28     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata.blindSigningWarning)
+c0def10c c0def10c       28     1                 blindSigningWarning
+c0def134 c0def134       36     4         <internal>:(.text)
+c0def16a c0def16a        b     1         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata.nbMaxElementsPerContentType)
+c0def16a c0def16a        b     1                 nbMaxElementsPerContentType
+c0def178 c0def178       50     4         <internal>:(.text)
+c0def1c8 c0def1c8       20     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displaySkipWarning.info)
+c0def1c8 c0def1c8       20     1                 .L__const.displaySkipWarning.info
+c0def1e8 c0def1e8       3c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata.securityReportItems)
+c0def1e8 c0def1e8       3c     1                 securityReportItems
+c0def224 c0def224       1c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displayCustomizedSecurityReport.layoutDescription)
+c0def224 c0def224       1c     1                 .L__const.displayCustomizedSecurityReport.layoutDescription
+c0def240 c0def240       1c     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displayInfosListModal.info)
+c0def240 c0def240       1c     1                 .L__const.displayInfosListModal.info
+c0def25c c0def25c       10     4         build/flex/obj/sdk/lib_nbgl/src/nbgl_use_case.o:(.rodata..L__const.displayInitialWarning.buttonsInfo)
+c0def25c c0def25c       10     1                 .L__const.displayInitialWarning.buttonsInfo
+c0def26c c0def26c        0     1         . = ALIGN ( 4 )
+c0def26c c0def26c        0     1         _etext = .
+c0def26c c0def26c      194     1         . = ALIGN ( PAGE_SIZE )
 c0def400 c0def400        0     1         _nvram_data = .
 c0def400 c0def400        3     1         build/flex/obj/app/src/app_main.o:(.rodata.N_storage_real)
 c0def400 c0def400        3     1                 N_storage_real
 c0def403 c0def403      1fd     1         . = ALIGN ( PAGE_SIZE )
 c0def600 c0def600        0     1         _envram_data = .
 c0def600 c0def600        0     1         _install_parameters = .
-c0def600 c0def600      168     1         build/flex/obj/sdk/src/app_metadata.o:(.install_parameters)
-c0def600 c0def600      168     1                 install_parameters
-c0def768 c0def768        0     1         _einstall_parameters = .
-c0def768 c0def768        0     1         _nvram_end = .
+c0def600 c0def600      16b     1         build/flex/obj/sdk/src/app_metadata.o:(.install_parameters)
+c0def600 c0def600      16b     1                 install_parameters
+c0def76b c0def76b        0     1         _einstall_parameters = .
+c0def76b c0def76b        0     1         _nvram_end = .
 d0000000 d0000000        0     1 .data
 d0000000 d0000000        0     1         . = ALIGN ( 4 )
 d0000000 d0000000        0     1         _data = .
@@ -1964,9 +1964,9 @@ d0000000 d0000000       10     4         <internal>:(.ARM.exidx)
        0        0        a     1 ledger.target_id
        0        0        a     1         build/flex/obj/sdk/src/app_metadata.o:(ledger.target_id)
        0        0        a     1                 target_id
-       0        0        5     1 ledger.app_name
-       0        0        5     1         build/flex/obj/sdk/src/app_metadata.o:(ledger.app_name)
-       0        0        5     1                 app_name
+       0        0        8     1 ledger.app_name
+       0        0        8     1         build/flex/obj/sdk/src/app_metadata.o:(ledger.app_name)
+       0        0        8     1                 app_name
        0        0        5     1 ledger.app_version
        0        0        5     1         build/flex/obj/sdk/src/app_metadata.o:(ledger.app_version)
        0        0        5     1                 app_version
