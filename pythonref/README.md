@@ -68,4 +68,17 @@ In order to install the app (make sure the Ledger is connected and unlocked):
 ```
 make install-ledger
 ```
+For signing with the ledger, (don't forget to open the MLDSA app):
+```bash
+./sign_cli.py signledger --data "1234" 
+```
+Note that for now, the key generation use a fixed seed, and so every one would get the same keys ;-).
 
+This produces a `sig` file and a `public_key.pem` file. Verifying the signature is exactly the same as before:
+```bash
+ ./sign_cli.py verify --data "cafe" --pubkey public_key.pem --signature sig
+```
+This should produce:
+```
+Signature is valid.
+```
