@@ -52,9 +52,9 @@ def load_signature(filename):
 
 
 def signature(sk, data, version, deterministic=False):
-    if version == 'ML-DSA':
+    if version == 'MLDSA':
         return Dilithium2.sign(sk, data, deterministic=False)
-    elif version == 'ML-DSA-ETH':
+    elif version == 'MLDSAETH':
         return Dilithium2.sign(sk, data, deterministic=False, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
     else:
         print("Version not implemented.")
@@ -92,9 +92,9 @@ def transaction_hash(nonce, to, data, value):
 
 
 def verify_signature(pk, data, sig, version):
-    if version == 'ML-DSA':
+    if version == 'MLDSA':
         return Dilithium2.verify(pk, data, sig)
-    elif version == 'ML-DSA-ETH':
+    elif version == 'MLDSAETH':
         return Dilithium2.verify(pk, data, sig, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
     else:
         print("Version not implemented.")
@@ -103,7 +103,7 @@ def verify_signature(pk, data, sig, version):
 
 def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
     msg = "0x" + data.hex()
-    if version == 'ML-DSA':
+    if version == 'MLDSA':
         ρ, t1 = Dilithium2._unpack_pk(pk)
         A_hat = Dilithium2._expand_matrix_from_seed(ρ)
         tr = Dilithium2._h(pk, 64)
@@ -111,7 +111,7 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
         A_hat_compact = A_hat.compact_256(32)
         t1_compact = t1.compact_256(32)
 
-    elif version == 'ML-DSA-ETH':
+    elif version == 'MLDSAETH':
         # parsing public key for ETHDILITHIUM contract format
         A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
         A_hat_compact = A_hat.compact_256(32)
@@ -165,7 +165,7 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
 def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private_key, version):
 
     msg = "0x" + data.hex()
-    if version == 'ML-DSA':
+    if version == 'MLDSA':
         ρ, t1 = Dilithium2._unpack_pk(pk)
         A_hat = Dilithium2._expand_matrix_from_seed(ρ)
         tr = Dilithium2._h(pk, 64)
@@ -173,7 +173,7 @@ def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private
         A_hat_compact = A_hat.compact_256(32)
         t1_compact = t1.compact_256(32)
 
-    elif version == 'ML-DSA-ETH':
+    elif version == 'MLDSAETH':
         # parsing public key for ETHDILITHIUM contract format
         A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
         A_hat_compact = A_hat.compact_256(32)
@@ -226,11 +226,11 @@ def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private
 
 
 def cli():
-    parser = argparse.ArgumentParser(description="CLI for ML-DSA Signature")
-    parser.add_argument("action", choices=["keygen", "sign", "verify", "verifyonchain", "verifyonchainsend"],
+    parser = argparse.ArgumentParser(description="CLI for MLDSA Signature")
+    parser.add_argument("action", choices=["keygen", "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
                         help="Action to perform")
     parser.add_argument("--version", type=str,
-                        help="Version to use (ML-DSA or ML-DSA-ETH)")
+                        help="Version to use (MLDSA or MLDSAETH)")
     # parser.add_argument("--nonce", type=str,
     #                     help="nonce in hexadecimal to sign the transaction")
     # parser.add_argument("--to", type=str,
@@ -257,7 +257,7 @@ def cli():
         if not args.version:
             print("Error: Provide --version")
             return
-        if args.version == "ML-DSA":
+        if args.version == "MLDSA":
             pk, sk = Dilithium2.keygen()
         else:
             pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
@@ -273,6 +273,17 @@ def cli():
         sig = signature(sk, bytes.fromhex(args.data), version)
         save_signature(sig, 'sig')
         print("Signature is saved.")
+
+    elif args.action == 'signledger':
+        if not args.data:
+            print("Error: Provide --data")
+            return
+        result = subprocess.run(
+            ["node", "../ledger/dilithium-apdu.js", args.data],
+            capture_output=True,
+            text=True
+        )
+        print(result.stdout)
 
     # elif args.action == "sign_tx":
     #     if not args.data or not args.privkey or not args.nonce or not args.to or not args.value:

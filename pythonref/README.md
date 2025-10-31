@@ -60,3 +60,12 @@ STDOUT: 0x0000000000000000000000000000000000000000000000000000000000000001
 STDERR: 
 RETURN CODE: 0
 ```
+
+### With a ledger
+It is possible to use our Ledger app in order to compute signatures.
+
+In order to install the app (make sure the Ledger is connected and unlocked):
+```
+make install-ledger
+```
+
