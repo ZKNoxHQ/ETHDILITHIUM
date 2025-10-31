@@ -62,13 +62,15 @@ RETURN CODE: 0
 ```
 
 ### With a ledger
-It is possible to use our Ledger app in order to compute signatures.
+It is possible to use our Ledger apps in order to compute signatures.
 
-In order to install the app (make sure the Ledger is connected and unlocked):
+In order to install the apps (make sure the Ledger is connected and unlocked):
 ```
 make install-ledger
 ```
-For signing with the ledger, (don't forget to open the MLDSA app):
+This installs two apps: MLDSA and MLDSAETH.
+
+For signing with the ledger, (don't forget to open the corresponding app):
 ```bash
 ./sign_cli.py signledger --data "1234" 
 ```
@@ -76,7 +78,7 @@ Note that for now, the key generation use a fixed seed, and so every one would g
 
 This produces a `sig` file and a `public_key.pem` file. Verifying the signature is exactly the same as before:
 ```bash
- ./sign_cli.py verify --data "cafe" --pubkey public_key.pem --signature sig
+ ./sign_cli.py verify --data "1234" --pubkey public_key.pem --signature sig
 ```
 This should produce:
 ```
