@@ -84,3 +84,14 @@ This should produce:
 ```
 Signature is valid.
 ```
+Verifying on-chain is exactly the same as before:
+```bash
+./sign_cli.py verifyonchain --data "1234" --pubkey public_key.pem --signature sig --contractaddress 0x4E086d551a2FA9269193056616ac8bd63cf5bE15 --rpc "wss://ethereum-sepolia-rpc.publicnode.com"
+```
+and should produce:
+```
+STDOUT: 0x0000000000000000000000000000000000000000000000000000000000000001
+
+STDERR: 
+RETURN CODE: 0
+```
