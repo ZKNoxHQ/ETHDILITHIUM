@@ -55,6 +55,8 @@ import {
     omega,
     gamma_1_minus_beta
 } from "./ZKNOX_dilithium_utils.sol";
+import {console} from "forge-std/Test.sol";
+
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 contract ZKNOX_ethdilithium {

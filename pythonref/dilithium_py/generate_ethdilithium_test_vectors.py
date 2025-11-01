@@ -1,5 +1,6 @@
 from .dilithium.default_parameters import Dilithium2 as D
 from .keccak_prng.keccak_prng_wrapper import Keccak256PRNG
+from .utilities.utils import solidity_compact_mat, solidity_compact_vec
 
 # An example of ETHDilithium.
 msg = b"We are ZKNox."
@@ -13,44 +14,6 @@ A_hat, tr, t1_new = D.pk_for_eth(pk)
 # Compact PK for Solidity
 A_hat_compact = A_hat.compact_256(32)
 t1_new_compact = t1_new.compact_256(32)
-
-
-def solidity_compact_elt(h, name):
-    out = "uint256[] memory {} = new uint256[](32);".format(name)
-    for (i, coeff) in enumerate(h):
-        out += '{}[{}] = uint256(0x00{:x});'.format(name, i, coeff)
-    return out+"\n"
-
-
-def solidity_compact_vec(h, name):
-    n = len(h)
-    out = 'uint256[][] memory {} = new uint256[][]({});\n'.format(name, n)
-    out += "for (uint256 i = 0 ; i < 4 ; i ++) {\n"
-    out += "\t{}[i] = new uint256[](32);\n".format(name)
-    out += "}\n"
-
-    for (i, a) in enumerate(h):
-        for (j, b) in enumerate(a[0]):  # len(a) = 1...
-            out += "{}[{}][{}] = uint256(0x00{:x});".format(name, i, j, b)
-    return out+"\n"
-
-
-def solidity_compact_mat(h, name):
-    n, m = len(h), len(h[0])
-    out = 'uint256[][][] memory {} = new uint256[][][]({});\n'.format(name, n)
-    out += "for (uint256 i = 0 ; i < {} ; i++) {{\n".format(n)
-    out += "\t{}[i] = new uint256[][]({});\n".format(name, m)
-    out += "\tfor (uint256 j = 0 ; j < {}; j++) {{\n".format(m)
-    out += "\t\t{}[i][j] = new uint256[](32);\n".format(name)
-    out += "\t}\n"
-    out += "}\n"
-    for (i, a) in enumerate(h):
-        for (j, b) in enumerate(a):
-            for (k, c) in enumerate(b):
-                out += "{}[{}][{}][{}] = uint256(0x00{:x});".format(
-                    name, i, j, k, c)
-    return out+"\n"
-
 
 XOF = Keccak256PRNG
 file = open(

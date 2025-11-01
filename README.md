@@ -39,8 +39,16 @@ Dilithium is an implementation of the NIST standardized signature scheme, where 
 ETHDilithium is an alternative version with a cheaper hash function and precomputations in the public key and signer in order to accelerate the verification. 
 
 ## EXAMPLE 
-An example of key generation, signature and verification in python is provided in [this file](python-ref/example.py), for Dilithium and ETHDilithium.
-A signature verification can be computed in Solidity, as illustrated in [this file](test/ZKNOX_dilithiumKATS.t.sol) with a KAT vector from the NIST submission.
+An example of key generation, signature and verification in python is provided in the directory `pythonref/`.
+It is also possible to verify a signature on-chain on Sepolia Testnet. See [here](pythonref/README.md#example) for more details.
+Locally, a signature verification can also be verified in Solidity, as illustrated in [this file](test/ZKNOX_dilithiumKATS.t.sol) with a KAT vector from the NIST submission.
+
+## DEPLOYMENTS
+Current deployments addresses:
+|Function|Description|Address|Testnets|
+|-|-|-|-|
+|ML-DSA|NIST legacy implementation|0x9B26cBD1643ba392a9a040529c0035693a4f6806|[Ethereum (sepolia)](https://sepolia.etherscan.io/address/9B26cBD1643ba392a9a040529c0035693a4f6806)|
+|ML-DSA-ETH|EVM-friendly implementation|0x4e086d551a2fa9269193056616ac8bd63cf5be15|[Ethereum (sepolia)](https://sepolia.etherscan.io/address/0x4e086d551a2fa9269193056616ac8bd63cf5be15)|
 
 
 ## CONCLUSION
