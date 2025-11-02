@@ -59,8 +59,10 @@ import {
     d
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
+import {ISigVerifier} from "./ZKNOX_IVerifier.sol";
+import {IPKContract} from "./ZKNOX_PKContract.sol";
 
-contract ZKNOX_dilithium {
+contract ZKNOX_dilithium is ISigVerifier {
     function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
         view
@@ -141,7 +143,11 @@ contract ZKNOX_dilithium {
         }
         return true;
     }
+
+    //extract the public key deployed at the _from address input
+    function GetPublicKey(address _from) external view returns (PubKey memory Kpub) {
+        Kpub = IPKContract(_from).getPubKey();
+    }
 }
 
 //end of contract
-/* the contract shall be initialized with a valid precomputation of psi_rev and psi_invrev contracts provided to the input ntt contract*/

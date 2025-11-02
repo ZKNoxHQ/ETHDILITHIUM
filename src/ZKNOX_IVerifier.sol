@@ -38,17 +38,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Signature, PubKey} from "ZKNOX_dilithium_utils.sol";
+import {Signature, PubKey} from "./ZKNOX_dilithium_utils.sol";
 
 interface ISigVerifier {
-    function verify(
-        bytes memory h, //a 32 bytes hash
-        Signature sig,
-        PubKey pk
-    )
+    function verify(PubKey memory pk, bytes memory digest, Signature memory sig, bytes memory ctx)
         external
         view
         returns (bool result);
 
-    function GetPublicKey(address _from) external view returns PubKey Kpub;
+    function GetPublicKey(address _from) external view returns (PubKey memory Kpub);
 }

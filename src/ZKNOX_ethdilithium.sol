@@ -58,8 +58,9 @@ import {
 import {console} from "forge-std/Test.sol";
 
 import {useHintDilithium} from "./ZKNOX_hint.sol";
+import {ISigVerifier} from "./ZKNOX_IVerifier.sol";
 
-contract ZKNOX_ethdilithium {
+contract ZKNOX_ethdilithium is ISigVerifier {
     function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
         view
@@ -121,6 +122,12 @@ contract ZKNOX_ethdilithium {
         prng = initPRNG(abi.encodePacked(out1, out2, w_prime_bytes));
         bytes32 final_hash = prng.pool;
         return final_hash == bytes32(signature.c_tilde);
+    }
+
+    //extract the public key deployed at the _from address input
+    function GetPublicKey(address _from) external pure returns (PubKey memory Kpub) {
+        // TODO
+        PubKey memory Kpub;
     }
 }
 
