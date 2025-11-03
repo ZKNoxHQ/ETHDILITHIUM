@@ -38,8 +38,6 @@ pragma solidity ^0.8.25;
 int256 constant gamma_2 = 95232;
 int256 constant _2_gamma_2 = 190464;
 int256 constant _2_gamma_2_inverse = 44; // (8380417 - 1) / _2_gamma_2
-
-import {Test, console} from "forge-std/Test.sol";
 import {q} from "./ZKNOX_dilithium_utils.sol";
 
 // Function to reduce r0 within the range of -(a << 1) < r0 <= (a << 1)

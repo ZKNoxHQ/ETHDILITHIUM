@@ -664,8 +664,9 @@ contract DeployPKContract is BaseScript {
         t1[3][30] = uint256(0x00162000002e0000001f9000001350000000900000178000003200000020a);
         t1[3][31] = uint256(0x002fb00000368000003ee0000012b000001c8000002f0000001a900000268);
 
+        address addr_EC = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E;
         // Deploy PKContract
-        PKContract pk = new PKContract(A_hat, tr, t1);
+        PKContract pk = new PKContract(A_hat, tr, t1, addr_EC);
 
         console.log("Deployed PKContract at:", address(pk));
 

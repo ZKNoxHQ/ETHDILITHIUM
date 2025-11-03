@@ -30,11 +30,8 @@
 ///* License: This software is licensed under MIT License
 ///* This Code may be reused including this header, license and copyright notice.
 ///* See LICENSE file at the root folder of the project.
-///* FILE: ZKNOX_dilithium.sol
+///* FILE: ZKNOX_ethdilithium.sol
 ///* Description: Compute ethereum friendly version of dilithium verification
-/**
- *
- */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -55,12 +52,10 @@ import {
     omega,
     gamma_1_minus_beta
 } from "./ZKNOX_dilithium_utils.sol";
-import {console} from "forge-std/Test.sol";
 
 import {useHintDilithium} from "./ZKNOX_hint.sol";
-import {ISigVerifier} from "./ZKNOX_IVerifier.sol";
 
-contract ZKNOX_ethdilithium is ISigVerifier {
+contract ZKNOX_ethdilithium {
     function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
         view
@@ -123,13 +118,5 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         bytes32 final_hash = prng.pool;
         return final_hash == bytes32(signature.c_tilde);
     }
-
-    //extract the public key deployed at the _from address input
-    function GetPublicKey(address _from) external pure returns (PubKey memory Kpub) {
-        // TODO
-        PubKey memory Kpub;
-    }
 }
-
 //end of contract
-/* the contract shall be initialized with a valid precomputation of psi_rev and psi_invrev contracts provided to the input ntt contract*/

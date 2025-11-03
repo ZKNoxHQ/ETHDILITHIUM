@@ -39,65 +39,45 @@
 pragma solidity ^0.8.25;
 
 import {Signature, PubKey} from "./ZKNOX_dilithium_utils.sol";
-import {ISigVerifier} from "./ZKNOX_IVerifier.sol";
+import {IPKContract} from "./ZKNOX_PKContract.sol";
+import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
-    /// @notice Storage slot for the contract's state
-    bytes32 private constant STORAGE_SLOT = keccak256("ZKNOX_HybridVerifier_0");
-
-    struct Storage {
-        /// @notice Address of the contract storing the ECDSA public key
-        address authorized_ECDSA;
-        /// @notice Address of the contract storing the post quantum public key
-        address authorized_PQPublicKey;
-        /// @notice Address of the verification contract logic
-        address CoreAddress; // address of the core verifier (FALCON, DILITHIUM, etc.), shall be the address of a ISigVerifier
-        uint256 algoID;
-    }
+    /// @notice Address of the contract storing the pre quantum address and post quantum public key
+    address authorized_HybridPublicKey;
+    /// @notice Address of the verification contract logic
+    address CoreAddress; // address of the core verifier (DILITHIUM or ETHDILITHIUM)
+    uint256 algoID;
 
     /// @notice Events
-    event ECDSAKeySet(address indexed newKey);
-    event PQKeySet(address indexed newKey);
+    event HPKeySet(address indexed newKey);
     event CoreVerifierSet(address indexed newCore, uint256 algoID);
 
     /// @notice Errors
     error InvalidECDSASignature();
     error InvalidPQSignature();
-    error PQKeyNotSet();
+    error HPKeyNotSet();
     error UnauthorizedAccess();
     error ZeroAddress();
 
-    /// @notice Get storage reference
-    function getStorage() internal pure returns (Storage storage s) {
-        bytes32 slot = STORAGE_SLOT;
-        assembly {
-            s.slot := slot
-        }
-    }
-
     /// @notice Initialize the contract with authorized keys and core verifier
-    /// @param _ecdsaKey Address authorized for ECDSA verification
-    /// @param _pqKey Address storing the post-quantum public key
+    /// @param _hpk Address storing the public key contract
     /// @param _core Address of the core verifier contract
     /// @param _algoID Algorithm identifier
-    function initialize(address _ecdsaKey, address _pqKey, address _core, uint256 _algoID) external {
-        Storage storage s = getStorage();
-
+    function initialize(address _hpk, address _core, uint256 _algoID) external {
         // Only initialize once
-        if (s.CoreAddress != address(0)) revert UnauthorizedAccess();
+        if (CoreAddress != address(0)) revert UnauthorizedAccess();
 
-        if (_ecdsaKey == address(0) || _pqKey == address(0) || _core == address(0)) {
+        if (_hpk == address(0) || _core == address(0)) {
             revert ZeroAddress();
         }
 
-        s.authorized_ECDSA = _ecdsaKey;
-        s.authorized_PQPublicKey = _pqKey;
-        s.CoreAddress = _core;
-        s.algoID = _algoID;
+        authorized_HybridPublicKey = _hpk;
+        CoreAddress = _core;
+        algoID = _algoID;
 
-        emit ECDSAKeySet(_ecdsaKey);
-        emit PQKeySet(_pqKey);
+        emit HPKeySet(_hpk);
         emit CoreVerifierSet(_core, _algoID);
     }
 
@@ -113,28 +93,33 @@ contract ZKNOX_HybridVerifier {
         view
         returns (bool)
     {
-        Storage storage store = getStorage();
-
         bytes32 digest_for_ecdsa;
         require(digest.length <= 32, "Input <= 32 bytes required");
         assembly {
             digest_for_ecdsa := mload(add(digest, 32))
         }
 
+        // PK contract address must be non-zero
+        if (authorized_HybridPublicKey == address(0)) {
+            revert HPKeyNotSet();
+        }
+
+        address hpkAddr = authorized_HybridPublicKey;
+        IPKContract hpk = IPKContract(hpkAddr);
+
+        address eth_addr = hpk.get_eth_address();
+
         // Verify ECDSA signature
         address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-        if (recovered != store.authorized_ECDSA) {
+        if (recovered != eth_addr) {
             revert InvalidECDSASignature();
         }
 
         // Verify MLDSA signature
-        if (store.authorized_PQPublicKey == address(0)) {
-            revert PQKeyNotSet();
-        }
-        ISigVerifier core = ISigVerifier(store.CoreAddress);
-        PubKey memory pq_pk = core.GetPublicKey(store.authorized_PQPublicKey);
-        bytes memory ctx = "";
-        if (!core.verify(pq_pk, digest, sig, ctx)) {
+        PubKey memory mldsa_pk = hpk.get_mldsa_public_key();
+        ZKNOX_dilithium core = ZKNOX_dilithium(CoreAddress);
+        // ISigVerifier core = ISigVerifier(CoreAddress);
+        if (!core.verify(mldsa_pk, digest, sig, "")) {
             revert InvalidPQSignature();
         }
 

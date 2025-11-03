@@ -39,8 +39,6 @@
 //this is a direct translation from https://github.com/coruus/py-keccak/blob/master/fips202/keccak.py
 pragma solidity ^0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
-
 uint256 constant _RATE = 136;
 bool constant _SPONGE_ABSORBING = false;
 bool constant _SPONGE_SQUEEZING = true;
