@@ -86,8 +86,13 @@ Signature is valid.
 ```
 Verifying on-chain is exactly the same as before:
 ```bash
-./sign_cli.py verifyonchain --data "1234" --pubkey public_key.pem --signature sig --contractaddress 0x4E086d551a2FA9269193056616ac8bd63cf5bE15 --rpc "wss://ethereum-sepolia-rpc.publicnode.com"
+./sign_cli.py verifyonchain --data "1234" --pubkey public_key.pem --signature sig --contractaddress 0xe894f23a95cb5c6198d0d5917877f594aeb255ef --rpc "https://api.zan.top/arb-sepolia"
 ```
+Using MLDSA-ETH:
+```bash
+./sign_cli.py verifyonchain --data "1234" --pubkey public_key.pem --signature sig --contractaddress 0x0cbf65fa28418d5590db76220759cad4d5b9c4aa --rpc "https://api.zan.top/arb-sepolia"
+```
+
 and should produce:
 ```
 STDOUT: 0x0000000000000000000000000000000000000000000000000000000000000001

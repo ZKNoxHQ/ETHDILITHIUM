@@ -33,6 +33,9 @@ async function DilithiumSign(message) {
     // Build APDU list for signing
     const apdus = [];
 
+    // 0. set the insecure seed
+    apdus.push({ name: "apdu_insecure_seed", command: "E014000015058000002c80001f91800000000000000000000000" });
+
     // 1. Init command
     apdus.push({ name: "apdu_dilithium_sign_init", command: "e00f0000" });
 
