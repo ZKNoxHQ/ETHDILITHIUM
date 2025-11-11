@@ -14,11 +14,7 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     PKContract private _pkContract;
     ZKNOX_HybridVerifier private _hybridVerifier;
 
-    constructor(
-        IEntryPoint entryPoint,
-        PKContract pkContract,
-        ZKNOX_HybridVerifier hybridVerifier
-    ) {
+    constructor(IEntryPoint entryPoint, PKContract pkContract, ZKNOX_HybridVerifier hybridVerifier) {
         _entryPoint = entryPoint;
         _pkContract = pkContract;
         _hybridVerifier = hybridVerifier;
@@ -30,11 +26,14 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     }
 
     /// @inheritdoc BaseAccount
-    function _validateSignature(
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash
-    ) internal virtual override returns (uint256 validationData) {
-        (Signature memory signature, uint8 v, bytes32 r, bytes32 s) = abi.decode(userOp.signature, (Signature, uint8, bytes32, bytes32));
+    function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
+        internal
+        virtual
+        override
+        returns (uint256 validationData)
+    {
+        (Signature memory signature, uint8 v, bytes32 r, bytes32 s) =
+            abi.decode(userOp.signature, (Signature, uint8, bytes32, bytes32));
         bool isValid = _hybridVerifier.isValid(abi.encodePacked(userOpHash), signature, v, r, s);
         if (!isValid) {
             return SIG_VALIDATION_FAILED;

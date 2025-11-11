@@ -19,7 +19,7 @@ seed = drbg.random_bytes(48)
 
 msg_len = 256
 msg = bytes.fromhex(
-    "1111222233334444111122223333444411112222333344441111222233334444")
+    "7e15402722a37a2bd23d1bc63c55ea8371e501506107f879be4eaeae531625a2")
 
 D.set_drbg_seed(seed)
 pk, sk = D.keygen()
