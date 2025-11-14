@@ -18,6 +18,7 @@ file.write("""
 pragma solidity ^0.8.13;
 //  Code obtained from `generate_sample_in_ball_test_vectors.py` python file
 
+import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 import "../src/ZKNOX_SampleInBall.sol";
