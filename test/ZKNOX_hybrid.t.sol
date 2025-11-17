@@ -13,7 +13,7 @@ contract TestHybridVerifier is Test {
         // Address of a contract storing a public key
         address hpkAddr = 0x6F6739B758e447F541D7F3c069289864568c702E;
         // NIST MLDSA contract address
-        address verifierAddr = 0x99Ef3088074Cc1B6687229b3D34916445755847F;
+        address verifierAddr = 0x86f94e417CB8Df20ba29Bd1c0ca04cFDd4442a96;
         // Deploy hybrid
         ZKNOX_HybridVerifier hybrid = new ZKNOX_HybridVerifier();
 

@@ -54,31 +54,20 @@ contract ZKNOX_HybridVerifier {
     event HPKeySet(address indexed newKey);
     event CoreVerifierSet(address indexed newCore, uint256 algoID);
 
-    /// @notice Errors
-    error InvalidECDSASignature();
-    error InvalidPQSignature();
-    error HPKeyNotSet();
-    error UnauthorizedAccess();
-    error ZeroAddress();
-
     /// @notice Initialize the contract with authorized keys and core verifier
     /// @param _hpk Address storing the public key contract
     /// @param _core Address of the core verifier contract
     /// @param _algoID Algorithm identifier
     function initialize(address _hpk, address _core, uint256 _algoID) external {
         // Only initialize once
-        if (CoreAddress != address(0)) revert UnauthorizedAccess();
+        if (CoreAddress == address(0) && _hpk != address(0) && _core != address(0)) {
+            authorized_HybridPublicKey = _hpk;
+            CoreAddress = _core;
+            algoID = _algoID;
 
-        if (_hpk == address(0) || _core == address(0)) {
-            revert ZeroAddress();
+            emit HPKeySet(_hpk);
+            emit CoreVerifierSet(_core, _algoID);
         }
-
-        authorized_HybridPublicKey = _hpk;
-        CoreAddress = _core;
-        algoID = _algoID;
-
-        emit HPKeySet(_hpk);
-        emit CoreVerifierSet(_core, _algoID);
     }
 
     /// @notice Verify hybrid signature (ECDSA + MLDSA)
@@ -94,14 +83,16 @@ contract ZKNOX_HybridVerifier {
         returns (bool)
     {
         bytes32 digest_for_ecdsa;
-        require(digest.length <= 32, "Input <= 32 bytes required");
+        if (digest.length > 32) {
+            return false;
+        }
         assembly {
             digest_for_ecdsa := mload(add(digest, 32))
         }
 
         // PK contract address must be non-zero
         if (authorized_HybridPublicKey == address(0)) {
-            revert HPKeyNotSet();
+            return false; // Signature validation failed
         }
 
         address hpkAddr = authorized_HybridPublicKey;
@@ -112,7 +103,7 @@ contract ZKNOX_HybridVerifier {
         // Verify ECDSA signature
         address recovered = ecrecover(digest_for_ecdsa, v, r, s);
         if (recovered != eth_addr) {
-            revert InvalidECDSASignature();
+            return false; // Signature validation failed
         }
 
         // Verify MLDSA signature
@@ -120,7 +111,7 @@ contract ZKNOX_HybridVerifier {
         ZKNOX_dilithium core = ZKNOX_dilithium(CoreAddress);
         // ISigVerifier core = ISigVerifier(CoreAddress);
         if (!core.verify(mldsa_pk, digest, sig, "")) {
-            revert InvalidPQSignature();
+            return false; // Signature validation failed
         }
 
         return true;

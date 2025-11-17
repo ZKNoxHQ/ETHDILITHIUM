@@ -40,7 +40,7 @@ cd script
 In order to have a different PKContract, you need to modify the values of `script/DeployPKContract.s.sol` in order to have another MLDSA public key and/or another Ethereum address.
 
 ### ZKNOX_Dilithium
-The contract for the MLDSA verification is stored at `0x99ef3088074cc1b6687229b3d34916445755847f` (see [here](https://sepolia.arbiscan.io/address/0x99ef3088074cc1b6687229b3d34916445755847f#code)).
+The contract for the MLDSA verification is stored at `0x86f94e417CB8Df20ba29Bd1c0ca04cFDd4442a96` (see [here](https://sepolia.arbiscan.io/address/0x86f94e417CB8Df20ba29Bd1c0ca04cFDd4442a96#code)).
 
 Deploying this contract is similar to PKContract, but with `deploy_dilithium.sh`. However, it should not be needed here.
 
