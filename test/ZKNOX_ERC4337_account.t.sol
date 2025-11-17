@@ -144,54 +144,20 @@ contract TestHybridVerifier is Test {
         PackedUserOperation[] memory ops = new PackedUserOperation[](1);
         ops[0] = userOp;
 
-        /*
-            // Set up expectation for the Hello event
-            // vm.expectEmit();
-            vm.expectEmit(false, false, false, false);
-            // emit IStakeManager.Deposited(address(0), 0);
-            // // emit TestTarget.Hello("Hello from UserOp");
-            // emit IEntryPoint.UserOperationEvent(bytes32(bytes("")), address(0), address(0), 0, true, 0, 0);
-            emit IEntryPoint.UserOperationEvent(bytes32(bytes("")), address(0), address(0), 0, true, 0, 0);
+        // Set up expectation for the Hello event
+        // vm.expectEmit();
+        vm.expectEmit(false, false, false, false);
+        // emit IStakeManager.Deposited(address(0), 0);
+        // // emit TestTarget.Hello("Hello from UserOp");
+        // emit IEntryPoint.UserOperationEvent(bytes32(bytes("")), address(0), address(0), 0, true, 0, 0);
+        emit IEntryPoint.UserOperationEvent(bytes32(bytes("")), address(0), address(0), 0, true, 0, 0);
 
-            // 2. Expect Deposited after
-            vm.expectEmit(false, false, false, false);
-            emit IStakeManager.Deposited(address(0), 0);
+        // 2. Expect Deposited after
+        vm.expectEmit(false, false, false, false);
+        emit IStakeManager.Deposited(address(0), 0);
 
-            // Call handleOps on the EntryPoint
-            entryPoint.handleOps(ops, payable(owner));
-        */
-
-        address paymaster;
-        bytes memory pd = userOp.paymasterAndData;
-
-        if (pd.length >= 20) {
-            assembly {
-                paymaster := shr(96, mload(add(pd, 32)))
-            }
-        } else {
-            paymaster = address(0);
-        }
-        uint256 gasBefore = gasleft();
+        // Call handleOps on the EntryPoint
         entryPoint.handleOps(ops, payable(owner));
-        uint256 gasAfter = gasleft();
-        uint256 actualGasUsed = gasBefore - gasAfter;
-
-        uint256 gasPrice = tx.gasprice;
-        uint256 actualGasCost = actualGasUsed * gasPrice;
-
-        console.log(actualGasCost);
-        console.log(actualGasUsed);
-
-        vm.expectEmit(true, true, true, true);
-        emit IEntryPoint.UserOperationEvent(
-            userOpHash,
-            userOp.sender,
-            paymaster,
-            userOp.nonce,
-            true, // assuming op succeeded
-            actualGasCost,
-            actualGasUsed
-        );
     }
 
     function _createUserOp() internal view returns (PackedUserOperation memory) {
