@@ -6,8 +6,8 @@ import "../src/ZKNOX_PKContract.sol";
 import {BaseScript} from "./BaseScript.sol";
 
 contract DeployPKContract is BaseScript {
-    function run() external {
-        vm.startBroadcast();
+    function run() external returns (address) {
+        // vm.startBroadcast();
 
         // Example of public key
         uint256[][][] memory A_hat = new uint256[][][](4);
@@ -670,6 +670,7 @@ contract DeployPKContract is BaseScript {
 
         console.log("Deployed PKContract at:", address(pk));
 
-        vm.stopBroadcast();
+        // vm.stopBroadcast();
+        return address(pk);
     }
 }
