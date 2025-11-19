@@ -1,3 +1,4 @@
 pycryptodome == 3.14.1
 eth_abi
 numpy
+eth_account

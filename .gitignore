@@ -3,3 +3,5 @@ out/
 
 __pycache__
 python-ref/myenv/
+pythonref/myenv
+.idea
