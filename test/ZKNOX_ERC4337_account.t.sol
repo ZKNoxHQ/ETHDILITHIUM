@@ -7,7 +7,7 @@ import {IStakeManager} from "../lib/account-abstraction/contracts/interfaces/ISt
 import {PackedUserOperation} from "../lib/account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {Signature} from "../src/ZKNOX_dilithium_utils.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {ZKNOX_ERC4337_account} from "../src/ZKNOX_ERC4337_account.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 
@@ -41,7 +41,7 @@ contract TestHybridVerifier is Test {
         address pkContractAddress = deployPKContract.run();
         address verifierAddr = script_Deploy_Dilithium.run();
 
-        owner = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E; //vm.addr(ownerPrivateKey);
+        owner = 0x212e68E038AaCAA0CCa106D5477487dB05dEc8E0;//0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E; //vm.addr(ownerPrivateKey);
 
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
@@ -144,20 +144,22 @@ contract TestHybridVerifier is Test {
         PackedUserOperation[] memory ops = new PackedUserOperation[](1);
         ops[0] = userOp;
 
-        // Set up expectation for the Hello event
-        // vm.expectEmit();
-        vm.expectEmit(false, false, false, false);
-        // emit IStakeManager.Deposited(address(0), 0);
-        // // emit TestTarget.Hello("Hello from UserOp");
-        // emit IEntryPoint.UserOperationEvent(bytes32(bytes("")), address(0), address(0), 0, true, 0, 0);
-        emit IEntryPoint.UserOperationEvent(bytes32(bytes("")), address(0), address(0), 0, true, 0, 0);
+        vm.expectEmit(true, false, false, false, address(entryPoint));
+        emit IStakeManager.Deposited(address(account), 0);
 
-        // 2. Expect Deposited after
-        vm.expectEmit(false, false, false, false);
-        emit IStakeManager.Deposited(address(0), 0);
+//        vm.expectEmit(false, false, false, false, address(entryPoint));
+        emit IEntryPoint.BeforeExecution();
+
+//        vm.expectEmit(false, false, false, true, address(target));
+        emit TestTarget.Hello("Hello from UserOp");
+
+//        vm.expectEmit(true, true, true, false, address(entryPoint));
+        emit IEntryPoint.UserOperationEvent(userOpHash, address(account), address(0), 0, true, 0, 0);
 
         // Call handleOps on the EntryPoint
         entryPoint.handleOps(ops, payable(owner));
+
+        assertEq(target.lastGreeting(), "Hello from UserOp", "Target call should succeed");
     }
 
     function _createUserOp() internal view returns (PackedUserOperation memory) {
@@ -174,7 +176,7 @@ contract TestHybridVerifier is Test {
             nonce: 0,
             initCode: "",
             callData: callData,
-            accountGasLimits: bytes32(abi.encodePacked(uint128(200000), uint128(200000))),
+            accountGasLimits: bytes32(abi.encodePacked(uint128(20_000_000), uint128(500_000))),
             preVerificationGas: 100000,
             gasFees: bytes32(abi.encodePacked(uint128(1 gwei), uint128(2 gwei))),
             paymasterAndData: "",
@@ -185,8 +187,10 @@ contract TestHybridVerifier is Test {
 
 contract TestTarget {
     event Hello(string greeting);
+    string public lastGreeting;
 
     function sayHello(string memory greeting) external {
+        lastGreeting = greeting;
         emit Hello(greeting);
     }
 }
