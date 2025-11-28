@@ -158,8 +158,8 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
         text=True
     )
     print("STDOUT:", result.stdout)
-    print("STDERR:", result.stderr)
-    print("RETURN CODE:", result.returncode)
+    # print("STDERR:", result.stderr)
+    # print("RETURN CODE:", result.returncode)
 
 
 def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private_key, version):
