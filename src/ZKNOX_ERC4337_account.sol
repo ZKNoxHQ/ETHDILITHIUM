@@ -11,13 +11,23 @@ import "./ZKNOX_hybrid.sol";
 
 contract ZKNOX_ERC4337_account is BaseAccount {
     IEntryPoint private _entryPoint;
-    PKContract private _pkContract;
-    ZKNOX_HybridVerifier private _hybridVerifier;
+    address private eth_address;
+    address private mldsa_pk_address;
+    // PKContract private _pkContract;
+    ZKNOX_HybridVerifier private hybridVerifier;
 
-    constructor(IEntryPoint entryPoint, PKContract pkContract, ZKNOX_HybridVerifier hybridVerifier) {
-        _entryPoint = entryPoint;
-        _pkContract = pkContract;
-        _hybridVerifier = hybridVerifier;
+    constructor(
+        IEntryPoint entry_point,
+        // PKContract pkContract,
+        address _eth_address,
+        address _mldsa_pk_address,
+        ZKNOX_HybridVerifier _hybridVerifier
+    ) {
+        _entryPoint = entry_point;
+        eth_address = _eth_address;
+        mldsa_pk_address = _mldsa_pk_address;
+        // _pkContract = pkContract;
+        hybridVerifier = _hybridVerifier;
     }
 
     /// @inheritdoc BaseAccount
@@ -34,7 +44,8 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     {
         (Signature memory signature, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(userOp.signature, (Signature, uint8, bytes32, bytes32));
-        bool isValid = _hybridVerifier.isValid(abi.encodePacked(userOpHash), signature, v, r, s);
+        bool isValid =
+            hybridVerifier.isValid(eth_address, mldsa_pk_address, abi.encodePacked(userOpHash), signature, v, r, s);
         if (!isValid) {
             return SIG_VALIDATION_FAILED;
         }

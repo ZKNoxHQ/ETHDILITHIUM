@@ -44,7 +44,7 @@ function sampleInBallKeccakPRNG(bytes memory c_tilde, uint256 tau, uint256 q) pu
     // sign_int: 64 bits, little-endian (matches your SHAKE version)
     uint64 sign_int = 0;
     for (uint256 k = 0; k < 8; k++) {
-        sign_int |= uint64(nextByte(prng)) << (8 * k);
+        sign_int |= uint64(nextByte(prng)) << uint64(8 * k);
     }
 
     uint256 j;

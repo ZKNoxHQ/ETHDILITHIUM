@@ -63,14 +63,13 @@ import {useHintDilithium} from "./ZKNOX_hint.sol";
 contract ZKNOX_dilithium {
     function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
-        view
+        pure
         returns (bool)
     {
         // Step 1: check ctx length
         if (ctx.length > 255) {
             revert("ctx bytes must have length at most 255");
         }
-
         // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
         bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
@@ -80,7 +79,7 @@ contract ZKNOX_dilithium {
 
     function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
         internal
-        view
+        pure
         returns (bool)
     {
         uint256 i;

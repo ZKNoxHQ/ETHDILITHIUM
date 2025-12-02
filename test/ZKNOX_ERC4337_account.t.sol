@@ -11,7 +11,7 @@ import {Test} from "forge-std/Test.sol";
 import {ZKNOX_ERC4337_account} from "../src/ZKNOX_ERC4337_account.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 
-import {DeployPKContract} from "../script/DeployPKContract.s.sol";
+import {DeployPKContract} from "../script/DeployMLPK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -20,7 +20,7 @@ function bytes32ToHex(bytes32 value) pure returns (string memory) {
     return Strings.toHexString(uint256(value), 32);
 }
 
-contract TestHybridVerifier is Test {
+contract TestERC4337_Account is Test {
     ZKNOX_ERC4337_account public account;
     IEntryPoint public entryPoint;
     ZKNOX_HybridVerifier public hybridVerifier;
@@ -37,11 +37,12 @@ contract TestHybridVerifier is Test {
          */
 
         DeployPKContract deployPKContract = new DeployPKContract();
-        Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
         address pkContractAddress = deployPKContract.run();
+
+        Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
         address verifierAddr = script_Deploy_Dilithium.run();
 
-        owner = 0x212e68E038AaCAA0CCa106D5477487dB05dEc8E0;//0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E; //vm.addr(ownerPrivateKey);
+        owner = 0x1234567890123456789012345678901234567890;
 
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
@@ -49,23 +50,18 @@ contract TestHybridVerifier is Test {
         // PKContract address deployed previously
         pkContract = PKContract(pkContractAddress);
 
-        // Deploy HybridVerifier
-        // Address of a contract storing a public key
-        address hpkAddr = pkContractAddress;
-        // NIST MLDSA contract address
-        // address verifierAddr = 0x99Ef3088074Cc1B6687229b3D34916445755847F;
-        // Deploy hybrid
         hybridVerifier = new ZKNOX_HybridVerifier();
 
         // Initialize the hybrid contract with addresses
         hybridVerifier.initialize(
-            hpkAddr, // Public Key Contract address
             verifierAddr, // PQ verification logic
             1 // algoID = 1 for Dilithium
         );
 
+        address eth_address = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E;
+
         // Deploy the Smart Account
-        account = new ZKNOX_ERC4337_account(entryPoint, pkContract, hybridVerifier);
+        account = new ZKNOX_ERC4337_account(entryPoint, eth_address, pkContractAddress, hybridVerifier);
         // Deploy TestTarget
         target = new TestTarget();
 
@@ -81,7 +77,6 @@ contract TestHybridVerifier is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        // Using python
         string[] memory cmds = new string[](3);
         cmds[0] = "pythonref/myenv/bin/python";
         cmds[1] = "pythonref/sig_hybrid.py";
@@ -146,19 +141,12 @@ contract TestHybridVerifier is Test {
 
         vm.expectEmit(true, false, false, false, address(entryPoint));
         emit IStakeManager.Deposited(address(account), 0);
-
-//        vm.expectEmit(false, false, false, false, address(entryPoint));
         emit IEntryPoint.BeforeExecution();
-
-//        vm.expectEmit(false, false, false, true, address(target));
         emit TestTarget.Hello("Hello from UserOp");
-
-//        vm.expectEmit(true, true, true, false, address(entryPoint));
         emit IEntryPoint.UserOperationEvent(userOpHash, address(account), address(0), 0, true, 0, 0);
 
         // Call handleOps on the EntryPoint
         entryPoint.handleOps(ops, payable(owner));
-
         assertEq(target.lastGreeting(), "Hello from UserOp", "Target call should succeed");
     }
 

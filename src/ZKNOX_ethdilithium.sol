@@ -58,7 +58,7 @@ import {useHintDilithium} from "./ZKNOX_hint.sol";
 contract ZKNOX_ethdilithium {
     function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
         external
-        view
+        pure
         returns (bool)
     {
         // Step 1: check ctx length
@@ -75,7 +75,7 @@ contract ZKNOX_ethdilithium {
 
     function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
         internal
-        view
+        pure
         returns (bool)
     {
         uint256 i;

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-CONTRACT_NAME="DeployPKContract.s.sol"   
+CONTRACT_NAME="DeployMLPK.s.sol"   
 
 PRIVATE_KEY=$1
 PUB_KEY="0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E"

@@ -218,7 +218,7 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
 
     uint256 i;
     uint256 j;
-    uint256 k;
+    uint256 ell;
     uint256[] memory tmp;
     uint256[] memory Mij;
     uint256[] memory vj;
@@ -238,8 +238,8 @@ function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory
                 }
             }
         }
-        for (k = 0; k < vecSize; k++) {
-            tmp[k] %= q;
+        for (ell = 0; ell < vecSize; ell++) {
+            tmp[ell] %= q;
         }
         M_times_v[i] = tmp;
     }

@@ -175,7 +175,7 @@ function dilithium_core_2(
     uint256[] memory c_ntt,
     uint256[][] memory h,
     uint256[][] memory t1_new
-) view returns (bytes memory w_prime_bytes) {
+) pure returns (bytes memory w_prime_bytes) {
     // NTT(z)
     for (uint256 i = 0; i < 4; i++) {
         z[i] = ZKNOX_NTTFW(z[i]);

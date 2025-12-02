@@ -227,7 +227,7 @@ def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private
 
 def cli():
     parser = argparse.ArgumentParser(description="CLI for MLDSA Signature")
-    parser.add_argument("action", choices=["keygen", "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
+    parser.add_argument("action", choices=["keygen", "keygenonchainsend",  "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
                         help="Action to perform")
     parser.add_argument("--version", type=str,
                         help="Version to use (MLDSA or MLDSAETH)")
@@ -241,6 +241,8 @@ def cli():
     #                     help="Value in hexadecimal for the transaction")
     parser.add_argument("--privkey", type=str,
                         help="Private key file for signing")
+    parser.add_argument("--seed_mldsa", type=str,
+                        help="Seed MLDSA for keygen")
     parser.add_argument("--pubkey", type=str,
                         help="Public key file for verification")
     parser.add_argument("--contractaddress", type=str,
@@ -249,6 +251,8 @@ def cli():
                         help="RPC for on-chain verification")
     parser.add_argument("--privatekey", type=str,
                         help="Ethereum ECDSA private key for sending a transaction")
+    parser.add_argument("--apikey", type=str,
+                        help="Ethereum API key for sending a transaction")
     parser.add_argument("--signature", type=str, help="Signature to verify")
 
     args = parser.parse_args()
@@ -264,6 +268,123 @@ def cli():
         save_pk(pk, "public_key.pem", args.version)
         save_sk(sk, "private_key.pem", args.version)
         print("Keys generated and saved.")
+
+    if args.action == "keygenonchainsend":
+        if not args.version:
+            print("Error: Provide --version")
+            return
+
+        if not args.seed_mldsa:
+            from seed import seed_mldsa
+        else:
+            seed_mldsa = args.seed_mldsa
+        Dilithium2.set_drbg_seed(seed_mldsa)
+        if args.version == "MLDSA":
+            pk, sk = Dilithium2.keygen()
+            ρ, t1 = Dilithium2._unpack_pk(pk)
+            A_hat = Dilithium2._expand_matrix_from_seed(ρ)
+            tr = Dilithium2._h(pk, 64)
+        else:
+            pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+            ρ, t1 = Dilithium2._unpack_pk(pk)
+            A_hat = Dilithium2._expand_matrix_from_seed(ρ, _xof=Keccak256PRNG)
+            tr = Dilithium2._h(pk, 64, _xof=Keccak256PRNG)
+
+        # Compact PK for Solidity
+        A_hat_compact = A_hat.compact_256(32)
+        t1_compact = t1.compact_256(32)
+
+        save_pk(pk, "public_key.pem", args.version)
+        save_sk(sk, "private_key.pem", args.version)
+        print("Keys generated and saved.")
+
+        print("Solidity deployment")
+
+        SOL = """
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Script.sol";
+import "../src/ZKNOX_PKContract.sol";
+import {BaseScript} from "./BaseScript.sol";
+
+contract DeployPKContract is BaseScript {
+    function run() external returns (address) {
+        vm.startBroadcast();
+
+        // Example of public key
+        uint256[][][] memory A_hat = new uint256[][][](4);
+        for (uint256 i = 0; i < 4; i++) {
+            A_hat[i] = new uint256[][](4);
+            for (uint256 j = 0; j < 4; j++) {
+                A_hat[i][j] = new uint256[](32);
+            }
+        }
+        """
+        for ii in range(4):
+            for jj in range(4):
+                for kk in range(32):
+                    SOL += "A_hat[{}][{}][{}] = uint256({});\n".format(
+                        ii, jj, kk, A_hat_compact[ii][jj][kk])
+        SOL += "bytes memory tr = hex\"{}\";\n".format(tr.hex())
+        SOL += """uint256[][] memory t1 = new uint256[][](4);
+        for (uint256 i = 0; i < 4; i++) {
+            t1[i] = new uint256[](32);
+        }
+        """
+        for ii in range(4):
+            for jj in range(32):
+                SOL += "t1[{}][{}] = uint256({});\n".format(
+                    ii,
+                    jj,
+                    t1_compact[ii][0][jj]
+                )
+
+        SOL += """
+        // Deploy PKContract
+        PKContract pk = new PKContract(A_hat, tr, t1);
+
+        console.log("Deployed PKContract at:", address(pk));
+
+        vm.stopBroadcast();
+        return address(pk);
+    }
+}
+"""
+        sol_file = open("../script/DeployMLPK.s.sol", 'w')
+        sol_file.write(SOL)
+        sol_file.close()
+
+        if not args.privatekey:
+            print("Error: Provide --privatekey")
+            return
+        if not args.apikey:
+            print("Error: Provide --apikey")
+            return
+
+        result = subprocess.run(
+            [
+                "forge",
+                "script",
+                "../script/DeployMLPK.s.sol",
+                "--rpc-url",
+                "https://api.zan.top/arb-sepolia",
+                "--private-key",
+                args.privatekey,
+                "--broadcast",
+                "--tc",
+                "DeployPKContract",
+                "--etherscan-api-key",
+                args.apikey,
+                "--verify",
+                "--priority-gas-price",
+                "1"
+            ],
+            capture_output=True,
+            text=True
+        )
+        print(result.stdout)
+        print(result.stderr)
 
     elif args.action == "sign":
         if not args.data or not args.privkey:

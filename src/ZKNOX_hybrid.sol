@@ -41,11 +41,10 @@ pragma solidity ^0.8.25;
 import {Signature, PubKey} from "./ZKNOX_dilithium_utils.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
-    /// @notice Address of the contract storing the pre quantum address and post quantum public key
-    address authorized_HybridPublicKey;
     /// @notice Address of the verification contract logic
     address CoreAddress; // address of the core verifier (DILITHIUM or ETHDILITHIUM)
     uint256 algoID;
@@ -55,33 +54,35 @@ contract ZKNOX_HybridVerifier {
     event CoreVerifierSet(address indexed newCore, uint256 algoID);
 
     /// @notice Initialize the contract with authorized keys and core verifier
-    /// @param _hpk Address storing the public key contract
     /// @param _core Address of the core verifier contract
     /// @param _algoID Algorithm identifier
-    function initialize(address _hpk, address _core, uint256 _algoID) external {
+    function initialize(address _core, uint256 _algoID) external {
         // Only initialize once
-        if (CoreAddress == address(0) && _hpk != address(0) && _core != address(0)) {
-            authorized_HybridPublicKey = _hpk;
+        if (CoreAddress == address(0) && _core != address(0)) {
             CoreAddress = _core;
             algoID = _algoID;
-
-            emit HPKeySet(_hpk);
             emit CoreVerifierSet(_core, _algoID);
         }
     }
 
     /// @notice Verify hybrid signature (ECDSA + MLDSA)
+    /// @param eth_address The ETH address
+    /// @param mldsa_pk The MLDSA public key stored on-chain
     /// @param digest The data that was signed
     /// @param sig The MLDSA signature
     /// @param v ECDSA signature parameter v
     /// @param r ECDSA signature parameter r
     /// @param s ECDSA signature parameter s
     /// @return true if both signatures are valid
-    function isValid(bytes memory digest, Signature memory sig, uint8 v, bytes32 r, bytes32 s)
-        public
-        view
-        returns (bool)
-    {
+    function isValid(
+        address eth_address,
+        address mldsa_pk,
+        bytes memory digest,
+        Signature memory sig,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public view returns (bool) {
         bytes32 digest_for_ecdsa;
         if (digest.length > 32) {
             return false;
@@ -91,26 +92,23 @@ contract ZKNOX_HybridVerifier {
         }
 
         // PK contract address must be non-zero
-        if (authorized_HybridPublicKey == address(0)) {
+        if (mldsa_pk == address(0)) {
             return false; // Signature validation failed
         }
 
-        address hpkAddr = authorized_HybridPublicKey;
-        IPKContract hpk = IPKContract(hpkAddr);
-
-        address eth_addr = hpk.get_eth_address();
+        IPKContract hpk = IPKContract(mldsa_pk);
 
         // Verify ECDSA signature
         address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-        if (recovered != eth_addr) {
+        if (recovered != eth_address) {
             return false; // Signature validation failed
         }
 
         // Verify MLDSA signature
-        PubKey memory mldsa_pk = hpk.get_mldsa_public_key();
+        PubKey memory mldsa_public_key = hpk.get_mldsa_public_key();
         ZKNOX_dilithium core = ZKNOX_dilithium(CoreAddress);
         // ISigVerifier core = ISigVerifier(CoreAddress);
-        if (!core.verify(mldsa_pk, digest, sig, "")) {
+        if (!core.verify(mldsa_public_key, digest, sig, "")) {
             return false; // Signature validation failed
         }
 
