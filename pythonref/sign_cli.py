@@ -241,8 +241,8 @@ def cli():
     #                     help="Value in hexadecimal for the transaction")
     parser.add_argument("--privkey", type=str,
                         help="Private key file for signing")
-    parser.add_argument("--seed_mldsa", type=str,
-                        help="Seed MLDSA for keygen")
+    parser.add_argument("--seed", type=str,
+                        help="Seed for keygen")
     parser.add_argument("--pubkey", type=str,
                         help="Public key file for verification")
     parser.add_argument("--contractaddress", type=str,
@@ -274,18 +274,18 @@ def cli():
             print("Error: Provide --version")
             return
 
-        if not args.seed_mldsa:
-            from seed import seed_mldsa
+        if not args.seed:
+            from seed import seed
         else:
-            seed_mldsa = args.seed_mldsa
-        Dilithium2.set_drbg_seed(seed_mldsa)
+            seed = args.seed
         if args.version == "MLDSA":
-            pk, sk = Dilithium2.keygen()
+            pk, sk = Dilithium2.key_derive(seed=seed)
             ρ, t1 = Dilithium2._unpack_pk(pk)
             A_hat = Dilithium2._expand_matrix_from_seed(ρ)
             tr = Dilithium2._h(pk, 64)
         else:
-            pk, sk = Dilithium2.keygen(_xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+            pk, sk = Dilithium2.key_derive(
+                seed=seed, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
             ρ, t1 = Dilithium2._unpack_pk(pk)
             A_hat = Dilithium2._expand_matrix_from_seed(ρ, _xof=Keccak256PRNG)
             tr = Dilithium2._h(pk, 64, _xof=Keccak256PRNG)
