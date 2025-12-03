@@ -72,23 +72,94 @@ def transaction_hash(nonce, to, data, value):
     return K.squeeze(32)
 
 
-# def print_signature_transaction(sig, pk, tx_hash):
-#     TX_HASH = "0x" + tx_hash.hex()
+def deploy_onchain(A_hat_compact, t1_compact, tr, privatekey, apikey, version):
+    print("Solidity deployment")
 
-#     salt = sig[HEAD_LEN:HEAD_LEN + SALT_LEN]
-#     SALT = "0x"+salt.hex()
+    SOL = """
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-#     enc_s = sig[HEAD_LEN + SALT_LEN:]
-#     s2 = decompress(enc_s, pk.sig_bytelen - HEAD_LEN - SALT_LEN, 512)
-#     s2 = [elt % q for elt in s2]
-#     s2_compact = falcon_compact(s2)
-#     S2 = str(s2_compact)
-#     pk_compact = falcon_compact(Poly(pk.pk, q).ntt())
-#     PK = str(pk_compact)
-#     print("TX_HASH = {}".format(TX_HASH))
-#     print("PK = {}".format(PK))
-#     print("S2 = {}".format(S2))
-#     print("SALT = {}".format(SALT))
+import "forge-std/Script.sol";
+import "../src/ZKNOX_PKContract.sol";
+import {BaseScript} from "./BaseScript.sol";
+
+contract DeployPKContract is BaseScript {
+function run() external returns (address) {
+    vm.startBroadcast();
+
+    // Example of public key
+    uint256[][][] memory A_hat = new uint256[][][](4);
+    for (uint256 i = 0; i < 4; i++) {
+        A_hat[i] = new uint256[][](4);
+        for (uint256 j = 0; j < 4; j++) {
+            A_hat[i][j] = new uint256[](32);
+        }
+    }
+    """
+    for ii in range(4):
+        for jj in range(4):
+            for kk in range(32):
+                SOL += "A_hat[{}][{}][{}] = uint256({});\n".format(
+                    ii, jj, kk, A_hat_compact[ii][jj][kk])
+    SOL += "bytes memory tr = hex\"{}\";\n".format(tr.hex())
+    SOL += """uint256[][] memory t1 = new uint256[][](4);
+    for (uint256 i = 0; i < 4; i++) {
+        t1[i] = new uint256[](32);
+    }
+    """
+    for ii in range(4):
+        for jj in range(32):
+            SOL += "t1[{}][{}] = uint256({});\n".format(
+                ii,
+                jj,
+                t1_compact[ii][0][jj]
+            )
+
+    SOL += """
+    // Deploy PKContract
+    PKContract pk = new PKContract(A_hat, tr, t1);
+
+    console.log("Deployed PKContract at:", address(pk));
+
+    vm.stopBroadcast();
+    return address(pk);
+}
+}
+"""
+    sol_file = open("../script/Deploy_{}_PK.s.sol".format(version), 'w')
+    sol_file.write(SOL)
+    sol_file.close()
+
+    if not privatekey:
+        print("Error: Provide --privatekey")
+        return
+    if not apikey:
+        print("Error: Provide --apikey")
+        return
+
+    result = subprocess.run(
+        [
+            "forge",
+            "script",
+            "../script/Deploy_{}_PK.s.sol".format(version),
+            "--rpc-url",
+            "https://api.zan.top/arb-sepolia",
+            "--private-key",
+            privatekey,
+            "--broadcast",
+            "--tc",
+            "DeployPKContract",
+            "--etherscan-api-key",
+            apikey,
+            "--verify",
+            "--priority-gas-price",
+            "1"
+        ],
+        capture_output=True,
+        text=True
+    )
+    print(result.stdout)
+    print(result.stderr)
 
 
 def verify_signature(pk, data, sig, version):
@@ -298,93 +369,8 @@ def cli():
         save_sk(sk, "private_key.pem", args.version)
         print("Keys generated and saved.")
 
-        print("Solidity deployment")
-
-        SOL = """
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-import "forge-std/Script.sol";
-import "../src/ZKNOX_PKContract.sol";
-import {BaseScript} from "./BaseScript.sol";
-
-contract DeployPKContract is BaseScript {
-    function run() external returns (address) {
-        vm.startBroadcast();
-
-        // Example of public key
-        uint256[][][] memory A_hat = new uint256[][][](4);
-        for (uint256 i = 0; i < 4; i++) {
-            A_hat[i] = new uint256[][](4);
-            for (uint256 j = 0; j < 4; j++) {
-                A_hat[i][j] = new uint256[](32);
-            }
-        }
-        """
-        for ii in range(4):
-            for jj in range(4):
-                for kk in range(32):
-                    SOL += "A_hat[{}][{}][{}] = uint256({});\n".format(
-                        ii, jj, kk, A_hat_compact[ii][jj][kk])
-        SOL += "bytes memory tr = hex\"{}\";\n".format(tr.hex())
-        SOL += """uint256[][] memory t1 = new uint256[][](4);
-        for (uint256 i = 0; i < 4; i++) {
-            t1[i] = new uint256[](32);
-        }
-        """
-        for ii in range(4):
-            for jj in range(32):
-                SOL += "t1[{}][{}] = uint256({});\n".format(
-                    ii,
-                    jj,
-                    t1_compact[ii][0][jj]
-                )
-
-        SOL += """
-        // Deploy PKContract
-        PKContract pk = new PKContract(A_hat, tr, t1);
-
-        console.log("Deployed PKContract at:", address(pk));
-
-        vm.stopBroadcast();
-        return address(pk);
-    }
-}
-"""
-        sol_file = open("../script/DeployMLPK.s.sol", 'w')
-        sol_file.write(SOL)
-        sol_file.close()
-
-        if not args.privatekey:
-            print("Error: Provide --privatekey")
-            return
-        if not args.apikey:
-            print("Error: Provide --apikey")
-            return
-
-        result = subprocess.run(
-            [
-                "forge",
-                "script",
-                "../script/DeployMLPK.s.sol",
-                "--rpc-url",
-                "https://api.zan.top/arb-sepolia",
-                "--private-key",
-                args.privatekey,
-                "--broadcast",
-                "--tc",
-                "DeployPKContract",
-                "--etherscan-api-key",
-                args.apikey,
-                "--verify",
-                "--priority-gas-price",
-                "1"
-            ],
-            capture_output=True,
-            text=True
-        )
-        print(result.stdout)
-        print(result.stderr)
+        deploy_onchain(A_hat_compact, t1_compact, tr,
+                       args.privatekey, args.apikey, args.version)
 
     elif args.action == "sign":
         if not args.data or not args.privkey:

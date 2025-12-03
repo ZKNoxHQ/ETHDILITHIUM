@@ -8,18 +8,33 @@ We want to be able to verify hybrid signatures in a 4337 contract, where:
 ## Structure of the verification
 
 ### Public key contract
-Each user stores in a `PKContract` on-chain:
-- an Ethereum address for the verification of (1) above,
-- an expanded MLDSA public key of 20+kB for the verification of (2) above.
+Each user stores in a `PKContract` on-chain, a MLDSA expanded public key (20512kB).
+We provide two examples of contracts:
+- one for MLDSA: https://sepolia.arbiscan.io/address/0xa3b09ef2a08f5ef5eb1c091d41a47a39ecb87433#code,
+- one for MLDSAETH: https://sepolia.arbiscan.io/address/0x63f86064666ae6653044d11f2486caef47392ed4#code
+
+These two contracts have the same structure, and the difference is in the `Contract Creation Code` that actually contain the matrix `A_hat`, the bytes `tr` and the vector `t1` in expanded form, and necessary for the MLDSA(ETH) verification with the current (ETH)Dilithium verification contract.
 
 ### HybridVerifier contract
-A contract `ZKNOX_HybridVerifier` takes as inputs:
-- a `PKContract` address called `authorized_HybridPublicKey`,
-- a `ZKNOX_Dilithium` address called `CoreAddress`.
+A (unique) contract `ZKNOX_HybridVerifier` contains a function `isValid`, taking as inputs:
+- an address pointing to a `PKContract`,
+- an address pointing to a contract with the core verifier algorithm, here `ZKNOX_Dilithium` or `ZKNOX_ETHDilithium`.
 
-The contract contains a function `isValid(bytes memory digest, Signature memory sig, uint8 v, bytes32 r, bytes32 s)`.
-This function:
-- Fetches the expanded MLDSA public key stored in `authorized_HybridPublicKey`,
+The contract contains a function
+```
+isValid(
+    address ecdsa_address,
+    address mldsa_address,
+    bytes memory digest,
+    Signature memory sig,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+)
+```
+This function does the following:
+- Verifies the ECDSA signature `(v,r,s)` using by checking the `ecdsa_address` using `ecrecover`
+- Fetches the expanded MLDSA public key stored at the address `mldsa_address`,
 - Verifies the MLDSA signature with the `verify` function stored in the contract `CoreAddress`, w.r.t. the expanded public key
 - Fetches the Ethereum address stored in `authorized_HybridPublicKey`,
 - Verifies the classic signature `(v,r,s)` using `ecrecover` w.r.t. the Ethereum address. 
