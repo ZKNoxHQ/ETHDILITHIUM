@@ -46,7 +46,7 @@ import {Test, console} from "forge-std/Test.sol";
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
     /// @notice Address of the verification contract logic
-    address CoreAddress; // address of the core verifier (DILITHIUM or ETHDILITHIUM)
+    address verifier_address; // address of the core verifier (DILITHIUM or ETHDILITHIUM)
     uint256 algoID;
 
     /// @notice Events
@@ -58,16 +58,16 @@ contract ZKNOX_HybridVerifier {
     /// @param _algoID Algorithm identifier
     function initialize(address _core, uint256 _algoID) external {
         // Only initialize once
-        if (CoreAddress == address(0) && _core != address(0)) {
-            CoreAddress = _core;
+        if (verifier_address == address(0) && _core != address(0)) {
+            verifier_address = _core;
             algoID = _algoID;
             emit CoreVerifierSet(_core, _algoID);
         }
     }
 
     /// @notice Verify hybrid signature (ECDSA + MLDSA)
-    /// @param eth_address The ETH address
-    /// @param mldsa_pk The MLDSA public key stored on-chain
+    /// @param ecdsa_address The ECDSA address
+    /// @param mldsa_address The MLDSA address (pointing to a contract containing the public key)
     /// @param digest The data that was signed
     /// @param sig The MLDSA signature
     /// @param v ECDSA signature parameter v
@@ -75,8 +75,8 @@ contract ZKNOX_HybridVerifier {
     /// @param s ECDSA signature parameter s
     /// @return true if both signatures are valid
     function isValid(
-        address eth_address,
-        address mldsa_pk,
+        address ecdsa_address,
+        address mldsa_address,
         bytes memory digest,
         Signature memory sig,
         uint8 v,
@@ -91,23 +91,19 @@ contract ZKNOX_HybridVerifier {
             digest_for_ecdsa := mload(add(digest, 32))
         }
 
-        // PK contract address must be non-zero
-        if (mldsa_pk == address(0)) {
-            return false; // Signature validation failed
-        }
-
-        IPKContract hpk = IPKContract(mldsa_pk);
-
         // Verify ECDSA signature
         address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-        if (recovered != eth_address) {
+        if (recovered != ecdsa_address) {
             return false; // Signature validation failed
         }
 
         // Verify MLDSA signature
+        if (mldsa_address == address(0)) {
+            return false; // Signature validation failed
+        }
+        IPKContract hpk = IPKContract(mldsa_address);
         PubKey memory mldsa_public_key = hpk.get_mldsa_public_key();
-        ZKNOX_dilithium core = ZKNOX_dilithium(CoreAddress);
-        // ISigVerifier core = ISigVerifier(CoreAddress);
+        ZKNOX_dilithium core = ZKNOX_dilithium(verifier_address);
         if (!core.verify(mldsa_public_key, digest, sig, "")) {
             return false; // Signature validation failed
         }

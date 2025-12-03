@@ -13,12 +13,10 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     IEntryPoint private _entryPoint;
     address private eth_address;
     address private mldsa_pk_address;
-    // PKContract private _pkContract;
     ZKNOX_HybridVerifier private hybridVerifier;
 
     constructor(
         IEntryPoint entry_point,
-        // PKContract pkContract,
         address _eth_address,
         address _mldsa_pk_address,
         ZKNOX_HybridVerifier _hybridVerifier
@@ -26,7 +24,6 @@ contract ZKNOX_ERC4337_account is BaseAccount {
         _entryPoint = entry_point;
         eth_address = _eth_address;
         mldsa_pk_address = _mldsa_pk_address;
-        // _pkContract = pkContract;
         hybridVerifier = _hybridVerifier;
     }
 
