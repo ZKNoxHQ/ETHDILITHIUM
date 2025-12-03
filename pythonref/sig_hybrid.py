@@ -1,6 +1,4 @@
 from dilithium_py.dilithium.default_parameters import Dilithium2 as D
-from dilithium_py.tests.test_dilithium import parse_kat_data
-from dilithium_py.drbg.aes256_ctr_drbg import AES256_CTR_DRBG
 from seed import seed
 import sys
 from eth_abi import encode
