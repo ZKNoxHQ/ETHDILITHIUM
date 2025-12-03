@@ -11,7 +11,7 @@ import {Test} from "forge-std/Test.sol";
 import {ZKNOX_ERC4337_account} from "../src/ZKNOX_ERC4337_account.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 
-import {DeployPKContract} from "../script/DeployMLPK.s.sol";
+import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -52,16 +52,14 @@ contract TestERC4337_Account is Test {
 
         hybridVerifier = new ZKNOX_HybridVerifier();
 
-        // Initialize the hybrid contract with addresses
-        hybridVerifier.initialize(
-            verifierAddr, // PQ verification logic
-            1 // algoID = 1 for Dilithium
-        );
-
-        address eth_address = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E;
+        bytes memory eth_address = hex"9140286CDA95d59fa5f29ecb11dDe1F817999F9E";
+        bytes memory mldsa_address = abi.encodePacked(pkContractAddress);
+        address hybrid_verifier = address(hybridVerifier);
 
         // Deploy the Smart Account
-        account = new ZKNOX_ERC4337_account(entryPoint, eth_address, pkContractAddress, hybridVerifier);
+        account = new ZKNOX_ERC4337_account(
+            entryPoint, eth_address, mldsa_address, address(0x00000000000000000000000000000000), hybrid_verifier
+        );
         // Deploy TestTarget
         target = new TestTarget();
 
@@ -84,10 +82,11 @@ contract TestERC4337_Account is Test {
         bytes memory result = vm.ffi(cmds);
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-        signature = Signature({c_tilde: c_tilde, z: z, h: h});
 
-        // Encode the signature
-        userOp.signature = abi.encode(signature, v, r, s);
+        // Encoding side:
+        bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
+        bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
+        userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
 
         // Call validateUserOp from EntryPoint context
         vm.prank(address(entryPoint));

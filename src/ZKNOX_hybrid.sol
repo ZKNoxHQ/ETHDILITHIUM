@@ -45,43 +45,23 @@ import {Test, console} from "forge-std/Test.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
-    /// @notice Address of the verification contract logic
-    address verifier_address; // address of the core verifier (DILITHIUM or ETHDILITHIUM)
-    uint256 algoID;
-
-    /// @notice Events
-    event HPKeySet(address indexed newKey);
-    event CoreVerifierSet(address indexed newCore, uint256 algoID);
-
-    /// @notice Initialize the contract with authorized keys and core verifier
-    /// @param _core Address of the core verifier contract
-    /// @param _algoID Algorithm identifier
-    function initialize(address _core, uint256 _algoID) external {
-        // Only initialize once
-        if (verifier_address == address(0) && _core != address(0)) {
-            verifier_address = _core;
-            algoID = _algoID;
-            emit CoreVerifierSet(_core, _algoID);
-        }
-    }
-
     /// @notice Verify hybrid signature (ECDSA + MLDSA)
-    /// @param ecdsa_address The ECDSA address
-    /// @param mldsa_address The MLDSA address (pointing to a contract containing the public key)
+    /// @param pre_quantum_pubkey The ECDSA address
+    /// @param post_quantum_pubkey The MLDSA address (pointing to a contract containing the public key)
+    /// @param pre_quantum_logic_contract_address the logic of the pre-quantum verification
+    /// @param post_quantum_logic_contract_address the logic of the post-quantum verification
     /// @param digest The data that was signed
-    /// @param sig The MLDSA signature
-    /// @param v ECDSA signature parameter v
-    /// @param r ECDSA signature parameter r
-    /// @param s ECDSA signature parameter s
+    /// @param pre_quantum_sig the ECDSA signature [r, s, v]
+    /// @param post_quantum_sig the MLDSA signature [c_tilde, z, h]
     /// @return true if both signatures are valid
     function isValid(
-        address ecdsa_address,
-        address mldsa_address,
+        bytes memory pre_quantum_pubkey,
+        bytes memory post_quantum_pubkey,
+        address pre_quantum_logic_contract_address,
+        address post_quantum_logic_contract_address,
         bytes memory digest,
-        Signature memory sig,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        bytes memory pre_quantum_sig,
+        bytes memory post_quantum_sig
     ) public view returns (bool) {
         bytes32 digest_for_ecdsa;
         if (digest.length > 32) {
@@ -90,24 +70,54 @@ contract ZKNOX_HybridVerifier {
         assembly {
             digest_for_ecdsa := mload(add(digest, 32))
         }
-
         // Verify ECDSA signature
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        assembly {
+            r := mload(add(pre_quantum_sig, 32))
+            s := mload(add(pre_quantum_sig, 64))
+            v := byte(0, mload(add(pre_quantum_sig, 96)))
+        }
         address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-        if (recovered != ecdsa_address) {
+        require(pre_quantum_pubkey.length == 20, "bytes length != 20");
+        address pre_quantum_address;
+        assembly {
+            pre_quantum_address := mload(add(pre_quantum_pubkey, 20))
+        }
+        if (recovered != pre_quantum_address) {
             return false; // Signature validation failed
         }
 
         // Verify MLDSA signature
-        if (mldsa_address == address(0)) {
-            return false; // Signature validation failed
+        // TODO check address(0)?
+        address post_quantum_address;
+        assembly {
+            post_quantum_address := mload(add(post_quantum_pubkey, 20))
         }
-        IPKContract hpk = IPKContract(mldsa_address);
+        IPKContract hpk = IPKContract(post_quantum_address);
         PubKey memory mldsa_public_key = hpk.get_mldsa_public_key();
-        ZKNOX_dilithium core = ZKNOX_dilithium(verifier_address);
+        ZKNOX_dilithium core = ZKNOX_dilithium(post_quantum_logic_contract_address);
+        Signature memory sig;
+
+        sig.c_tilde = slice(post_quantum_sig, 0, 32);
+        sig.z = slice(post_quantum_sig, 32, 2304);
+        sig.h = slice(post_quantum_sig, 2336, 84);
         if (!core.verify(mldsa_public_key, digest, sig, "")) {
             return false; // Signature validation failed
         }
-
         return true;
     }
 } // end contract
+
+function slice(bytes memory data, uint256 start, uint256 len) pure returns (bytes memory) {
+    require(data.length >= start + len, "slice out of range");
+
+    bytes memory b = new bytes(len);
+
+    for (uint256 i = 0; i < len; i++) {
+        b[i] = data[start + i];
+    }
+
+    return b;
+}

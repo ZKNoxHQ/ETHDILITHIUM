@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 import {Signature} from "../src/ZKNOX_dilithium_utils.sol";
-import {DeployPKContract} from "../script/DeployMLPK.s.sol";
+import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 
 contract TestHybridVerifier is Test {
@@ -26,14 +26,11 @@ contract TestHybridVerifier is Test {
     function testHybridVerify() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        hybrid.initialize(verifier_address, 1);
         address eth_address = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E;
 
         bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
-        Signature memory sig;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
+        bytes memory pre_quantum_sig;
+        bytes memory post_quantum_sig;
         {
 
             string[] memory cmds = new string[](3);
@@ -45,18 +42,22 @@ contract TestHybridVerifier is Test {
             (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
-            sig.c_tilde = c_tilde;
-            sig.z = z;
-            sig.h = h;
-            v = _v;
-            r = bytes32(_r);
-            s = bytes32(_s);
+            pre_quantum_sig = abi.encodePacked(_r, _s, _v);
+            post_quantum_sig = abi.encodePacked(c_tilde, z, h);
         }
 
         // Scope 3: Verify
         {
             uint256 gasStart = gasleft();
-            bool valid = hybrid.isValid(eth_address, mldsa_address, data, sig, v, r, s);
+            bool valid = hybrid.isValid(
+                abi.encodePacked(eth_address),
+                abi.encodePacked(mldsa_address),
+                address(0x1234123412341234123412341234123412341234),
+                verifier_address,
+                data,
+                pre_quantum_sig,
+                post_quantum_sig
+            );
             uint256 gasUsed = gasStart - gasleft();
             console.log("Gas used:", gasUsed);
             assertTrue(valid);
