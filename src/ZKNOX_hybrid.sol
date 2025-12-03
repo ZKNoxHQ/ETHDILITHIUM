@@ -63,14 +63,32 @@ contract ZKNOX_HybridVerifier {
         bytes memory pre_quantum_sig,
         bytes memory post_quantum_sig
     ) public view returns (bool) {
-        bytes32 digest_for_ecdsa;
+        // Validate digest length
         if (digest.length > 32) {
             return false;
         }
+
+        // Verify ECDSA signature
+        if (!_verifyECDSA(pre_quantum_pubkey, digest, pre_quantum_sig)) {
+            return false;
+        }
+
+        // Verify MLDSA signature
+        return _verifyMLDSA(post_quantum_pubkey, post_quantum_logic_contract_address, digest, post_quantum_sig);
+    }
+
+    function _verifyECDSA(bytes memory pre_quantum_pubkey, bytes memory digest, bytes memory pre_quantum_sig)
+        private
+        pure
+        returns (bool)
+    {
+        require(pre_quantum_pubkey.length == 20, "bytes length != 20");
+
+        bytes32 digest_for_ecdsa;
         assembly {
             digest_for_ecdsa := mload(add(digest, 32))
         }
-        // Verify ECDSA signature
+
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -79,34 +97,40 @@ contract ZKNOX_HybridVerifier {
             s := mload(add(pre_quantum_sig, 64))
             v := byte(0, mload(add(pre_quantum_sig, 96)))
         }
+
         address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-        require(pre_quantum_pubkey.length == 20, "bytes length != 20");
+
         address pre_quantum_address;
         assembly {
             pre_quantum_address := mload(add(pre_quantum_pubkey, 20))
         }
-        if (recovered != pre_quantum_address) {
-            return false; // Signature validation failed
-        }
 
-        // Verify MLDSA signature
-        // TODO check address(0)?
+        return recovered == pre_quantum_address;
+    }
+
+    function _verifyMLDSA(
+        bytes memory post_quantum_pubkey,
+        address post_quantum_logic_contract_address,
+        bytes memory digest,
+        bytes memory post_quantum_sig
+    ) private view returns (bool) {
         address post_quantum_address;
         assembly {
             post_quantum_address := mload(add(post_quantum_pubkey, 20))
         }
+
         IPKContract hpk = IPKContract(post_quantum_address);
         PubKey memory mldsa_public_key = hpk.get_mldsa_public_key();
-        ZKNOX_dilithium core = ZKNOX_dilithium(post_quantum_logic_contract_address);
-        Signature memory sig;
 
-        sig.c_tilde = slice(post_quantum_sig, 0, 32);
-        sig.z = slice(post_quantum_sig, 32, 2304);
-        sig.h = slice(post_quantum_sig, 2336, 84);
-        if (!core.verify(mldsa_public_key, digest, sig, "")) {
-            return false; // Signature validation failed
-        }
-        return true;
+        ZKNOX_dilithium core = ZKNOX_dilithium(post_quantum_logic_contract_address);
+
+        Signature memory sig = Signature({
+            c_tilde: slice(post_quantum_sig, 0, 32),
+            z: slice(post_quantum_sig, 32, 2304),
+            h: slice(post_quantum_sig, 2336, 84)
+        });
+
+        return core.verify(mldsa_public_key, digest, sig, "");
     }
 } // end contract
 

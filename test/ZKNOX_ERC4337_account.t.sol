@@ -7,7 +7,7 @@ import {IStakeManager} from "../lib/account-abstraction/contracts/interfaces/ISt
 import {PackedUserOperation} from "../lib/account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {Signature} from "../src/ZKNOX_dilithium_utils.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ERC4337_account} from "../src/ZKNOX_ERC4337_account.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 
@@ -37,34 +37,32 @@ contract TestERC4337_Account is Test {
          */
 
         DeployPKContract deployPKContract = new DeployPKContract();
-        address pkContractAddress = deployPKContract.run();
+        address post_quantum_address = deployPKContract.run();
 
         Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
-        address verifierAddr = script_Deploy_Dilithium.run();
-
-        owner = 0x1234567890123456789012345678901234567890;
+        address post_quantum_logic_address = script_Deploy_Dilithium.run();
 
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
 
-        // PKContract address deployed previously
-        pkContract = PKContract(pkContractAddress);
-
-        hybridVerifier = new ZKNOX_HybridVerifier();
-
-        bytes memory eth_address = hex"9140286CDA95d59fa5f29ecb11dDe1F817999F9E";
-        bytes memory mldsa_address = abi.encodePacked(pkContractAddress);
-        address hybrid_verifier = address(hybridVerifier);
+        bytes memory pre_quantum_pubkey = hex"9140286CDA95d59fa5f29ecb11dDe1F817999F9E";
+        bytes memory post_quantum_pubkey = abi.encodePacked(post_quantum_address);
 
         // Deploy the Smart Account
         account = new ZKNOX_ERC4337_account(
-            entryPoint, eth_address, mldsa_address, address(0x00000000000000000000000000000000), hybrid_verifier
+            entryPoint,
+            pre_quantum_pubkey,
+            post_quantum_pubkey,
+            address(0x00000000000000000000000000000000),
+            post_quantum_logic_address
         );
         // Deploy TestTarget
         target = new TestTarget();
 
         // Fund the account
         vm.deal(address(account), 10 ether);
+
+        owner = 0x1234567890123456789012345678901234567890;
     }
 
     function test_ValidateUserOp_Success() public {
@@ -83,12 +81,10 @@ contract TestERC4337_Account is Test {
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
-        // Encoding side:
         bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
         bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
         userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
 
-        // Call validateUserOp from EntryPoint context
         vm.prank(address(entryPoint));
         uint256 validationData = account.validateUserOp(userOp, userOpHash, 0);
 
@@ -102,9 +98,12 @@ contract TestERC4337_Account is Test {
 
         // Create invalid signatures
         (uint8 v, bytes32 r, bytes32 s) = (28, bytes32(0), bytes32(0));
-        Signature memory invalidSig;
-
-        userOp.signature = abi.encode(invalidSig, v, r, s);
+        bytes memory c_tilde = hex"00";
+        bytes memory z = hex"00";
+        bytes memory h = hex"00";
+        bytes memory invalid_pre_quantum_sig = abi.encodePacked(r, s, v);
+        bytes memory invalid_post_quantum_sig = abi.encodePacked(c_tilde, z, h);
+        userOp.signature = abi.encode(invalid_pre_quantum_sig, invalid_post_quantum_sig);
 
         vm.prank(address(entryPoint));
         uint256 validationData = account.validateUserOp(userOp, userOpHash, 0);
@@ -129,10 +128,10 @@ contract TestERC4337_Account is Test {
         bytes memory result = vm.ffi(cmds);
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-        signature = Signature({c_tilde: c_tilde, z: z, h: h});
 
-        // Encode the signature
-        userOp.signature = abi.encode(signature, v, r, s);
+        bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
+        bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
+        userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
 
         // Create an array with a single UserOperation
         PackedUserOperation[] memory ops = new PackedUserOperation[](1);
@@ -146,6 +145,7 @@ contract TestERC4337_Account is Test {
 
         // Call handleOps on the EntryPoint
         entryPoint.handleOps(ops, payable(owner));
+
         assertEq(target.lastGreeting(), "Hello from UserOp", "Target call should succeed");
     }
 
