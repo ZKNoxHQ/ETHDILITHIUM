@@ -41,6 +41,7 @@ pragma solidity ^0.8.25;
 import {Signature, PubKey} from "./ZKNOX_dilithium_utils.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
+import {ZKNOX_ecdsa} from "./ZKNOX_ECDSA.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
@@ -69,43 +70,24 @@ contract ZKNOX_HybridVerifier {
         }
 
         // Verify ECDSA signature
-        if (!_verifyECDSA(pre_quantum_pubkey, digest, pre_quantum_sig)) {
+        ZKNOX_ecdsa core = ZKNOX_ecdsa(pre_quantum_logic_contract_address);
+        if (!core.verify(pre_quantum_pubkey, digest, pre_quantum_sig, "")) {
             return false;
         }
 
         // Verify MLDSA signature
-        return _verifyMLDSA(post_quantum_pubkey, post_quantum_logic_contract_address, digest, post_quantum_sig);
-    }
-
-    function _verifyECDSA(bytes memory pre_quantum_pubkey, bytes memory digest, bytes memory pre_quantum_sig)
-        private
-        pure
-        returns (bool)
-    {
-        require(pre_quantum_pubkey.length == 20, "bytes length != 20");
-
-        bytes32 digest_for_ecdsa;
+        address post_quantum_address;
         assembly {
-            digest_for_ecdsa := mload(add(digest, 32))
+            post_quantum_address := mload(add(post_quantum_pubkey, 20))
         }
-
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-        assembly {
-            r := mload(add(pre_quantum_sig, 32))
-            s := mload(add(pre_quantum_sig, 64))
-            v := byte(0, mload(add(pre_quantum_sig, 96)))
-        }
-
-        address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-
-        address pre_quantum_address;
-        assembly {
-            pre_quantum_address := mload(add(pre_quantum_pubkey, 20))
-        }
-
-        return recovered == pre_quantum_address;
+        PubKey memory mldsa_public_key = IPKContract(post_quantum_address).get_mldsa_public_key();
+        ZKNOX_dilithium mldsa = ZKNOX_dilithium(post_quantum_logic_contract_address);
+        Signature memory sig = Signature({
+            c_tilde: slice(post_quantum_sig, 0, 32),
+            z: slice(post_quantum_sig, 32, 2304),
+            h: slice(post_quantum_sig, 2336, 84)
+        });
+        return mldsa.verify(mldsa_public_key, digest, sig, "");
     }
 
     function _verifyMLDSA(
@@ -113,25 +95,7 @@ contract ZKNOX_HybridVerifier {
         address post_quantum_logic_contract_address,
         bytes memory digest,
         bytes memory post_quantum_sig
-    ) private view returns (bool) {
-        address post_quantum_address;
-        assembly {
-            post_quantum_address := mload(add(post_quantum_pubkey, 20))
-        }
-
-        IPKContract hpk = IPKContract(post_quantum_address);
-        PubKey memory mldsa_public_key = hpk.get_mldsa_public_key();
-
-        ZKNOX_dilithium core = ZKNOX_dilithium(post_quantum_logic_contract_address);
-
-        Signature memory sig = Signature({
-            c_tilde: slice(post_quantum_sig, 0, 32),
-            z: slice(post_quantum_sig, 32, 2304),
-            h: slice(post_quantum_sig, 2336, 84)
-        });
-
-        return core.verify(mldsa_public_key, digest, sig, "");
-    }
+    ) private view returns (bool) {}
 } // end contract
 
 function slice(bytes memory data, uint256 start, uint256 len) pure returns (bytes memory) {

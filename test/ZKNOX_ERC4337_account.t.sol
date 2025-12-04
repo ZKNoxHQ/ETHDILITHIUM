@@ -13,6 +13,7 @@ import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
+import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -42,6 +43,9 @@ contract TestERC4337_Account is Test {
         Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
         address post_quantum_logic_address = script_Deploy_Dilithium.run();
 
+        Script_Deploy_ECDSA script_Deploy_ecdsa = new Script_Deploy_ECDSA();
+        address pre_quantum_logic_address = script_Deploy_ecdsa.run();
+
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
 
@@ -50,11 +54,7 @@ contract TestERC4337_Account is Test {
 
         // Deploy the Smart Account
         account = new ZKNOX_ERC4337_account(
-            entryPoint,
-            pre_quantum_pubkey,
-            post_quantum_pubkey,
-            address(0x00000000000000000000000000000000),
-            post_quantum_logic_address
+            entryPoint, pre_quantum_pubkey, post_quantum_pubkey, pre_quantum_logic_address, post_quantum_logic_address
         );
         // Deploy TestTarget
         target = new TestTarget();

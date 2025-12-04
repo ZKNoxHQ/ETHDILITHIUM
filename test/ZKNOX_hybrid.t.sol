@@ -8,12 +8,14 @@ import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {DeployPKContract as DeployMLDSAETHPKContract} from "../script/Deploy_MLDSAETH_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 import {Script_Deploy_ETHDilithium} from "../script/DeployETHDilithium.s.sol";
+import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
 
 contract TestHybridVerifier is Test {
     address mldsa_address;
     address mldsaeth_address;
     address verifier_address;
     address verifier_eth_address;
+    address ecdsa_verifier_address;
 
     function setUp() public {
         // deploy the contract containing the MLDSA public key
@@ -33,6 +35,10 @@ contract TestHybridVerifier is Test {
         // deploy the contract containing the MLDSAETH core algorithm
         Script_Deploy_ETHDilithium deployETHVerifierContract = new Script_Deploy_ETHDilithium();
         verifier_eth_address = deployETHVerifierContract.run();
+
+        // deploy the contract containing the ECDSA core algorithm
+        Script_Deploy_ECDSA deployECDSAVerifierContract = new Script_Deploy_ECDSA();
+        ecdsa_verifier_address = deployECDSAVerifierContract.run();
     }
 
     function testHybridVerify() public {
@@ -44,7 +50,6 @@ contract TestHybridVerifier is Test {
         bytes memory pre_quantum_sig;
         bytes memory post_quantum_sig;
         {
-            console.log("HERE");
             string[] memory cmds = new string[](4);
             cmds[0] = "pythonref/myenv/bin/python";
             cmds[1] = "pythonref/sig_hybrid.py";
@@ -65,7 +70,7 @@ contract TestHybridVerifier is Test {
             bool valid = hybrid.isValid(
                 abi.encodePacked(eth_address),
                 abi.encodePacked(mldsa_address),
-                address(0x1234123412341234123412341234123412341234),
+                ecdsa_verifier_address,
                 verifier_address,
                 data,
                 pre_quantum_sig,
@@ -106,7 +111,7 @@ contract TestHybridVerifier is Test {
             bool valid = hybrid.isValid(
                 abi.encodePacked(eth_address),
                 abi.encodePacked(mldsaeth_address),
-                address(0x1234123412341234123412341234123412341234),
+                ecdsa_verifier_address,
                 verifier_eth_address,
                 data,
                 pre_quantum_sig,
