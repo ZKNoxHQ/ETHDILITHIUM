@@ -2,7 +2,6 @@ cache/
 out/
 
 __pycache__
-python-ref/myenv/
 pythonref/myenv
 .idea
 
@@ -17,3 +16,5 @@ c-ref/PQCsignKAT_Dilithium2.req
 c-ref/PQCsignKAT_Dilithium2.rsp
 c-ref/PQCsignKAT_Dilithium2_ETH.rsp
 c-ref/nistkat/PQCgenKAT_sign2_eth
+
+pythonref/seed.py
