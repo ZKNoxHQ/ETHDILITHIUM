@@ -73,10 +73,12 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        string[] memory cmds = new string[](3);
+        string[] memory cmds = new string[](4);
         cmds[0] = "pythonref/myenv/bin/python";
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytes32ToHex(userOpHash);
+        cmds[3] = "NIST";
+
         bytes memory result = vm.ffi(cmds);
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
@@ -121,10 +123,12 @@ contract TestERC4337_Account is Test {
 
         // Sign the userOpHash with both MLDSA and ECDSA
         // Using python
-        string[] memory cmds = new string[](3);
+        string[] memory cmds = new string[](4);
         cmds[0] = "pythonref/myenv/bin/python";
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytes32ToHex(userOpHash);
+        cmds[3] = "NIST";
+
         bytes memory result = vm.ffi(cmds);
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
