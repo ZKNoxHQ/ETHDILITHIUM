@@ -357,9 +357,10 @@ def cli():
         else:
             pk, sk = Dilithium2.key_derive(
                 seed=seed, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
-            ρ, t1 = Dilithium2._unpack_pk(pk)
-            A_hat = Dilithium2._expand_matrix_from_seed(ρ, _xof=Keccak256PRNG)
-            tr = Dilithium2._h(pk, 64, _xof=Keccak256PRNG)
+            # ρ, t1 = Dilithium2._unpack_pk(pk)
+            A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
+            # A_hat = Dilithium2._expand_matrix_from_seed(ρ, _xof=Keccak256PRNG)
+            # tr = Dilithium2._h(pk, 64, _xof=Keccak256PRNG)
 
         # Compact PK for Solidity
         A_hat_compact = A_hat.compact_256(32)

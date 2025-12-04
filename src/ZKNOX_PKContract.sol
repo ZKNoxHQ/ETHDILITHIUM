@@ -39,31 +39,20 @@ import {PubKey} from "./ZKNOX_dilithium_utils.sol";
 
 // A PKContract stored:
 // - mldsa_pk an expanded MLDSA public key
-// - eth_addr an Ethereum address
 contract PKContract {
     PubKey private mldsa_pk;
 
-    // address private eth_addr;
-
     // Constructor initializes the full key
     constructor(uint256[][][] memory _a_hat, bytes memory _tr, uint256[][] memory _t1) {
-        //address addr) {
         mldsa_pk = PubKey({a_hat: _a_hat, tr: _tr, t1: _t1});
-        // eth_addr = addr;
     }
 
     // Return the Post-Quantum public key
     function get_mldsa_public_key() external view returns (PubKey memory) {
         return mldsa_pk;
     }
-
-    // // Return the EC address
-    // function get_eth_address() external view returns (address) {
-    //     return eth_addr;
-    // }
 }
 
 interface IPKContract {
     function get_mldsa_public_key() external view returns (PubKey memory);
-    // function get_eth_address() external view returns (address);
 }
