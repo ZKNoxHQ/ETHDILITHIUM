@@ -41,7 +41,7 @@ pragma solidity ^0.8.25;
 interface IVerifier {
     function verify(bytes memory pubkey, bytes memory digest, bytes memory sig, bytes memory ctx)
         external
-        view    
+        view
         returns (bool result);
 
     // function GetPublicKey(address _from) external view returns (uint256[] memory Kpub);
