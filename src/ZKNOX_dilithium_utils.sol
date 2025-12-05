@@ -257,3 +257,14 @@ struct PubKey {
     uint256[][] t1;
 }
 
+function slice(bytes memory data, uint256 start, uint256 len) pure returns (bytes memory) {
+    require(data.length >= start + len, "slice out of range");
+
+    bytes memory b = new bytes(len);
+
+    for (uint256 i = 0; i < len; i++) {
+        b[i] = data[start + i];
+    }
+
+    return b;
+}

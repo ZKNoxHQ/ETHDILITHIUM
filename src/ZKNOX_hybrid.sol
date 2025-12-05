@@ -38,8 +38,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Signature, PubKey} from "./ZKNOX_dilithium_utils.sol";
+import {Signature, PubKey, slice} from "./ZKNOX_dilithium_utils.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
+import {IVerifier} from "./ZKNOX_IVerifier.sol";
 import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
 import {ZKNOX_ecdsa} from "./ZKNOX_ECDSA.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -70,8 +71,8 @@ contract ZKNOX_HybridVerifier {
         }
 
         // Verify ECDSA signature
-        ZKNOX_ecdsa core = ZKNOX_ecdsa(pre_quantum_logic_contract_address);
-        if (!core.verify(pre_quantum_pubkey, digest, pre_quantum_sig, "")) {
+        IVerifier pre_quantum_core = IVerifier(pre_quantum_logic_contract_address);
+        if (!pre_quantum_core.verify(pre_quantum_pubkey, digest, pre_quantum_sig, "")) {
             return false;
         }
 
@@ -80,32 +81,10 @@ contract ZKNOX_HybridVerifier {
         assembly {
             post_quantum_address := mload(add(post_quantum_pubkey, 20))
         }
-        PubKey memory mldsa_public_key = IPKContract(post_quantum_address).get_mldsa_public_key();
-        ZKNOX_dilithium mldsa = ZKNOX_dilithium(post_quantum_logic_contract_address);
-        Signature memory sig = Signature({
-            c_tilde: slice(post_quantum_sig, 0, 32),
-            z: slice(post_quantum_sig, 32, 2304),
-            h: slice(post_quantum_sig, 2336, 84)
-        });
-        return mldsa.verify(mldsa_public_key, digest, sig, "");
+        IVerifier post_quantum_core = IVerifier(post_quantum_logic_contract_address);
+        if (!post_quantum_core.verify(post_quantum_pubkey, digest, post_quantum_sig, "")) {
+            return false;
+        }
+        return true;
     }
-
-    function _verifyMLDSA(
-        bytes memory post_quantum_pubkey,
-        address post_quantum_logic_contract_address,
-        bytes memory digest,
-        bytes memory post_quantum_sig
-    ) private view returns (bool) {}
 } // end contract
-
-function slice(bytes memory data, uint256 start, uint256 len) pure returns (bytes memory) {
-    require(data.length >= start + len, "slice out of range");
-
-    bytes memory b = new bytes(len);
-
-    for (uint256 i = 0; i < len; i++) {
-        b[i] = data[start + i];
-    }
-
-    return b;
-}

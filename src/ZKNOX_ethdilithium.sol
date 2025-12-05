@@ -54,13 +54,22 @@ import {
 } from "./ZKNOX_dilithium_utils.sol";
 
 import {useHintDilithium} from "./ZKNOX_hint.sol";
+import {IVerifier} from "./ZKNOX_IVerifier.sol";
+import {IPKContract} from "./ZKNOX_PKContract.sol";
 
-contract ZKNOX_ethdilithium {
-    function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
+contract ZKNOX_ethdilithium is IVerifier {
+    function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
-        pure
+        view
         returns (bool)
     {
+        // Fetch the public key from the address `pk`
+        address pub_key_address;
+        assembly {
+            pub_key_address := mload(add(pk, 20))
+        }
+        PubKey memory public_key = IPKContract(pub_key_address).get_mldsa_public_key();
+
         // Step 1: check ctx length
         if (ctx.length > 255) {
             revert("ctx bytes must have length at most 255");
@@ -69,8 +78,11 @@ contract ZKNOX_ethdilithium {
         // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
         bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
+        Signature memory sig =
+            Signature({c_tilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+
         // Step 3: delegate to internal verify
-        return verify_internal(pk, m_prime, signature);
+        return verify_internal(public_key, m_prime, sig);
     }
 
     function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)

@@ -30,47 +30,19 @@
 ///* License: This software is licensed under MIT License
 ///* This Code may be reused including this header, license and copyright notice.
 ///* See LICENSE file at the root folder of the project.
-///* FILE: ZKNOX_ECDSA.sol
-///* Description: Compute the pre-quantum ethereum signature verification
+///* FILE: ZKNOX_IVerifier.sol
+///* Description: Common Interface for Signature Verifier
 /**
  *
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
-import {Test, console} from "forge-std/Test.sol";
-import {IVerifier} from "./ZKNOX_IVerifier.sol";
 
-contract ZKNOX_ecdsa is IVerifier {
+interface IVerifier {
     function verify(bytes memory pubkey, bytes memory digest, bytes memory sig, bytes memory ctx)
         external
-        view
-        returns (bool)
-    {
-        require(pubkey.length == 20, "bytes length != 20");
+        view    
+        returns (bool result);
 
-        bytes32 digest_for_ecdsa;
-        assembly {
-            digest_for_ecdsa := mload(add(digest, 32))
-        }
-
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-        assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
-        }
-
-        address recovered = ecrecover(digest_for_ecdsa, v, r, s);
-
-        address pre_quantum_address;
-        assembly {
-            pre_quantum_address := mload(add(pubkey, 20))
-        }
-
-        return recovered == pre_quantum_address;
-    }
+    // function GetPublicKey(address _from) external view returns (uint256[] memory Kpub);
 }
-
-//end of contract
