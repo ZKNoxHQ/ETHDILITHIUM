@@ -77,10 +77,6 @@ contract ZKNOX_HybridVerifier {
         }
 
         // Verify MLDSA signature
-        address post_quantum_address;
-        assembly {
-            post_quantum_address := mload(add(post_quantum_pubkey, 20))
-        }
         IVerifier post_quantum_core = IVerifier(post_quantum_logic_contract_address);
         if (!post_quantum_core.verify(post_quantum_pubkey, digest, post_quantum_sig, "")) {
             return false;
