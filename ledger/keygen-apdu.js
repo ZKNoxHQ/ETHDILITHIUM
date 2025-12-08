@@ -92,19 +92,41 @@ async function DilithiumKeygen() {
       } catch (err) {
         console.error(`❌ Error sending APDU (${name}):`, err.message);
       }
-      }
+    }
 
     console.log("DILITHIUM PUBLIC KEY:", pubKeyHex);
 
-    
-    // console.log("WRITE INTO A JSON FILE");
-    // const data = {
-    //   pk: pubKeyHex,
-    //   sig: sigHex,
-    //   msg: message
-    // };
-    // const jsonString = JSON.stringify(data, null, 2);
-    // fs.writeFileSync('data.json', jsonString);
+    // get app name
+    const apdus30 = [];
+    apdus30.push({ name: "apdu_get_name", command: "e0040000" });
+    let appname = "";
+    for (const { name, command } of apdus30) {
+      console.log(`\nSending APDU (${name}):`, command);
+
+      const apduBuffer = Buffer.from(command, "hex");
+
+      try {
+        const response = await transport.exchange(apduBuffer);
+        const statusWord = response.slice(-2).toString("hex");
+
+        // The app should return: [nameLength][nameBytes][versionLength][versionBytes]
+        let offset = 0;
+        const nameLength = response[offset];
+        const name = response.slice(0, -2).toString("utf-8");
+        appname += name;
+
+        if (statusWord !== "9000") {
+          console.log("❌ Error - Status Word:", statusWord);
+        }
+      } catch (err) {
+        console.error(`❌ Error sending APDU (${name}):`, err.message);
+      }
+    }
+
+    fs.writeFile('public_key.pem', "# public key\npk = " + pubKeyHex + "\nversion = " + appname, (err) => {
+      if (err) throw err;
+      console.log('Public key file saved!');
+    });
 
   } catch (error) {
     console.error("Error with Ledger transport:", error.message);

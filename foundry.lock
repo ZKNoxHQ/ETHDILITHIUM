@@ -13,5 +13,11 @@
       "name": "v5.5.0",
       "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
     }
+  },
+  "lib/secp256r1-verify": {
+    "tag": {
+      "name": "v0.5.4",
+      "rev": "568a840d0a8465d1bcbb6d96b341e946eeffab6c"
+    }
   }
 }
