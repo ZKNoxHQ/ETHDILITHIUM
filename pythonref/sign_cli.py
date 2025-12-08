@@ -298,7 +298,7 @@ def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private
 
 def cli():
     parser = argparse.ArgumentParser(description="CLI for MLDSA Signature")
-    parser.add_argument("action", choices=["keygen", "keygenonchainsend",  "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
+    parser.add_argument("action", choices=["keygen", "keygenonchainsend", "keygenledgeronchainsend", "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
                         help="Action to perform")
     parser.add_argument("--version", type=str,
                         help="Version to use (MLDSA or MLDSAETH)")
@@ -341,8 +341,8 @@ def cli():
         print("Keys generated and saved.")
 
     if args.action == "keygenonchainsend":
-        if not args.version:
-            print("Error: Provide --version")
+        if not args.version or not args.privatekey or not args.apikey:
+            print("Error: Provide --version, --privatekey and --apikey")
             return
 
         if not args.seed:
@@ -366,6 +366,44 @@ def cli():
         save_pk(pk, "public_key.pem", args.version)
         save_sk(sk, "private_key.pem", args.version)
         print("Keys generated and saved.")
+
+        deploy_onchain(A_hat_compact, t1_compact, tr,
+                       args.privatekey, args.apikey, args.version)
+
+    if args.action == "keygenledgeronchainsend":
+
+        if not args.privatekey or not args.apikey:
+            print("Error: Provide --privatekey and --apikey")
+            return
+
+        result = subprocess.run(
+            ["node", "../ledger/keygen-apdu.js"],
+            capture_output=True,
+            text=True
+        )
+        print(result.stdout)
+
+        vars = {}
+        with open("../ledger/public_key.pem", "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                key, value = map(str.strip, line.split("=", 1))
+                vars[key] = value
+
+        pk = bytes.fromhex(vars['pk'])
+
+        if vars['version'] == 'MLDSA':
+            ρ, t1 = Dilithium2._unpack_pk(pk)
+            A_hat = Dilithium2._expand_matrix_from_seed(ρ)
+            tr = Dilithium2._h(pk, 64)
+        elif vars['version'] == 'MLDSAETH':
+            A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
+
+        # Compact PK for Solidity
+        A_hat_compact = A_hat.compact_256(32)
+        t1_compact = t1.compact_256(32)
 
         deploy_onchain(A_hat_compact, t1_compact, tr,
                        args.privatekey, args.apikey, args.version)
