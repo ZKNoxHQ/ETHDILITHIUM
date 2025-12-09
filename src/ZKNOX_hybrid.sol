@@ -46,14 +46,14 @@ import {ZKNOX_ecdsa} from "./ZKNOX_ECDSA.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
-    /// @notice Verify hybrid signature (ECDSA + MLDSA)
-    /// @param pre_quantum_pubkey The ECDSA address
-    /// @param post_quantum_pubkey The MLDSA address (pointing to a contract containing the public key)
+    /// @notice Verify hybrid signature (pre- and post-quantum)
+    /// @param pre_quantum_pubkey can be ecrecover with k1 curve or ecverify with r1 curve
+    /// @param post_quantum_pubkey can be mldsa or mldsaeth address (pointing to a contract containing the public key)
     /// @param pre_quantum_logic_contract_address the logic of the pre-quantum verification
     /// @param post_quantum_logic_contract_address the logic of the post-quantum verification
     /// @param digest The data that was signed
-    /// @param pre_quantum_sig the ECDSA signature [r, s, v]
-    /// @param post_quantum_sig the MLDSA signature [c_tilde, z, h]
+    /// @param pre_quantum_sig the pre-quantum signature: [r, s, v] for k1, [r, s] for r1
+    /// @param post_quantum_sig the post-quantum signature [c_tilde, z, h]
     /// @return true if both signatures are valid
     function isValid(
         bytes memory pre_quantum_pubkey,
