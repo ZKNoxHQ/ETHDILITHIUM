@@ -34,8 +34,7 @@ c_nist = D.R.sample_in_ball(c_tilde, tau)
 
 file.write("""
 function testSampleInBallNIST() public pure {{
-        bytes memory c_tilde = hex"{}";
-        // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
+        bytes memory c_tilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
 file.write(solidity_poly(c_nist, 'expected_c'))
 file.write("""
         uint256[] memory c = sampleInBallNIST(c_tilde, tau, q);
@@ -48,8 +47,7 @@ file.write("""
 c_keccak_prng = D.R.sample_in_ball(c_tilde, tau, _xof=Keccak256PRNG)
 file.write("""
 function testSampleInBallKeccakPRNG() public pure {{
-        bytes memory c_tilde = hex"{}";
-        // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
+        bytes memory c_tilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
 file.write(solidity_poly(c_keccak_prng, 'expected_c'))
 file.write("""
         uint256[] memory c = sampleInBallKeccakPRNG(c_tilde, tau, q);
