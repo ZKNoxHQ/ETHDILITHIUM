@@ -11,7 +11,7 @@ contract Script_Deploy_Dilithium is BaseScript {
     // SPDX-License-Identifier: MIT
 
     function run() external returns (address) {
-        // vm.startBroadcast();
+        vm.startBroadcast();
 
         bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.21"));
 
@@ -691,7 +691,7 @@ contract Script_Deploy_Dilithium is BaseScript {
 
         if (ver == false) revert("verification failure");
 
-        // vm.stopBroadcast();
+        vm.stopBroadcast();
         return address(DILITHIUM);
     }
 }

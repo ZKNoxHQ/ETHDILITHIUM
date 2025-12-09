@@ -10,10 +10,10 @@ contract Script_Deploy_P256VERIFY is BaseScript {
     // SPDX-License-Identifier: MIT
 
     function run() external returns (address) {
-        // vm.startBroadcast();
+        vm.startBroadcast();
         bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.22"));
         ZKNOX_p256_verify ECDSA = new ZKNOX_p256_verify{salt: salty}();
-        // vm.stopBroadcast();
+        vm.stopBroadcast();
         return address(ECDSA);
     }
 }
