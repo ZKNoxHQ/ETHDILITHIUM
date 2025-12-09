@@ -56,6 +56,7 @@ import {
     gamma_1
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= omega + k, "Invalid h bytes length");
@@ -108,42 +109,59 @@ function unpack_z(bytes memory inputBytes) pure returns (uint256[][] memory coef
     uint256 coeffBits;
     uint256 requiredBytes;
 
-    // Level 2 parameter set
-    if (gamma_1 == (1 << 17)) {
-        coeffBits = 18;
-        requiredBytes = (n * l * 18) / 8; // Total bytes for all polynomials
-    }
-    // Level 3 and 5 parameter set
-    else if (gamma_1 == (1 << 19)) {
-        coeffBits = 20;
-        requiredBytes = (n * l * 20) / 8; // Total bytes for all polynomials
-    } else {
-        revert("gamma_1 must be either 2^17 or 2^19");
+    // Cache gamma_1 to avoid multiple SLOAD operations if it's a state variable
+    uint256 _gamma_1 = gamma_1;
+
+    // Use unchecked arithmetic where overflow is impossible
+    unchecked {
+        // Level 2 parameter set
+        if (_gamma_1 == 131072) {
+            // 1 << 17, use literal to save gas
+            coeffBits = 18;
+            requiredBytes = (n * l * 18) >> 3; // Use bit shift instead of division
+        }
+        // Level 3 and 5 parameter set
+        else if (_gamma_1 == 524288) {
+            // 1 << 19, use literal to save gas
+            coeffBits = 20;
+            requiredBytes = (n * l * 20) >> 3; // Use bit shift instead of division
+        } else {
+            revert("gamma_1 must be either 2^17 or 2^19");
+        }
     }
 
     require(inputBytes.length >= requiredBytes, "Insufficient data");
 
-    // Initialize 2D array
-    coefficients = new uint256[][](l);
+    // Cache frequently used values
+    uint256 _l = l;
+    uint256 _n = n;
+    uint256 _q = q;
 
+    // Initialize 2D array
+    coefficients = new uint256[][](_l);
     uint256 bitOffset = 0;
 
-    for (uint256 i = 0; i < l; i++) {
-        // Unpack the altered coefficients for polynomial i
-        uint256[] memory alteredCoeffs = bitUnpackAtOffset(inputBytes, coeffBits, bitOffset, n);
+    unchecked {
+        for (uint256 i = 0; i < _l; ++i) {
+            // Unpack the altered coefficients for polynomial i
+            uint256[] memory alteredCoeffs = bitUnpackAtOffset(inputBytes, coeffBits, bitOffset, _n);
 
-        // Compute coefficients as gamma_1 - c
-        coefficients[i] = new uint256[](n);
-        for (uint256 j = 0; j < n; j++) {
-            if (alteredCoeffs[j] < gamma_1) {
-                coefficients[i][j] = gamma_1 - alteredCoeffs[j];
-            } else {
-                coefficients[i][j] = q + gamma_1 - alteredCoeffs[j];
+            // Allocate array once
+            uint256[] memory coeffs = new uint256[](_n);
+
+            // Compute coefficients as gamma_1 - c
+            for (uint256 j = 0; j < _n; ++j) {
+                uint256 alteredCoeff = alteredCoeffs[j];
+
+                // Simplified logic: use ternary operator and eliminate redundant check
+                coeffs[j] = alteredCoeff < _gamma_1 ? _gamma_1 - alteredCoeff : _q + _gamma_1 - alteredCoeff;
             }
-        }
 
-        // Move to next polynomial
-        bitOffset += n * coeffBits;
+            coefficients[i] = coeffs;
+
+            // Move to next polynomial
+            bitOffset += _n * coeffBits;
+        }
     }
 
     return coefficients;

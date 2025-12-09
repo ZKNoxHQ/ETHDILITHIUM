@@ -8,7 +8,7 @@ import {ZKNOX_ecdsa} from "../src/ZKNOX_ECDSA.sol";
 contract ECDSATest is Test {
     ZKNOX_ecdsa ecdsa = new ZKNOX_ecdsa();
 
-    function testVerify() public {
+    function testVerify() public view {
         // string[] memory cmds = new string[](4);
         // cmds[0] = "pythonref/myenv/bin/python";
         // cmds[1] = "pythonref/sig_hybrid.py";

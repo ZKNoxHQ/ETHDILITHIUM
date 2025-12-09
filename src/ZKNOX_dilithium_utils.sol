@@ -68,21 +68,35 @@ function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 s
     returns (uint256[] memory result)
 {
     require(coeffBits > 0 && coeffBits <= 256, "invalid coeffBits");
+
     result = new uint256[](numCoeffs);
-    uint256 coeffMask = coeffBits == 256 ? type(uint256).max : ((uint256(1) << coeffBits) - 1);
-    uint256 bitOffset = startBitOffset;
-    for (uint256 i = 0; i < numCoeffs; i++) {
-        uint256 byteOffset = bitOffset >> 3;
-        uint256 bitInByte = bitOffset & 7;
-        uint256 neededBits = bitInByte + coeffBits;
-        uint256 neededBytes = (neededBits + 7) >> 3;
-        uint256 value = 0;
-        for (uint256 j = 0; j < neededBytes; j++) {
-            if (byteOffset + j < inputBytes.length) value |= uint256(uint8(inputBytes[byteOffset + j])) << (8 * j);
-        }
-        result[i] = (value >> bitInByte) & coeffMask;
-        bitOffset += coeffBits;
+
+    // Pre-calculate mask once
+    uint256 coeffMask;
+    unchecked {
+        coeffMask = coeffBits == 256 ? type(uint256).max : (1 << coeffBits) - 1;
     }
+
+    unchecked {
+        for (uint256 i = 0; i < numCoeffs; ++i) {
+            uint256 bitOffset = startBitOffset + i * coeffBits;
+            uint256 byteOffset = bitOffset >> 3;
+            uint256 bitInByte = bitOffset & 7;
+
+            // Calculate and read needed bytes
+            uint256 neededBytes = ((bitInByte + coeffBits + 7) >> 3);
+            uint256 value = 0;
+
+            for (uint256 j = 0; j < neededBytes; ++j) {
+                if (byteOffset + j < inputBytes.length) {
+                    value |= uint256(uint8(inputBytes[byteOffset + j])) << (j << 3);
+                }
+            }
+
+            result[i] = (value >> bitInByte) & coeffMask;
+        }
+    }
+
     return result;
 }
 

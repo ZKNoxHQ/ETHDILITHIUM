@@ -13,7 +13,8 @@ import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
-import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
+import {Script_Deploy_P256VERIFY} from "../script/DeployP256VERIFY.s.sol";
+import {Constants} from "./ZKNOX_seed.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -21,7 +22,7 @@ function bytes32ToHex(bytes32 value) pure returns (string memory) {
     return Strings.toHexString(uint256(value), 32);
 }
 
-contract TestERC4337_Account is Test {
+contract TestERC4337_Account_With_P256 is Test {
     ZKNOX_ERC4337_account public account;
     IEntryPoint public entryPoint;
     ZKNOX_HybridVerifier public hybridVerifier;
@@ -43,13 +44,14 @@ contract TestERC4337_Account is Test {
         Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
         address post_quantum_logic_address = script_Deploy_Dilithium.run();
 
-        Script_Deploy_ECDSA script_Deploy_ecdsa = new Script_Deploy_ECDSA();
+        Script_Deploy_P256VERIFY script_Deploy_ecdsa = new Script_Deploy_P256VERIFY();
         address pre_quantum_logic_address = script_Deploy_ecdsa.run();
 
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
 
-        bytes memory pre_quantum_pubkey = hex"9140286CDA95d59fa5f29ecb11dDe1F817999F9E";
+        bytes memory pre_quantum_pubkey =
+            hex"68fb9ba5615eb496d9f44094db32afa32f674cef7ddda780c30714b67e72fe2686c2f81b8ad4e2fbdc219bdd300c03354c3ba8a6524eec15d74c908d03ecae7c";
         bytes memory post_quantum_pubkey = abi.encodePacked(post_quantum_address);
 
         // Deploy the Smart Account
@@ -80,10 +82,12 @@ contract TestERC4337_Account is Test {
         cmds[3] = "NIST";
 
         bytes memory result = vm.ffi(cmds);
-        (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+        (bytes memory c_tilde, bytes memory z, bytes memory h,,,) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
+        // overwrite with a p256 signature
+        (bytes32 r, bytes32 s) = vm.signP256(Constants.seed, userOpHash);
 
-        bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
+        bytes memory pre_quantum_sig = abi.encodePacked(r, s);
         bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
         userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
 
@@ -99,11 +103,11 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Create invalid signatures
-        (uint8 v, bytes32 r, bytes32 s) = (28, bytes32(0), bytes32(0));
+        (bytes32 r, bytes32 s) = (bytes32(0), bytes32(0));
         bytes memory c_tilde = hex"00";
         bytes memory z = hex"00";
         bytes memory h = hex"00";
-        bytes memory invalid_pre_quantum_sig = abi.encodePacked(r, s, v);
+        bytes memory invalid_pre_quantum_sig = abi.encodePacked(r, s);
         bytes memory invalid_post_quantum_sig = abi.encodePacked(c_tilde, z, h);
         userOp.signature = abi.encode(invalid_pre_quantum_sig, invalid_post_quantum_sig);
 
@@ -130,10 +134,12 @@ contract TestERC4337_Account is Test {
         cmds[3] = "NIST";
 
         bytes memory result = vm.ffi(cmds);
-        (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+        (bytes memory c_tilde, bytes memory z, bytes memory h,,,) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
+        // overwrite with a p256 signature
+        (bytes32 r, bytes32 s) = vm.signP256(Constants.seed, userOpHash);
 
-        bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
+        bytes memory pre_quantum_sig = abi.encodePacked(r, s);
         bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
         userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
 

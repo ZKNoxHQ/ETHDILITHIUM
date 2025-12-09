@@ -26,7 +26,7 @@ contract KeccakPRNGTest is Test {
     uint256 output_4_2 = 0x1be071eca45961aca979e88e3784a751;
     uint256 output_4_3 = 0x5f19135442b6b848b2f51f7cb58bc583;
 
-    function test_keccak_prng_test_vectors() public {
+    function test_keccak_prng_test_vectors() public view {
         // Test vector 1
         KeccakPRNG memory prng = initPRNG(input_1);
         bytes32 out = prng.pool;

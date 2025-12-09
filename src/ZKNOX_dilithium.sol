@@ -130,7 +130,6 @@ contract ZKNOX_dilithium is IVerifier {
 
         // SECOND CORE STEP
         bytes memory w_prime_bytes = dilithium_core_2(pk, z, c_ntt, h, t1_new);
-
         // FINAL HASH
         ctx_shake memory sctx;
         sctx = shake_update(sctx, pk.tr);

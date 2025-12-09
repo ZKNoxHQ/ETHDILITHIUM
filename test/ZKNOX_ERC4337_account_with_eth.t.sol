@@ -148,7 +148,10 @@ contract TestERC4337_Account is Test {
         emit IEntryPoint.UserOperationEvent(userOpHash, address(account), address(0), 0, true, 0, 0);
 
         // Call handleOps on the EntryPoint
+        uint256 gasStart = gasleft();
         entryPoint.handleOps(ops, payable(owner));
+        uint256 gasUsed = gasStart - gasleft();
+        console.log("Gas used:", gasUsed);
 
         assertEq(target.lastGreeting(), "Hello from UserOp", "Target call should succeed");
     }

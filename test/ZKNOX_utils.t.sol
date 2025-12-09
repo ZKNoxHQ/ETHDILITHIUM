@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_Expand, ZKNOX_Expand_Vec, ZKNOX_Expand_Mat, ZKNOX_Compact} from "../src/ZKNOX_dilithium_utils.sol";
 
 contract UtilsTest is Test {
-    function testCompactExpand() public {
+    function testCompactExpand() public pure {
         // test of expanding and compacting an element of Fq²⁵⁶ (Dilithium)
         // c is given by 256 Fq element (256 * 32 bits)
         // in compact form, c is given in 32 256-bit integers

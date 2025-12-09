@@ -45,7 +45,7 @@ import "../src/ZKNOX_dilithium.sol";
 contract NTT_DilithiumTest is Test {
     ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
 
-    function test_from_python() public {
+    function test_from_python() public pure {
         uint256[] memory p = new uint256[](256);
         for (uint256 i = 0; i < 256; i++) {
             p[i] = i;

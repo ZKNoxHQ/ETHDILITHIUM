@@ -39,36 +39,42 @@
 pragma solidity ^0.8.25;
 import {IVerifier} from "./ZKNOX_IVerifier.sol";
 
-contract ZKNOX_ecdsa is IVerifier {
+contract ZKNOX_p256_verify is IVerifier {
     function verify(bytes memory pubkey, bytes memory digest, bytes memory sig, bytes memory ctx)
         external
-        pure
+        view
         returns (bool)
     {
-        require(pubkey.length == 20, "bytes length != 20");
+        require(sig.length == 64, "sig length != 64");
+        require(pubkey.length == 64, "pubkey length != 64");
+        require(digest.length == 32, "digest length != 32");
 
         bytes32 digest_for_ecdsa;
-        assembly {
-            digest_for_ecdsa := mload(add(digest, 32))
-        }
-
         bytes32 r;
         bytes32 s;
-        uint8 v;
+        bytes32 qx;
+        bytes32 qy;
+
         assembly {
+            // Skip 32-byte length prefix for all bytes arrays
+            digest_for_ecdsa := mload(add(digest, 32))
             r := mload(add(sig, 32))
             s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
+            qx := mload(add(pubkey, 32))
+            qy := mload(add(pubkey, 64))
         }
 
-        address recovered = ecrecover(digest_for_ecdsa, v, r, s);
+        // Input format for RIP-7212: hash || r || s || x || y (160 bytes)
+        bytes memory input = abi.encodePacked(digest_for_ecdsa, r, s, qx, qy);
 
-        address pre_quantum_address;
-        assembly {
-            pre_quantum_address := mload(add(pubkey, 20))
-        }
+        // P-256 precompile address
+        address P256 = address(0x0000000000000000000000000000000000000100);
 
-        return recovered == pre_quantum_address;
+        (bool ok, bytes memory out) = P256.staticcall(input);
+
+        if (!ok || out.length != 32) return false;
+
+        return uint256(bytes32(out)) == 1;
     }
 }
 
