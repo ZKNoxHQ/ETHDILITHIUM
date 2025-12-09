@@ -4,14 +4,14 @@
 We design a 4337 account that lets us verify two signatures rather than only one.
 The goal is to enable post-quantum signatures while keeping the current ECDSA verification.
 Each user creates a 4337 account contract which contains:
-    - a `pre_quantum_pubkey` that is simply the current Ethereum address, a hash of an ECDSA public key,
-    - a `post_quantum_pubkey`, an address of a `PKContract`, storing the MLDSA public key (each user creates a contract for storing his public key),
-    - a `pre_quantum_logic_contract_address` telling that the pre-quantum key needs to use `ecrecover`,
-    - a `post_quantum_logic_contract_address` containing the address of the contract where the logic is written (for now, it can be MLDSA or MLDSA-ETH)
-    - an Hybrid Verifier contract `hybrid_verifier` that contains the logic for verifying both signature.
+- a `pre_quantum_pubkey` that is simply the current Ethereum address, a hash of an ECDSA public key,
+- a `post_quantum_pubkey`, an address of a `PKContract`, storing the MLDSA public key (each user creates a contract for storing his public key),
+- a `pre_quantum_logic_contract_address` telling that the pre-quantum key needs to use `ecrecover`,
+- a `post_quantum_logic_contract_address` containing the address of the contract where the logic is written (for now, it can be MLDSA or MLDSA-ETH)
+- an Hybrid Verifier contract `hybrid_verifier` that contains the logic for verifying both signature.
 
 ## Example
-Consider Alice, Bob and Charly. They all want to enable hybrid signatures, but Alice prefers NIST standard for MLDSA, Bob rather chooses MLDSA-ETH for the gas efficiency, and Charly is looking for FN-DSA. Then, the following contracts are created:
+Consider Alice, Bob and Charly. They all want to enable hybrid signatures, but Alice prefers NIST standard for MLDSA, Bob rather chooses MLDSA-ETH for the gas efficiency, and Charly wants to use the P256 curve for ECDSA (and MLDSA). Then, the following contracts are created:
 ```
 Alice PKContract:
     storing the MLDSA public key into a contract
@@ -28,9 +28,9 @@ Bob 4337 contract:
     the address of MLDSA-ETH logic contract
 
 Charly PKContract: 
-    none
+    storing the MLDSA public key into a contract
 Charly 4337 contract: 
-    refers to Bob's Ethereum address,
+    refers to Charly's Ethereum address,
     the 896 bytes Falcon public key bytes (?), or rather a hash if Epervier,
     the address of FALCON logic contract, or rather Epervier recovery logic contract
 ```

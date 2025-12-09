@@ -56,7 +56,6 @@ import {
     gamma_1
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= omega + k, "Invalid h bytes length");

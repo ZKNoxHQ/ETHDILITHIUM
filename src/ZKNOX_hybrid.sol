@@ -43,7 +43,6 @@ import {IPKContract} from "./ZKNOX_PKContract.sol";
 import {IVerifier} from "./ZKNOX_IVerifier.sol";
 import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
 import {ZKNOX_ecdsa} from "./ZKNOX_ECDSA.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
