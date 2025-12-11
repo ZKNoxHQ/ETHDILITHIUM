@@ -2,13 +2,11 @@ from dilithium_py.dilithium.default_parameters import Dilithium2 as D
 from dilithium_py.shake.shake_wrapper import shake128, shake256
 from dilithium_py.keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
-# from seed import seed
 import sys
 from eth_abi import encode
 from eth_account import Account
 
-# message to be signed is given as 0x......
-msg_len = 256
+# message to be signed has a prefix `0x`
 msg = bytes.fromhex(sys.argv[1][2:])
 
 if sys.argv[2] == 'ETH':

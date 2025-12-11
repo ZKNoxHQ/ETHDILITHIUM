@@ -18,5 +18,3 @@ c-ref/PQCsignKAT_Dilithium2_ETH.rsp
 c-ref/nistkat/PQCgenKAT_sign2_eth
 
 pythonref/seed.py
-
-test/ZKNOX_seed.sol
