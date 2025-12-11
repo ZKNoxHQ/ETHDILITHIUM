@@ -1,39 +1,60 @@
 # Documentation  for hybrid verification
 
-## Structure of the contracts
 We design a 4337 account that lets us verify two signatures rather than only one.
 The goal is to enable post-quantum signatures while keeping the current ECDSA verification.
-Each user creates a 4337 account contract which contains:
-- a `pre_quantum_pubkey` that is simply the current Ethereum address, a hash of an ECDSA public key,
-- a `post_quantum_pubkey`, an address of a `PKContract`, storing the MLDSA public key (each user creates a contract for storing his public key),
-- a `pre_quantum_logic_contract_address` telling that the pre-quantum key needs to use `ecrecover`,
-- a `post_quantum_logic_contract_address` containing the address of the contract where the logic is written (for now, it can be MLDSA or MLDSA-ETH)
-- an Hybrid Verifier contract `hybrid_verifier` that contains the logic for verifying both signature.
 
-## Example
-Consider Alice, Bob and Charly. They all want to enable hybrid signatures, but Alice prefers NIST standard for MLDSA, Bob rather chooses MLDSA-ETH for the gas efficiency, and Charly wants to use the P256 curve for ECDSA (and MLDSA). Then, the following contracts are created:
-```
-Alice PKContract:
-    storing the MLDSA public key into a contract
-Alice 4337 contract:
-    refers to Alice's Ethereum address,
-    the address of her PKContract,
-    the address of MLDSA logic contract
+## Fixed contracts
 
-Bob PKContract: 
-    storing the MLDSA-ETH public key into a contract
-Bob 4337 contract: 
-    refers to Bob's Ethereum address,
-    the address of his PKContract,
-    the address of MLDSA-ETH logic contract
+### Pre-quantum logic contracts
+- `ZKNOX_ECDSA.sol`: verifies an ECDSA signature on Ethereum using the precompile `ecrecover`,
+- `ZKNOX_P256VERIFY.sol`:  verifies an ECDSA signature on P256 using the precompile `p256verifiy`.
 
-Charly PKContract: 
-    storing the MLDSA public key into a contract
-Charly 4337 contract: 
-    refers to Charly's Ethereum address,
-    the 896 bytes Falcon public key bytes (?), or rather a hash if Epervier,
-    the address of FALCON logic contract, or rather Epervier recovery logic contract
-```
+### Post-quantum logic contracts
+- `ZKNOX_dilithium.sol`: verifies a MLDSA signature,
+- `ZKNOX_ethdilithium.sol`: verifies a MLDSAETH signature.
+
+### Hybrid verifier contract
+- `ZKNOX_hybrid.sol`: verifies two signatures (one is pre-quantum, one is post-quantum).
+
+## User contracts
+Each user owns a 4337 account contract which contains:
+- a `pre_quantum_pubkey` in `bytes`; it can be an ethereum address (20 bytes) or a P256 point (64 bytes)
+- a `post_quantum_pubkey` in `bytes`; for MLDSA(ETH), we rather provide the address of a `PKContract`
+- a `pre_quantum_logic_contract_address` referring to one of the two pre-quantum fixed contracts above,
+- a `post_quantum_logic_contract_address` referring to one of the two post-quantum fixed contracts above,
+- a `hybrid_verifier_logic_contract_address` referring to the hybrid verifier contract above.
+
+Note: for MLDSA, this requires an extra contract `PKContract` storing the MLDSA public key.
+
+### Example
+In order to create a Hybrid ERC4337 account with P256 and MLDSAETH, one needs to:
+1. Create a `PKContract` storing his MLDSAETH public key,
+2. Create a `ZKNOX_ERC4337_account` with inputs:
+    - the bytes of the P256 public key (64 bytes)
+    - the bytes of the address of the PKContract containing his MLDSAETH public key (20 bytes)
+    - the address of the `P256VERIFY` contract
+    - the address of the `ethdilithium` contract
+    - the address of the `hybrid` contract.
+
+
+
+
+
+
+
+
+
+##################################################################
+
+
+
+
+
+
+
+
+
+
 ## Structure of the verification
 
 ### Public key contract
@@ -68,10 +89,13 @@ This function does the following:
 
 ## Contract deployments
 
-- Alice PKContract: https://sepolia.arbiscan.io/address/0xa3b09ef2a08f5ef5eb1c091d41a47a39ecb87433,
-- Bob PKContract: https://sepolia.arbiscan.io/address/0x63f86064666ae6653044d11f2486caef47392ed4,
+- Alice PKContract: https://sepolia.arbiscan.io/address/0x59c2d92f4a259c59e4f9de3b80df32b731e1be46#code,
+- Bob PKContract: https://sepolia.arbiscan.io/address/0x4ef169a40e4665ffe515dccc7937955d3d9de19c#code,
 - TODO HybridVerifierContract
-- TODO ECDSAContract
+- ECDSAContract: https://sepolia.arbiscan.io/address/0xae7b7ecebb895b0db67aa58307e506f0f3d5f38e#code
+- P256VContract: https://sepolia.arbiscan.io/address/0x5121c85e5151b96ca633afb267a15398fc4b835b#code
+- MLDSA contract: https://sepolia.arbiscan.io/address/0x540c7d278cf043bd3b182a464acdc188984660c9#code
+- MLDSAETH contract: TODO
 - TODO FalconContract
 - TODO EpervierContract
 
