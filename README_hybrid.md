@@ -37,19 +37,34 @@ In order to create a Hybrid ERC4337 account with P256 and MLDSAETH, one needs to
     - the address of the `hybrid` contract.
 
 
+## How to run
+In order to run the tests, it is required to install the requirements for both Solidity and python (the python signer is used inside the Solidity tests):
+```
+make install
+```
+Then, run the tests as follows:
+- Hybrid verifier:
+    ```
+    forge test test/ZKNOX_hybrid.t.sol  -vv
+    ```
+- ERC4337 account (ECDSA+MLDSA):
+    ```
+    forge test test/ZKNOX_ERC4337_account.t.sol -vv
+    ```
+- ERC4337 account (ECDSA+MLDSAETH):
+    ```
+    forge test test/ZKNOX_ERC4337_account_with_eth.t.sol -vv
+    ```
+- ERC4337 account (P256VERIFY+MLDSA):
+    ```
+    forge test test/ZKNOX_ERC4337_account_with_p256.t.sol -vv
+    ```
 
-
-
-
-
-
-
-##################################################################
-
-
-
-
-
+####################
+WIP DEPLOYMENT
+NOT WRITTEN YET
+STOP READING HERE ;-)
+####################
 
 
 
