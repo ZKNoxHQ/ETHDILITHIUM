@@ -10,6 +10,9 @@ import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 import {Script_Deploy_ETHDilithium} from "../script/DeployETHDilithium.s.sol";
 import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
 
+import {Constants} from "./ZKNOX_seed.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 contract TestHybridVerifier is Test {
     address mldsa_address;
     address mldsaeth_address;
@@ -44,22 +47,22 @@ contract TestHybridVerifier is Test {
     function testHybridVerify() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        address eth_address = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E;
+        address eth_address = Constants.addr;
 
         bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory pre_quantum_sig;
         bytes memory post_quantum_sig;
         {
-            string[] memory cmds = new string[](4);
+            string[] memory cmds = new string[](5);
             cmds[0] = "pythonref/myenv/bin/python";
             cmds[1] = "pythonref/sig_hybrid.py";
             cmds[2] = vm.toString(data);
             cmds[3] = "NIST";
+            cmds[4] = Constants.seed_str;
 
             bytes memory result = vm.ffi(cmds);
             (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-
             pre_quantum_sig = abi.encodePacked(_r, _s, _v);
             post_quantum_sig = abi.encodePacked(c_tilde, z, h);
         }
@@ -85,18 +88,20 @@ contract TestHybridVerifier is Test {
     function testHybridVerifyETH() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        address eth_address = 0x9140286CDA95d59fa5f29ecb11dDe1F817999F9E;
+        address eth_address = Constants.addr;
 
         bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory pre_quantum_sig;
         bytes memory post_quantum_sig;
         {
 
-            string[] memory cmds = new string[](4);
+            string[] memory cmds = new string[](5);
             cmds[0] = "pythonref/myenv/bin/python";
             cmds[1] = "pythonref/sig_hybrid.py";
             cmds[2] = vm.toString(data);
             cmds[3] = "ETH";
+            cmds[4] = Constants.seed_str;
+
             bytes memory result = vm.ffi(cmds);
             (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));

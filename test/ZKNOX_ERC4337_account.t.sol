@@ -14,8 +14,11 @@ import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
+import {Script_Deploy_Hybrid_Verifier} from "../script/DeployHybridVerifier.s.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
+
+import {Constants} from "./ZKNOX_seed.sol";
 
 function bytes32ToHex(bytes32 value) pure returns (string memory) {
     return Strings.toHexString(uint256(value), 32);
@@ -40,21 +43,28 @@ contract TestERC4337_Account is Test {
         DeployPKContract deployPKContract = new DeployPKContract();
         address post_quantum_address = deployPKContract.run();
 
+        Script_Deploy_Hybrid_Verifier script_Deploy_Hybrid_Verifier = new Script_Deploy_Hybrid_Verifier();
+        address hybrid_verifier_logic_address = script_Deploy_Hybrid_Verifier.run();
+
         Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
         address post_quantum_logic_address = script_Deploy_Dilithium.run();
 
         Script_Deploy_ECDSA script_Deploy_ecdsa = new Script_Deploy_ECDSA();
         address pre_quantum_logic_address = script_Deploy_ecdsa.run();
 
-        // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
 
-        bytes memory pre_quantum_pubkey = hex"9140286CDA95d59fa5f29ecb11dDe1F817999F9E";
+        bytes memory pre_quantum_pubkey = abi.encodePacked(Constants.addr);
         bytes memory post_quantum_pubkey = abi.encodePacked(post_quantum_address);
 
         // Deploy the Smart Account
         account = new ZKNOX_ERC4337_account(
-            entryPoint, pre_quantum_pubkey, post_quantum_pubkey, pre_quantum_logic_address, post_quantum_logic_address
+            entryPoint,
+            pre_quantum_pubkey,
+            post_quantum_pubkey,
+            pre_quantum_logic_address,
+            post_quantum_logic_address,
+            hybrid_verifier_logic_address
         );
         // Deploy TestTarget
         target = new TestTarget();
@@ -73,11 +83,12 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        string[] memory cmds = new string[](4);
+        string[] memory cmds = new string[](5);
         cmds[0] = "pythonref/myenv/bin/python";
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytes32ToHex(userOpHash);
         cmds[3] = "NIST";
+        cmds[4] = Constants.seed_str;
 
         bytes memory result = vm.ffi(cmds);
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
@@ -123,11 +134,12 @@ contract TestERC4337_Account is Test {
 
         // Sign the userOpHash with both MLDSA and ECDSA
         // Using python
-        string[] memory cmds = new string[](4);
+        string[] memory cmds = new string[](5);
         cmds[0] = "pythonref/myenv/bin/python";
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytes32ToHex(userOpHash);
         cmds[3] = "NIST";
+        cmds[4] = Constants.seed_str;
 
         bytes memory result = vm.ffi(cmds);
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =

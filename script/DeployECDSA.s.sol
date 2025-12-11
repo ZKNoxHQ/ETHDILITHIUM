@@ -11,8 +11,7 @@ contract Script_Deploy_ECDSA is BaseScript {
 
     function run() external returns (address) {
         vm.startBroadcast();
-        bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.22"));
-        ZKNOX_ecdsa ECDSA = new ZKNOX_ecdsa{salt: salty}();
+        ZKNOX_ecdsa ECDSA = new ZKNOX_ecdsa();
         vm.stopBroadcast();
         return address(ECDSA);
     }

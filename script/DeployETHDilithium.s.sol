@@ -13,10 +13,8 @@ contract Script_Deploy_ETHDilithium is BaseScript {
     function run() external returns (address) {
         vm.startBroadcast();
 
-        bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.23"));
-
-        ZKNOX_ethdilithium ETHDILITHIUM = new ZKNOX_ethdilithium{salt: salty}();
-
+        ZKNOX_ethdilithium ETHDILITHIUM = new ZKNOX_ethdilithium();
+        console.log("Address of the contract", address(ETHDILITHIUM));
         // Public key
         uint256[][][] memory A_hat = new uint256[][][](4);
         for (uint256 i = 0; i < 4; i++) {

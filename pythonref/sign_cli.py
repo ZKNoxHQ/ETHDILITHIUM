@@ -129,6 +129,7 @@ function run() external returns (address) {
     sol_file = open("../script/Deploy_{}_PK.s.sol".format(version), 'w')
     sol_file.write(SOL)
     sol_file.close()
+    print("Solidity file script/Deploy_{}_PK.s.sol saved.".format(version))
 
     if not privatekey:
         print("Error: Provide --privatekey")
@@ -341,14 +342,11 @@ def cli():
         print("Keys generated and saved.")
 
     if args.action == "keygenonchainsend":
-        if not args.version or not args.privatekey or not args.apikey:
-            print("Error: Provide --version, --privatekey and --apikey")
+        if not args.version or not args.privatekey or not args.apikey or not args.seed:
+            print("Error: Provide --version, --privatekey, --apikey and --seed")
             return
 
-        if not args.seed:
-            from seed import seed
-        else:
-            seed = args.seed
+        seed = bytes.fromhex(args.seed)
         if args.version == "MLDSA":
             pk, sk = Dilithium2.key_derive(seed=seed)
             ρ, t1 = Dilithium2._unpack_pk(pk)

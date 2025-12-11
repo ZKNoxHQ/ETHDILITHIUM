@@ -2,7 +2,7 @@ from dilithium_py.dilithium.default_parameters import Dilithium2 as D
 from dilithium_py.shake.shake_wrapper import shake128, shake256
 from dilithium_py.keccak_prng.keccak_prng_wrapper import Keccak256PRNG
 
-from seed import seed
+# from seed import seed
 import sys
 from eth_abi import encode
 from eth_account import Account
@@ -17,6 +17,8 @@ if sys.argv[2] == 'ETH':
 elif sys.argv[2] == 'NIST':
     xof = shake256
     xof2 = shake128
+
+seed = bytes.fromhex(sys.argv[3])
 
 pk, sk = D.key_derive(seed, _xof=xof, _xof2=xof2)
 

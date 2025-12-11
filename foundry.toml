@@ -11,5 +11,5 @@ ffi = true
 [profile.lite]
 optimizer = false
 solc_version = "0.8.30"
-evm_version = "osaka"
+evm_version = "cancun"
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

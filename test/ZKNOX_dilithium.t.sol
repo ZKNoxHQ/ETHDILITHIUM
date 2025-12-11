@@ -6,6 +6,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
+import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
+import {Constants} from "./ZKNOX_seed.sol";
 
 contract DilithiumTest is Test {
     ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
@@ -674,6 +676,32 @@ contract DilithiumTest is Test {
         bytes memory msgs = "We are ZKNox.";
         uint256 gasStart = gasleft();
         bool ver = dilithium.verify(abi.encodePacked(address(PubKeyContract)), msgs, sig, "");
+        uint256 gasUsed = gasStart - gasleft();
+        console.log("Gas used:", gasUsed);
+        assertTrue(ver);
+    }
+
+    function testVerifyShorter() public {
+        // Public key contract
+        DeployPKContract deployPKContract = new DeployPKContract();
+        address mldsa_address = deployPKContract.run();
+
+        bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
+        string[] memory cmds = new string[](5);
+        cmds[0] = "pythonref/myenv/bin/python";
+        cmds[1] = "pythonref/sig_hybrid.py";
+        cmds[2] = vm.toString(data);
+        cmds[3] = "NIST";
+        cmds[4] = Constants.seed_str;
+
+        bytes memory result = vm.ffi(cmds);
+        (bytes memory c_tilde, bytes memory z, bytes memory h,,,) =
+            abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
+        bytes memory sig = abi.encodePacked(c_tilde, z, h);
+
+        // MESSAGE
+        uint256 gasStart = gasleft();
+        bool ver = dilithium.verify(abi.encodePacked(mldsa_address), data, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
