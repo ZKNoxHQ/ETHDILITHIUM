@@ -22,12 +22,12 @@ contract ECDSATest is Test {
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
         bytes memory sig = abi.encodePacked(r, s, v);
         bytes memory pubkey = abi.encodePacked(Constants.addr);
-        bytes memory message = hex"541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
+        bytes32 message = hex"541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
 
         uint256 gasStart = gasleft();
-        bool ver = ecdsa.verify(pubkey, message, sig, "");
+        bytes4 ver = ecdsa.verify(pubkey, message, sig);
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
-        assertTrue(ver);
+        assertEq(ver, ecdsa.verify.selector);
     }
 }

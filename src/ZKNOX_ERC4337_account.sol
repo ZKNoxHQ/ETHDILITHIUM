@@ -52,7 +52,7 @@ contract ZKNOX_ERC4337_account is BaseAccount {
             post_quantum_pubkey,
             pre_quantum_logic_contract_address,
             post_quantum_logic_contract_address,
-            abi.encodePacked(userOpHash),
+            userOpHash,
             pre_quantum_sig,
             post_quantum_sig
         );

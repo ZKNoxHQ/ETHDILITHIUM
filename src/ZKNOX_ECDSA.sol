@@ -37,38 +37,32 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
-import {IVerifier} from "./ZKNOX_IVerifier.sol";
+import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
 
-contract ZKNOX_ecdsa is IVerifier {
-    function verify(bytes memory pubkey, bytes memory digest, bytes memory sig, bytes memory ctx)
-        external
-        pure
-        returns (bool)
-    {
+contract ZKNOX_ecdsa is IERC7913SignatureVerifier {
+    function verify(bytes calldata pubkey, bytes32 digest, bytes calldata sig) external pure returns (bytes4) {
         require(pubkey.length == 20, "bytes length != 20");
-
-        bytes32 digest_for_ecdsa;
-        assembly {
-            digest_for_ecdsa := mload(add(digest, 32))
-        }
 
         bytes32 r;
         bytes32 s;
         uint8 v;
         assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
+            r := calldataload(sig.offset)
+            s := calldataload(add(sig.offset, 32))
+            v := byte(0, calldataload(add(sig.offset, 64)))
         }
 
-        address recovered = ecrecover(digest_for_ecdsa, v, r, s);
+        address recovered = ecrecover(digest, v, r, s);
 
         address pre_quantum_address;
         assembly {
-            pre_quantum_address := mload(add(pubkey, 20))
+            pre_quantum_address := shr(96, calldataload(pubkey.offset))
         }
 
-        return recovered == pre_quantum_address;
+        if (recovered == pre_quantum_address) {
+            return IERC7913SignatureVerifier.verify.selector;
+        }
+        return 0xFFFFFFFF;
     }
 }
 

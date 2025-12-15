@@ -40,7 +40,7 @@ pragma solidity ^0.8.25;
 
 import {Signature, PubKey, slice} from "./ZKNOX_dilithium_utils.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
-import {IVerifier} from "./ZKNOX_IVerifier.sol";
+import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
 import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
 import {ZKNOX_ecdsa} from "./ZKNOX_ECDSA.sol";
 
@@ -56,28 +56,30 @@ contract ZKNOX_HybridVerifier {
     /// @param post_quantum_sig the post-quantum signature [c_tilde, z, h]
     /// @return true if both signatures are valid
     function isValid(
-        bytes memory pre_quantum_pubkey,
-        bytes memory post_quantum_pubkey,
+        bytes calldata pre_quantum_pubkey,
+        bytes calldata post_quantum_pubkey,
         address pre_quantum_logic_contract_address,
         address post_quantum_logic_contract_address,
-        bytes memory digest,
-        bytes memory pre_quantum_sig,
-        bytes memory post_quantum_sig
+        bytes32 digest,
+        bytes calldata pre_quantum_sig,
+        bytes calldata post_quantum_sig
     ) public view returns (bool) {
         // Validate digest length
         if (digest.length > 32) {
             return false;
         }
 
-        // Verify ECDSA signature
-        IVerifier pre_quantum_core = IVerifier(pre_quantum_logic_contract_address);
-        if (!pre_quantum_core.verify(pre_quantum_pubkey, digest, pre_quantum_sig, "")) {
+        // Verify pre-quantum signature
+        IERC7913SignatureVerifier pre_quantum_core = IERC7913SignatureVerifier(pre_quantum_logic_contract_address);
+        if (pre_quantum_core.verify(pre_quantum_pubkey, digest, pre_quantum_sig) != pre_quantum_core.verify.selector) {
             return false;
         }
 
-        // Verify MLDSA signature
-        IVerifier post_quantum_core = IVerifier(post_quantum_logic_contract_address);
-        if (!post_quantum_core.verify(post_quantum_pubkey, digest, post_quantum_sig, "")) {
+        // Verify post-quantum signature
+        IERC7913SignatureVerifier post_quantum_core = IERC7913SignatureVerifier(post_quantum_logic_contract_address);
+        if (
+            post_quantum_core.verify(post_quantum_pubkey, digest, post_quantum_sig) != post_quantum_core.verify.selector
+        ) {
             return false;
         }
         return true;

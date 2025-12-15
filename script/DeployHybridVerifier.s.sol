@@ -29,7 +29,7 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
         ZKNOX_HybridVerifier HybridVerifier = new ZKNOX_HybridVerifier();
         console.log("HybridVerifier deployed at:", address(HybridVerifier));
 
-        bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
+        bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory pre_quantum_sig;
         bytes memory post_quantum_sig;
         {

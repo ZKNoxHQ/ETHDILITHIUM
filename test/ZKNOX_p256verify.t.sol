@@ -3,23 +3,23 @@ pragma solidity ^0.8.13;
 //  Code obtained from `generate_test_vectors.py` python file
 
 import {Test, console} from "forge-std/Test.sol";
-import {ZKNOX_p256_verify} from "../src/ZKNOX_P256VERIFY.sol";
+import {ERC7913P256Verifier} from "@openzeppelin/contracts/utils/cryptography/verifiers/ERC7913P256Verifier.sol";
 
 contract P256VERIFYTest is Test {
-    ZKNOX_p256_verify p256verify = new ZKNOX_p256_verify();
+    ERC7913P256Verifier p256verify = new ERC7913P256Verifier();
 
     function testVerify() public view {
         bytes memory sig =
             hex"2ba3a8be6b94d5ec80a6d9d1190a436effe50d85a1eee859b8cc6af9bd5c2e184cd60b855d442f5b3c7b11eb6c4e0ae7525fe710fab9aa7c77a67f79e6fadd76";
         bytes memory pubkey =
             hex"2927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c7787964eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e";
-        bytes memory message = hex"bb5a52f42f9c9261ed4361f59422a1e30036e7c32b270c8807a419feca605023";
+        bytes32 message = hex"bb5a52f42f9c9261ed4361f59422a1e30036e7c32b270c8807a419feca605023";
 
         uint256 gasStart = gasleft();
-        bool ver = p256verify.verify(pubkey, message, sig, "");
+        bytes4 ver = p256verify.verify(pubkey, message, sig);
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
-        assertTrue(ver);
+        assertEq(ver, p256verify.verify.selector);
     }
 
     function testVerify2() public view {
@@ -40,9 +40,9 @@ contract P256VERIFYTest is Test {
 
         // verification
         uint256 gasStart = gasleft();
-        bool ver = p256verify.verify(pub, abi.encodePacked(digest), sig, "");
+        bytes4 ver = p256verify.verify(pub, digest, sig);
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
-        assertTrue(ver);
+        assertEq(ver, p256verify.verify.selector);
     }
 }

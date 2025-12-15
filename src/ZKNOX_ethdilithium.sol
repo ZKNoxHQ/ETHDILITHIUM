@@ -54,10 +54,10 @@ import {
 } from "./ZKNOX_dilithium_utils.sol";
 
 import {useHintDilithium} from "./ZKNOX_hint.sol";
-import {IVerifier} from "./ZKNOX_IVerifier.sol";
+import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 
-contract ZKNOX_ethdilithium is IVerifier {
+contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
         view
@@ -83,6 +83,26 @@ contract ZKNOX_ethdilithium is IVerifier {
 
         // Step 3: delegate to internal verify
         return verify_internal(public_key, m_prime, sig);
+    }
+
+    function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
+        // Fetch the public key from the address `pk`
+        address pub_key_address;
+        assembly {
+            pub_key_address := shr(96, calldataload(pk.offset))
+        }
+        PubKey memory public_key = IPKContract(pub_key_address).get_mldsa_public_key();
+
+        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(0), m);
+
+        Signature memory sig =
+            Signature({c_tilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+
+        // Step 3: delegate to internal verify
+        if (verify_internal(public_key, m_prime, sig)) {
+            return IERC7913SignatureVerifier.verify.selector;
+        }
+        return 0xFFFFFFFF;
     }
 
     function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
