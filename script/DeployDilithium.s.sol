@@ -1,6 +1,5 @@
 pragma solidity ^0.8.25;
 
-import {Script} from "../lib/forge-std/src/Script.sol";
 import {BaseScript} from "./BaseScript.sol";
 import "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";

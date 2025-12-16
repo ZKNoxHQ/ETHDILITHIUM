@@ -1,9 +1,7 @@
 pragma solidity ^0.8.25;
 
-import {Script} from "../lib/forge-std/src/Script.sol";
 import {BaseScript} from "./BaseScript.sol";
 
-import {console} from "forge-std/Test.sol";
 import "../src/ZKNOX_ECDSA.sol";
 
 contract Script_Deploy_ECDSA is BaseScript {

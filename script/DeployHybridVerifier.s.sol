@@ -1,6 +1,5 @@
 pragma solidity ^0.8.25;
 
-import {Script} from "../lib/forge-std/src/Script.sol";
 import {BaseScript} from "./BaseScript.sol";
 import "../src/ZKNOX_hybrid.sol";
 import {DeployPKContract} from "./Deploy_MLDSA_PK.s.sol";
@@ -16,13 +15,13 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
     // SPDX-License-Identifier: MIT
 
     function run() external returns (address) {
-        address pre_quantum_address = Constants.addr;
+        address preQuantumAddress = Constants.addr;
         DeployPKContract deployPKContract = new DeployPKContract();
-        address post_quantum_address = deployPKContract.run();
+        address postQuantumAddress = deployPKContract.run();
         Script_Deploy_ECDSA script_Deploy_ECDSA = new Script_Deploy_ECDSA();
-        address pre_quantum_logic_address = script_Deploy_ECDSA.run();
+        address preQuantumLogicAddress = script_Deploy_ECDSA.run();
         Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
-        address post_quantum_logic_address = script_Deploy_Dilithium.run();
+        address postQuantumLogicAddress = script_Deploy_Dilithium.run();
 
         vm.startBroadcast();
 
@@ -30,8 +29,8 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
         console.log("HybridVerifier deployed at:", address(HybridVerifier));
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
-        bytes memory pre_quantum_sig;
-        bytes memory post_quantum_sig;
+        bytes memory preQuantumSig;
+        bytes memory postQuantumSig;
         {
             string[] memory cmds = new string[](5);
             cmds[0] = "pythonref/myenv/bin/python";
@@ -44,19 +43,19 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
             (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
-            pre_quantum_sig = abi.encodePacked(r, s, v);
-            post_quantum_sig = abi.encodePacked(c_tilde, z, h);
+            preQuantumSig = abi.encodePacked(r, s, v);
+            postQuantumSig = abi.encodePacked(c_tilde, z, h);
         }
 
         // Scope 3: Verify
         bool valid = HybridVerifier.isValid(
-            abi.encodePacked(pre_quantum_address),
-            abi.encodePacked(post_quantum_address),
-            pre_quantum_logic_address,
-            post_quantum_logic_address,
+            abi.encodePacked(preQuantumAddress),
+            abi.encodePacked(postQuantumAddress),
+            preQuantumLogicAddress,
+            postQuantumLogicAddress,
             data,
-            pre_quantum_sig,
-            post_quantum_sig
+            preQuantumSig,
+            postQuantumSig
         );
         console.log(valid);
         if (valid == false) revert("verification failure");

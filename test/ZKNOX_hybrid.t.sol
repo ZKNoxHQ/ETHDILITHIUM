@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
-import {Signature} from "../src/ZKNOX_dilithium_utils.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {DeployPKContract as DeployMLDSAETHPKContract} from "../script/Deploy_MLDSAETH_PK.s.sol";
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
@@ -50,8 +49,8 @@ contract TestHybridVerifier is Test {
         address eth_address = Constants.addr;
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
-        bytes memory pre_quantum_sig;
-        bytes memory post_quantum_sig;
+        bytes memory preQuantumSig;
+        bytes memory postQuantumSig;
         {
             string[] memory cmds = new string[](5);
             cmds[0] = "pythonref/myenv/bin/python";
@@ -63,8 +62,8 @@ contract TestHybridVerifier is Test {
             bytes memory result = vm.ffi(cmds);
             (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-            pre_quantum_sig = abi.encodePacked(_r, _s, _v);
-            post_quantum_sig = abi.encodePacked(c_tilde, z, h);
+            preQuantumSig = abi.encodePacked(_r, _s, _v);
+            postQuantumSig = abi.encodePacked(c_tilde, z, h);
         }
 
         // Scope 3: Verify
@@ -76,8 +75,8 @@ contract TestHybridVerifier is Test {
                 ecdsa_verifier_address,
                 verifier_address,
                 data,
-                pre_quantum_sig,
-                post_quantum_sig
+                preQuantumSig,
+                postQuantumSig
             );
             uint256 gasUsed = gasStart - gasleft();
             console.log("Gas used:", gasUsed);
@@ -91,8 +90,8 @@ contract TestHybridVerifier is Test {
         address eth_address = Constants.addr;
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
-        bytes memory pre_quantum_sig;
-        bytes memory post_quantum_sig;
+        bytes memory preQuantumSig;
+        bytes memory postQuantumSig;
         {
 
             string[] memory cmds = new string[](5);
@@ -106,8 +105,8 @@ contract TestHybridVerifier is Test {
             (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
-            pre_quantum_sig = abi.encodePacked(_r, _s, _v);
-            post_quantum_sig = abi.encodePacked(c_tilde, z, h);
+            preQuantumSig = abi.encodePacked(_r, _s, _v);
+            postQuantumSig = abi.encodePacked(c_tilde, z, h);
         }
 
         // Scope 3: Verify
@@ -119,8 +118,8 @@ contract TestHybridVerifier is Test {
                 ecdsa_verifier_address,
                 verifier_eth_address,
                 data,
-                pre_quantum_sig,
-                post_quantum_sig
+                preQuantumSig,
+                postQuantumSig
             );
             uint256 gasUsed = gasStart - gasleft();
             console.log("Gas used:", gasUsed);

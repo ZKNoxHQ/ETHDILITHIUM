@@ -38,31 +38,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Signature, PubKey, slice} from "./ZKNOX_dilithium_utils.sol";
-import {IPKContract} from "./ZKNOX_PKContract.sol";
 import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
-import {ZKNOX_dilithium} from "./ZKNOX_dilithium.sol";
-import {ZKNOX_ecdsa} from "./ZKNOX_ECDSA.sol";
 
 /// @notice Contract designed for being delegated to by EOAs to authorize a IVerifier key to transact on their behalf.
 contract ZKNOX_HybridVerifier {
     /// @notice Verify hybrid signature (pre- and post-quantum)
-    /// @param pre_quantum_pubkey can be ecrecover with k1 curve or ecverify with r1 curve
-    /// @param post_quantum_pubkey can be mldsa or mldsaeth address (pointing to a contract containing the public key)
-    /// @param pre_quantum_logic_contract_address the logic of the pre-quantum verification
-    /// @param post_quantum_logic_contract_address the logic of the post-quantum verification
+    /// @param preQuantumPubKey can be ecrecover with k1 curve or ecverify with r1 curve
+    /// @param postQuantumPubKey can be mldsa or mldsaeth address (pointing to a contract containing the public key)
+    /// @param preQuantumLogicContractAddress the logic of the pre-quantum verification
+    /// @param postQuantumLogicContractAddress the logic of the post-quantum verification
     /// @param digest The data that was signed
-    /// @param pre_quantum_sig the pre-quantum signature: [r, s, v] for k1, [r, s] for r1
-    /// @param post_quantum_sig the post-quantum signature [c_tilde, z, h]
+    /// @param preQuantumSig the pre-quantum signature: [r, s, v] for k1, [r, s] for r1
+    /// @param postQuantumSig the post-quantum signature [c_tilde, z, h]
     /// @return true if both signatures are valid
     function isValid(
-        bytes calldata pre_quantum_pubkey,
-        bytes calldata post_quantum_pubkey,
-        address pre_quantum_logic_contract_address,
-        address post_quantum_logic_contract_address,
+        bytes calldata preQuantumPubKey,
+        bytes calldata postQuantumPubKey,
+        address preQuantumLogicContractAddress,
+        address postQuantumLogicContractAddress,
         bytes32 digest,
-        bytes calldata pre_quantum_sig,
-        bytes calldata post_quantum_sig
+        bytes calldata preQuantumSig,
+        bytes calldata postQuantumSig
     ) public view returns (bool) {
         // Validate digest length
         if (digest.length > 32) {
@@ -70,15 +66,15 @@ contract ZKNOX_HybridVerifier {
         }
 
         // Verify pre-quantum signature
-        IERC7913SignatureVerifier pre_quantum_core = IERC7913SignatureVerifier(pre_quantum_logic_contract_address);
-        if (pre_quantum_core.verify(pre_quantum_pubkey, digest, pre_quantum_sig) != pre_quantum_core.verify.selector) {
+        IERC7913SignatureVerifier preQuantumCore = IERC7913SignatureVerifier(preQuantumLogicContractAddress);
+        if (preQuantumCore.verify(preQuantumPubKey, digest, preQuantumSig) != preQuantumCore.verify.selector) {
             return false;
         }
 
         // Verify post-quantum signature
-        IERC7913SignatureVerifier post_quantum_core = IERC7913SignatureVerifier(post_quantum_logic_contract_address);
+        IERC7913SignatureVerifier postQuantumCore = IERC7913SignatureVerifier(postQuantumLogicContractAddress);
         if (
-            post_quantum_core.verify(post_quantum_pubkey, digest, post_quantum_sig) != post_quantum_core.verify.selector
+            postQuantumCore.verify(postQuantumPubKey, digest, postQuantumSig) != postQuantumCore.verify.selector
         ) {
             return false;
         }

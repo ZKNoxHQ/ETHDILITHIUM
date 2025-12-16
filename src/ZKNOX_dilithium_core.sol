@@ -42,8 +42,6 @@ import "./ZKNOX_NTT_dilithium.sol";
 import "./ZKNOX_shake.sol";
 import {
     q,
-    ZKNOX_Expand,
-    ZKNOX_Expand_Vec,
     ZKNOX_Expand_Mat,
     ZKNOX_MatVecProductDilithium,
     ZKNOX_VECMULMOD,
@@ -199,8 +197,8 @@ function dilithium_core_2(
     }
 
     // 1. A*z
-    uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-    z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
+    uint256[][][] memory aHat = ZKNOX_Expand_Mat(pk.a_hat);
+    z = ZKNOX_MatVecProductDilithium(aHat, z); // A * z
 
     // 2. A*z - c*t1
     for (uint256 i = 0; i < 4; i++) {

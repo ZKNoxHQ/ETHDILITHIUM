@@ -41,30 +41,30 @@ contract TestERC4337_Account is Test {
          */
 
         DeployPKContract deployPKContract = new DeployPKContract();
-        address post_quantum_address = deployPKContract.run();
+        address postQuantumAddress = deployPKContract.run();
 
         Script_Deploy_Hybrid_Verifier script_Deploy_Hybrid_Verifier = new Script_Deploy_Hybrid_Verifier();
         address hybrid_verifier_logic_address = script_Deploy_Hybrid_Verifier.run();
 
         Script_Deploy_ETHDilithium script_Deploy_ETHDilithium = new Script_Deploy_ETHDilithium();
-        address post_quantum_logic_address = script_Deploy_ETHDilithium.run();
+        address postQuantumLogicAddress = script_Deploy_ETHDilithium.run();
 
         Script_Deploy_ECDSA script_Deploy_ecdsa = new Script_Deploy_ECDSA();
-        address pre_quantum_logic_address = script_Deploy_ecdsa.run();
+        address preQuantumLogicAddress = script_Deploy_ecdsa.run();
 
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
 
-        bytes memory pre_quantum_pubkey = abi.encodePacked(Constants.addr);
-        bytes memory post_quantum_pubkey = abi.encodePacked(post_quantum_address);
+        bytes memory preQuantumPubKey = abi.encodePacked(Constants.addr);
+        bytes memory postQuantumPubKey = abi.encodePacked(postQuantumAddress);
 
         // Deploy the Smart Account
         account = new ZKNOX_ERC4337_account(
             entryPoint,
-            pre_quantum_pubkey,
-            post_quantum_pubkey,
-            pre_quantum_logic_address,
-            post_quantum_logic_address,
+            preQuantumPubKey,
+            postQuantumPubKey,
+            preQuantumLogicAddress,
+            postQuantumLogicAddress,
             hybrid_verifier_logic_address
         );
         // Deploy TestTarget
@@ -95,9 +95,9 @@ contract TestERC4337_Account is Test {
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
-        bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
-        bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
-        userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
+        bytes memory preQuantumSig = abi.encodePacked(r, s, v);
+        bytes memory postQuantumSig = abi.encodePacked(c_tilde, z, h);
+        userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
 
         vm.prank(address(entryPoint));
         uint256 validationData = account.validateUserOp(userOp, userOpHash, 0);
@@ -115,9 +115,9 @@ contract TestERC4337_Account is Test {
         bytes memory c_tilde = hex"00";
         bytes memory z = hex"00";
         bytes memory h = hex"00";
-        bytes memory invalid_pre_quantum_sig = abi.encodePacked(r, s, v);
-        bytes memory invalid_post_quantum_sig = abi.encodePacked(c_tilde, z, h);
-        userOp.signature = abi.encode(invalid_pre_quantum_sig, invalid_post_quantum_sig);
+        bytes memory invalid_preQuantumSig = abi.encodePacked(r, s, v);
+        bytes memory invalid_postQuantumSig = abi.encodePacked(c_tilde, z, h);
+        userOp.signature = abi.encode(invalid_preQuantumSig, invalid_postQuantumSig);
 
         vm.prank(address(entryPoint));
         uint256 validationData = account.validateUserOp(userOp, userOpHash, 0);
@@ -146,9 +146,9 @@ contract TestERC4337_Account is Test {
         (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
-        bytes memory pre_quantum_sig = abi.encodePacked(r, s, v);
-        bytes memory post_quantum_sig = abi.encodePacked(c_tilde, z, h);
-        userOp.signature = abi.encode(pre_quantum_sig, post_quantum_sig);
+        bytes memory preQuantumSig = abi.encodePacked(r, s, v);
+        bytes memory postQuantumSig = abi.encodePacked(c_tilde, z, h);
+        userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
 
         // Create an array with a single UserOperation
         PackedUserOperation[] memory ops = new PackedUserOperation[](1);

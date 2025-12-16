@@ -54,12 +54,12 @@ contract ZKNOX_ecdsa is IERC7913SignatureVerifier {
 
         address recovered = ecrecover(digest, v, r, s);
 
-        address pre_quantum_address;
+        address preQuantumAddress;
         assembly {
-            pre_quantum_address := shr(96, calldataload(pubkey.offset))
+            preQuantumAddress := shr(96, calldataload(pubkey.offset))
         }
 
-        if (recovered == pre_quantum_address) {
+        if (recovered == preQuantumAddress) {
             return IERC7913SignatureVerifier.verify.selector;
         }
         return 0xFFFFFFFF;

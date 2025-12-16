@@ -1,9 +1,7 @@
 pragma solidity ^0.8.25;
 
-import {Script} from "../lib/forge-std/src/Script.sol";
 import {BaseScript} from "./BaseScript.sol";
 
-import {console} from "forge-std/Test.sol";
 import {ERC7913P256Verifier} from "@openzeppelin/contracts/utils/cryptography/verifiers/ERC7913P256Verifier.sol";
 
 contract Script_Deploy_P256VERIFY is BaseScript {

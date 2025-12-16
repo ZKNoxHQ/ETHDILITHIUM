@@ -42,18 +42,11 @@ import "./ZKNOX_SampleInBall.sol";
 import "./ZKNOX_shake.sol";
 import {
     q,
-    ZKNOX_Expand,
     ZKNOX_Expand_Vec,
-    ZKNOX_Expand_Mat,
-    ZKNOX_MatVecProductDilithium,
-    ZKNOX_VECMULMOD,
-    ZKNOX_VECSUBMOD,
-    ID_keccak,
     omega,
     gamma_1_minus_beta
 } from "./ZKNOX_dilithium_utils.sol";
 
-import {useHintDilithium} from "./ZKNOX_hint.sol";
 import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 

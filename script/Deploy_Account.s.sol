@@ -13,22 +13,22 @@ contract DeployERC4337Account is BaseScript {
         vm.startBroadcast();
 
         // address of the ECDSA logic contract
-        address pre_quantum_logic_address = address(0xAe7B7Ecebb895b0Db67aa58307e506F0F3d5F38e);
+        address preQuantumLogicAddress = address(0xAe7B7Ecebb895b0Db67aa58307e506F0F3d5F38e);
         // address of the MLDSA logic contract
-        address post_quantum_logic_address = address(0x0000000000000000000000000000000000000000);
+        address postQuantumLogicAddress = address(0x0000000000000000000000000000000000000000);
         address hybrid_verifier_logic_address = address(0x0000000000000000000000000000000000000000);
         IEntryPoint entryPoint = new EntryPoint();
-        bytes memory pre_quantum_pubkey = abi.encodePacked(Constants.addr);
+        bytes memory preQuantumPubKey = abi.encodePacked(Constants.addr);
         // address of the PKContract storing the MLDSA public key
-        bytes memory post_quantum_pubkey = hex"0000";
+        bytes memory postQuantumPubKey = hex"0000";
 
         // Deploy the Smart Account
         ZKNOX_ERC4337_account account = new ZKNOX_ERC4337_account(
             entryPoint,
-            pre_quantum_pubkey,
-            post_quantum_pubkey,
-            pre_quantum_logic_address,
-            post_quantum_logic_address,
+            preQuantumPubKey,
+            postQuantumPubKey,
+            preQuantumLogicAddress,
+            postQuantumLogicAddress,
             hybrid_verifier_logic_address
         );
         console.log("Deployed ERC4337_Account at:", address(account));
