@@ -72,14 +72,14 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         if (ctx.length > 255) {
             revert("ctx bytes must have length at most 255");
         }
-        // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
-        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
+        // Step 2: mPrime = 0x00 || len(ctx) || ctx || m
+        bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
         Signature memory sig =
-            Signature({c_tilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+            Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        return verify_internal(public_key, m_prime, sig);
+        return verifyInternal(public_key, mPrime, sig);
     }
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
@@ -90,19 +90,19 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         }
         PubKey memory public_key = IPKContract(pub_key_address).get_mldsa_public_key();
 
-        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(0), m);
+        bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
         Signature memory sig =
-            Signature({c_tilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+            Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        if (verify_internal(public_key, m_prime, sig)) {
+        if (verifyInternal(public_key, mPrime, sig)) {
             return IERC7913SignatureVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
     }
 
-    function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
+    function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal
         pure
         returns (bool)
@@ -111,12 +111,12 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         uint256 j;
 
         // FIRST CORE STEP
-        (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
+        (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z) = dilithiumCore1(signature);
 
         if (foo == false) {
             return false;
         }
-        if (norm_h > omega) {
+        if (normH > omega) {
             return false;
         }
         for (i = 0; i < 4; i++) {
@@ -129,36 +129,36 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         }
 
         // C_NTT
-        uint256[] memory c_ntt = sampleInBallNIST(signature.c_tilde, tau, q);
-        c_ntt = ZKNOX_NTTFW(c_ntt);
+        uint256[] memory cNtt = sampleInBallNist(signature.cTilde, tau, q);
+        cNtt = ZKNOX_NTTFW(cNtt);
 
         // compute NTT_FW((1<<d) * t1)
-        uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
+        uint256[][] memory t1New = ZKNOX_Expand_Vec(pk.t1);
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
-                t1_new[i][j] <<= d;
+                t1New[i][j] <<= d;
             }
-            t1_new[i] = ZKNOX_NTTFW(t1_new[i]);
+            t1New[i] = ZKNOX_NTTFW(t1New[i]);
         }
 
         // SECOND CORE STEP
-        bytes memory w_prime_bytes = dilithium_core_2(pk, z, c_ntt, h, t1_new);
+        bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
         // FINAL HASH
         ctx_shake memory sctx;
-        sctx = shake_update(sctx, pk.tr);
-        sctx = shake_update(sctx, m_prime);
-        bytes memory mu = shake_digest(sctx, 64);
+        sctx = shakeUpdate(sctx, pk.tr);
+        sctx = shakeUpdate(sctx, mPrime);
+        bytes memory mu = shakeDigest(sctx, 64);
 
         ctx_shake memory sctx2;
-        sctx2 = shake_update(sctx2, mu);
-        sctx2 = shake_update(sctx2, w_prime_bytes);
-        bytes32 final_hash = bytes32(shake_digest(sctx2, 32));
+        sctx2 = shakeUpdate(sctx2, mu);
+        sctx2 = shakeUpdate(sctx2, wPrimeBytes);
+        bytes32 finalHash = bytes32(shakeDigest(sctx2, 32));
 
-        if (signature.c_tilde.length < 32) {
+        if (signature.cTilde.length < 32) {
             return false;
         }
         for (i = 0; i < 32; i++) {
-            if (signature.c_tilde[i] != final_hash[i]) {
+            if (signature.cTilde[i] != finalHash[i]) {
                 return false;
             }
         }

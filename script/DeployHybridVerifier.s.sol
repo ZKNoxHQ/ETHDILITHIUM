@@ -16,12 +16,12 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
 
     function run() external returns (address) {
         address preQuantumAddress = Constants.addr;
-        DeployPKContract deployPKContract = new DeployPKContract();
-        address postQuantumAddress = deployPKContract.run();
-        Script_Deploy_ECDSA script_Deploy_ECDSA = new Script_Deploy_ECDSA();
-        address preQuantumLogicAddress = script_Deploy_ECDSA.run();
-        Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
-        address postQuantumLogicAddress = script_Deploy_Dilithium.run();
+        DeployPKContract deployPkContract = new DeployPKContract();
+        address postQuantumAddress = deployPkContract.run();
+        Script_Deploy_ECDSA scriptDeployEcdsa = new Script_Deploy_ECDSA();
+        address preQuantumLogicAddress = scriptDeployEcdsa.run();
+        Script_Deploy_Dilithium scriptDeployDilithium = new Script_Deploy_Dilithium();
+        address postQuantumLogicAddress = scriptDeployDilithium.run();
 
         vm.startBroadcast();
 
@@ -40,11 +40,11 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
             cmds[4] = Constants.seed_str;
 
             bytes memory result = vm.ffi(cmds);
-            (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
             preQuantumSig = abi.encodePacked(r, s, v);
-            postQuantumSig = abi.encodePacked(c_tilde, z, h);
+            postQuantumSig = abi.encodePacked(cTilde, z, h);
         }
 
         // Scope 3: Verify

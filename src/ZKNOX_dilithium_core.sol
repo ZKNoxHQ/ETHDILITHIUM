@@ -102,7 +102,7 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
     return (true, h);
 }
 
-function unpack_z(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
+function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
     uint256 coeffBits;
     uint256 requiredBytes;
 
@@ -164,47 +164,47 @@ function unpack_z(bytes memory inputBytes) pure returns (uint256[][] memory coef
     return coefficients;
 }
 
-function dilithium_core_1(Signature memory signature)
+function dilithiumCore1(Signature memory signature)
     pure
-    returns (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
+    returns (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z)
 {
     (foo, h) = unpack_h(signature.h);
     uint256 i;
     uint256 j;
-    norm_h = 0;
+    normH = 0;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 256; j++) {
             if (h[i][j] == 1) {
-                norm_h += 1;
+                normH += 1;
             }
             // else { /* check that h[i][j] == 0 ? */}
         }
     }
 
-    z = unpack_z(signature.z);
+    z = unpackZ(signature.z);
 }
 
-function dilithium_core_2(
+function dilithiumCore2(
     PubKey memory pk,
     uint256[][] memory z,
-    uint256[] memory c_ntt,
+    uint256[] memory cNtt,
     uint256[][] memory h,
-    uint256[][] memory t1_new
-) pure returns (bytes memory w_prime_bytes) {
+    uint256[][] memory t1New
+) pure returns (bytes memory wPrimeBytes) {
     // NTT(z)
     for (uint256 i = 0; i < 4; i++) {
         z[i] = ZKNOX_NTTFW(z[i]);
     }
 
     // 1. A*z
-    uint256[][][] memory aHat = ZKNOX_Expand_Mat(pk.a_hat);
+    uint256[][][] memory aHat = ZKNOX_Expand_Mat(pk.aHat);
     z = ZKNOX_MatVecProductDilithium(aHat, z); // A * z
 
     // 2. A*z - c*t1
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)));
+        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1New[i], cNtt)));
     }
 
     // 3. w_prime packed using a "solidity-friendly encoding"
-    w_prime_bytes = useHintDilithium(h, z);
+    wPrimeBytes = useHintDilithium(h, z);
 }

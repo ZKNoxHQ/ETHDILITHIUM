@@ -9,8 +9,8 @@ contract Script_Deploy_ECDSA is BaseScript {
 
     function run() external returns (address) {
         vm.startBroadcast();
-        ZKNOX_ecdsa ECDSA = new ZKNOX_ecdsa();
+        ZKNOX_ecdsa ecdsa = new ZKNOX_ecdsa();
         vm.stopBroadcast();
-        return address(ECDSA);
+        return address(ecdsa);
     }
 }

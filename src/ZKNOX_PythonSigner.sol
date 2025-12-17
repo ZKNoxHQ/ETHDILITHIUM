@@ -20,8 +20,8 @@ contract PythonSignerBase is Test {
         cmds[4] = Constants.seed_str;
 
         bytes memory result = vm.ffi(cmds); // vm is available here
-        (bytes memory c_tilde, bytes memory z, bytes memory h,,,) =
+        (bytes memory cTilde, bytes memory z, bytes memory h,,,) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-        signature = abi.encodePacked(c_tilde, z, h);
+        signature = abi.encodePacked(cTilde, z, h);
     }
 }

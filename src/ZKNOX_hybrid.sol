@@ -49,7 +49,7 @@ contract ZKNOX_HybridVerifier {
     /// @param postQuantumLogicContractAddress the logic of the post-quantum verification
     /// @param digest The data that was signed
     /// @param preQuantumSig the pre-quantum signature: [r, s, v] for k1, [r, s] for r1
-    /// @param postQuantumSig the post-quantum signature [c_tilde, z, h]
+    /// @param postQuantumSig the post-quantum signature [cTilde, z, h]
     /// @return true if both signatures are valid
     function isValid(
         bytes calldata preQuantumPubKey,

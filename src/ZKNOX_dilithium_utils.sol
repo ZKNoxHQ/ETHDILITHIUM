@@ -211,62 +211,62 @@ function ZKNOX_ScalarProduct(uint256[][] memory a, uint256[][] memory b) pure re
     }
 }
 
-function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory M_times_v) {
+function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory mTimesV) {
     // Input: a matrix of elements of Fq²⁵⁶ and a vector of elements of Fq²⁵⁶
     // Output: the multiplication M * v as a vector of elements of Fq²⁵⁶
-    M_times_v = new uint256[][](v.length);
+    mTimesV = new uint256[][](v.length);
     for (uint256 i = 0; i < M.length; i++) {
-        M_times_v[i] = ZKNOX_ScalarProduct(M[i], v);
+        mTimesV[i] = ZKNOX_ScalarProduct(M[i], v);
     }
 }
 
-uint256 constant vecSize = 256;
-uint256 constant rowCount = 4;
-uint256 constant colCount = 4;
+uint256 constant VEC_SIZE = 256;
+uint256 constant ROW_COUNT = 4;
+uint256 constant COL_COUNT = 4;
 
 function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
     pure
-    returns (uint256[][] memory M_times_v)
+    returns (uint256[][] memory mTimesV)
 {
-    M_times_v = new uint256[][](rowCount);
+    mTimesV = new uint256[][](ROW_COUNT);
 
     uint256 i;
     uint256 j;
     uint256 ell;
     uint256[] memory tmp;
-    uint256[] memory Mij;
+    uint256[] memory mij;
     uint256[] memory vj;
-    for (i = 0; i < rowCount; i++) {
-        tmp = new uint256[](vecSize);
-        for (j = 0; j < colCount; j++) {
-            Mij = M[i][j];
+    for (i = 0; i < ROW_COUNT; i++) {
+        tmp = new uint256[](VEC_SIZE);
+        for (j = 0; j < COL_COUNT; j++) {
+            mij = M[i][j];
             vj = v[j];
 
             assembly {
                 let a_tmp := add(tmp, 32)
-                let a_Mij := add(Mij, 32)
+                let a_mij := add(mij, 32)
                 let a_vj := add(vj, 32)
                 for { let offset_k := 0 } gt(8192, offset_k) { offset_k := add(offset_k, 32) } {
                     let tmp_k := add(a_tmp, offset_k) //address of tmp[k]
-                    mstore(tmp_k, add(mload(tmp_k), mulmod(mload(add(a_Mij, offset_k)), mload(add(a_vj, offset_k)), q)))
+                    mstore(tmp_k, add(mload(tmp_k), mulmod(mload(add(a_mij, offset_k)), mload(add(a_vj, offset_k)), q)))
                 }
             }
         }
-        for (ell = 0; ell < vecSize; ell++) {
+        for (ell = 0; ell < VEC_SIZE; ell++) {
             tmp[ell] %= q;
         }
-        M_times_v[i] = tmp;
+        mTimesV[i] = tmp;
     }
 }
 
 struct Signature {
-    bytes c_tilde;
+    bytes cTilde;
     bytes z;
     bytes h;
 }
 
 struct PubKey {
-    uint256[][][] a_hat;
+    uint256[][][] aHat;
     bytes tr;
     uint256[][] t1;
 }

@@ -10,8 +10,8 @@ contract Script_Deploy_P256VERIFY is BaseScript {
     function run() external returns (address) {
         vm.startBroadcast();
         bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.22"));
-        ERC7913P256Verifier ECDSA = new ERC7913P256Verifier{salt: salty}();
+        ERC7913P256Verifier ecdsa = new ERC7913P256Verifier{salt: salty}();
         vm.stopBroadcast();
-        return address(ECDSA);
+        return address(ecdsa);
     }
 }

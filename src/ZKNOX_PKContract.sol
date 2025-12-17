@@ -43,8 +43,8 @@ contract PKContract {
     PubKey private mldsa_pk;
 
     // Constructor initializes the full key
-    constructor(uint256[][][] memory _a_hat, bytes memory _tr, uint256[][] memory _t1) {
-        mldsa_pk = PubKey({a_hat: _a_hat, tr: _tr, t1: _t1});
+    constructor(uint256[][][] memory _aHat, bytes memory _tr, uint256[][] memory _t1) {
+        mldsa_pk = PubKey({aHat: _aHat, tr: _tr, t1: _t1});
     }
 
     // Return the Post-Quantum public key

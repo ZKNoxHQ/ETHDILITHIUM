@@ -16,7 +16,7 @@ contract DeployERC4337Account is BaseScript {
         address preQuantumLogicAddress = address(0xAe7B7Ecebb895b0Db67aa58307e506F0F3d5F38e);
         // address of the MLDSA logic contract
         address postQuantumLogicAddress = address(0x0000000000000000000000000000000000000000);
-        address hybrid_verifier_logic_address = address(0x0000000000000000000000000000000000000000);
+        address hybridVerifierLogicAddress = address(0x0000000000000000000000000000000000000000);
         IEntryPoint entryPoint = new EntryPoint();
         bytes memory preQuantumPubKey = abi.encodePacked(Constants.addr);
         // address of the PKContract storing the MLDSA public key
@@ -29,7 +29,7 @@ contract DeployERC4337Account is BaseScript {
             postQuantumPubKey,
             preQuantumLogicAddress,
             postQuantumLogicAddress,
-            hybrid_verifier_logic_address
+            hybridVerifierLogicAddress
         );
         console.log("Deployed ERC4337_Account at:", address(account));
 

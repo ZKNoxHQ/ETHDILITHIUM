@@ -40,17 +40,17 @@ contract TestERC4337_Account is Test {
          *
          */
 
-        DeployPKContract deployPKContract = new DeployPKContract();
-        address postQuantumAddress = deployPKContract.run();
+        DeployPKContract deployPkContract = new DeployPKContract();
+        address postQuantumAddress = deployPkContract.run();
 
-        Script_Deploy_Hybrid_Verifier script_Deploy_Hybrid_Verifier = new Script_Deploy_Hybrid_Verifier();
-        address hybrid_verifier_logic_address = script_Deploy_Hybrid_Verifier.run();
+        Script_Deploy_Hybrid_Verifier scriptDeployHybridVerifier = new Script_Deploy_Hybrid_Verifier();
+        address hybridVerifierLogicAddress = scriptDeployHybridVerifier.run();
 
-        Script_Deploy_Dilithium script_Deploy_Dilithium = new Script_Deploy_Dilithium();
-        address postQuantumLogicAddress = script_Deploy_Dilithium.run();
+        Script_Deploy_Dilithium scriptDeployDilithium = new Script_Deploy_Dilithium();
+        address postQuantumLogicAddress = scriptDeployDilithium.run();
 
-        Script_Deploy_ECDSA script_Deploy_ecdsa = new Script_Deploy_ECDSA();
-        address preQuantumLogicAddress = script_Deploy_ecdsa.run();
+        Script_Deploy_ECDSA scriptDeployEcdsa = new Script_Deploy_ECDSA();
+        address preQuantumLogicAddress = scriptDeployEcdsa.run();
 
         entryPoint = new EntryPoint();
 
@@ -64,7 +64,7 @@ contract TestERC4337_Account is Test {
             postQuantumPubKey,
             preQuantumLogicAddress,
             postQuantumLogicAddress,
-            hybrid_verifier_logic_address
+            hybridVerifierLogicAddress
         );
         // Deploy TestTarget
         target = new TestTarget();
@@ -91,11 +91,11 @@ contract TestERC4337_Account is Test {
         cmds[4] = Constants.seed_str;
 
         bytes memory result = vm.ffi(cmds);
-        (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
-        bytes memory postQuantumSig = abi.encodePacked(c_tilde, z, h);
+        bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
 
         vm.prank(address(entryPoint));
@@ -111,12 +111,12 @@ contract TestERC4337_Account is Test {
 
         // Create invalid signatures
         (uint8 v, bytes32 r, bytes32 s) = (28, bytes32(0), bytes32(0));
-        bytes memory c_tilde = hex"00";
+        bytes memory cTilde = hex"00";
         bytes memory z = hex"00";
         bytes memory h = hex"00";
-        bytes memory invalid_preQuantumSig = abi.encodePacked(r, s, v);
-        bytes memory invalid_postQuantumSig = abi.encodePacked(c_tilde, z, h);
-        userOp.signature = abi.encode(invalid_preQuantumSig, invalid_postQuantumSig);
+        bytes memory invalidPreQuantumSig = abi.encodePacked(r, s, v);
+        bytes memory invalidPostQuantumSig = abi.encodePacked(cTilde, z, h);
+        userOp.signature = abi.encode(invalidPreQuantumSig, invalidPostQuantumSig);
 
         vm.prank(address(entryPoint));
         uint256 validationData = account.validateUserOp(userOp, userOpHash, 0);
@@ -142,11 +142,11 @@ contract TestERC4337_Account is Test {
         cmds[4] = Constants.seed_str;
 
         bytes memory result = vm.ffi(cmds);
-        (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
-        bytes memory postQuantumSig = abi.encodePacked(c_tilde, z, h);
+        bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
 
         // Create an array with a single UserOperation

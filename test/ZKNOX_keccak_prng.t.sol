@@ -44,15 +44,15 @@ contract KeccakPRNGTest is Test {
 
         // Test vector 4
         prng = initPRNG(input_4);
-        uint256 out_4_1 = uint256(prng.pool);
-        assertEq(out_4_1 >> 128, output_4_1);
+        uint256 out41 = uint256(prng.pool);
+        assertEq(out41 >> 128, output_4_1);
 
         refill(prng);
-        uint256 out_4_2 = uint256(prng.pool);
-        assertEq(out_4_2 >> 128, output_4_2);
+        uint256 out42 = uint256(prng.pool);
+        assertEq(out42 >> 128, output_4_2);
 
         refill(prng);
-        uint256 out_4_3 = uint256(prng.pool);
-        assertEq(out_4_3 >> 128, output_4_3);
+        uint256 out43 = uint256(prng.pool);
+        assertEq(out43 >> 128, output_4_3);
     }
 }

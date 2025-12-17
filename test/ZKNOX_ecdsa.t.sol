@@ -18,7 +18,7 @@ contract ECDSATest is Test {
         cmds[4] = Constants.seed_str;
 
         bytes memory result = vm.ffi(cmds);
-        (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
         bytes memory sig = abi.encodePacked(r, s, v);
         bytes memory pubkey = abi.encodePacked(Constants.addr);

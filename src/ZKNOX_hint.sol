@@ -109,7 +109,7 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
     //       = 4 * 192 bytes
     //       = 768 bytes.
     hint = new bytes(768);
-    bytes memory hint_i;
+    bytes memory hintI;
     uint256 i;
     uint256 j;
     uint256 k;
@@ -119,7 +119,7 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
     uint256 result3;
 
     for (i = 0; i < 4; i++) {
-        hint_i = new bytes(192);
+        hintI = new bytes(192);
         k = 0;
         for (j = 0; j < 256; j = j + 4) {
             // reading coefficients by slice of 4 (each of them is 6-bit long)
@@ -128,15 +128,15 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
             result2 = useHint(h[i][j + 2], r[i][j + 2]);
             result3 = useHint(h[i][j + 3], r[i][j + 3]);
             // storing by slices of 3 bytes (as 4*6 = 3*8)
-            hint_i[k] = bytes1(uint8((result1 & 3) << 6 | result0));
-            hint_i[k + 1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
-            hint_i[k + 2] = bytes1(uint8(result3 << 2 | result2 >> 4));
+            hintI[k] = bytes1(uint8((result1 & 3) << 6 | result0));
+            hintI[k + 1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
+            hintI[k + 2] = bytes1(uint8(result3 << 2 | result2 >> 4));
             k += 3;
         }
-        // copy hint_i into hint
+        // copy hintI into hint
         assembly {
             let dest := add(hint, add(32, mul(i, 192)))
-            let src := add(hint_i, 32)
+            let src := add(hintI, 32)
             mcopy(dest, src, 192)
         }
     }

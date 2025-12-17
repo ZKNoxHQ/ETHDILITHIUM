@@ -15,22 +15,22 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     bytes private postQuantumPubKey;
     address private preQuantumLogicContractAddress;
     address private postQuantumLogicContractAddress;
-    address private hybrid_verifier_logic_contract_address;
+    address private hybridVerifierLogicContractAddress;
 
     constructor(
-        IEntryPoint entry_point,
+        IEntryPoint entryPoint,
         bytes memory _preQuantumPubKey,
         bytes memory _postQuantumPubKey,
         address _preQuantumLogicContractAddress,
         address _postQuantumLogicContractAddress,
-        address _hybrid_verifier_logic_contract_address
+        address _hybridVerifierLogicContractAddress
     ) {
-        _entryPoint = entry_point;
+        _entryPoint = entryPoint;
         preQuantumPubKey = _preQuantumPubKey;
         postQuantumPubKey = _postQuantumPubKey;
         preQuantumLogicContractAddress = _preQuantumLogicContractAddress;
         postQuantumLogicContractAddress = _postQuantumLogicContractAddress;
-        hybrid_verifier_logic_contract_address = _hybrid_verifier_logic_contract_address;
+        hybridVerifierLogicContractAddress = _hybridVerifierLogicContractAddress;
     }
 
     /// @inheritdoc BaseAccount
@@ -46,7 +46,7 @@ contract ZKNOX_ERC4337_account is BaseAccount {
         returns (uint256 validationData)
     {
         (bytes memory preQuantumSig, bytes memory postQuantumSig) = abi.decode(userOp.signature, (bytes, bytes));
-        ZKNOX_HybridVerifier hybrid_verifier = ZKNOX_HybridVerifier(hybrid_verifier_logic_contract_address);
+        ZKNOX_HybridVerifier hybrid_verifier = ZKNOX_HybridVerifier(hybridVerifierLogicContractAddress);
         bool isValid = hybrid_verifier.isValid(
             preQuantumPubKey,
             postQuantumPubKey,

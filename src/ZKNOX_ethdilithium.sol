@@ -68,14 +68,14 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
             revert("ctx bytes must have length at most 255");
         }
 
-        // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
-        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
+        // Step 2: mPrime = 0x00 || len(ctx) || ctx || m
+        bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
         Signature memory sig =
-            Signature({c_tilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+            Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        return verify_internal(public_key, m_prime, sig);
+        return verifyInternal(public_key, mPrime, sig);
     }
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
@@ -86,19 +86,19 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         }
         PubKey memory public_key = IPKContract(pub_key_address).get_mldsa_public_key();
 
-        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(0), m);
+        bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
         Signature memory sig =
-            Signature({c_tilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+            Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        if (verify_internal(public_key, m_prime, sig)) {
+        if (verifyInternal(public_key, mPrime, sig)) {
             return IERC7913SignatureVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
     }
 
-    function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
+    function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal
         pure
         returns (bool)
@@ -107,12 +107,12 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         uint256 j;
 
         // FIRST CORE STEP
-        (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
+        (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z) = dilithiumCore1(signature);
 
         if (foo == false) {
             return false;
         }
-        if (norm_h > omega) {
+        if (normH > omega) {
             return false;
         }
         for (i = 0; i < 4; i++) {
@@ -125,23 +125,23 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         }
 
         // C_NTT
-        uint256[] memory c_ntt = sampleInBallKeccakPRNG(signature.c_tilde, tau, q);
-        c_ntt = ZKNOX_NTTFW(c_ntt);
+        uint256[] memory cNtt = sampleInBallKeccakPrng(signature.cTilde, tau, q);
+        cNtt = ZKNOX_NTTFW(cNtt);
 
-        // t1_new
-        uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
+        // t1New
+        uint256[][] memory t1New = ZKNOX_Expand_Vec(pk.t1);
 
         // SECOND CORE STEP
-        bytes memory w_prime_bytes = dilithium_core_2(pk, z, c_ntt, h, t1_new);
+        bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
 
         // FINAL HASH
-        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, m_prime));
+        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, mPrime));
         bytes32 out1 = prng.pool;
         refill(prng);
         bytes32 out2 = prng.pool;
-        prng = initPRNG(abi.encodePacked(out1, out2, w_prime_bytes));
-        bytes32 final_hash = prng.pool;
-        return final_hash == bytes32(signature.c_tilde);
+        prng = initPRNG(abi.encodePacked(out1, out2, wPrimeBytes));
+        bytes32 finalHash = prng.pool;
+        return finalHash == bytes32(signature.cTilde);
     }
 }
 //end of contract

@@ -13,40 +13,40 @@ import {Constants} from "./ZKNOX_seed.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TestHybridVerifier is Test {
-    address mldsa_address;
-    address mldsaeth_address;
-    address verifier_address;
-    address verifier_eth_address;
-    address ecdsa_verifier_address;
+    address mldsaAddress;
+    address mldsaEthAddress;
+    address verifierAddress;
+    address verifierEthAddress;
+    address ecdsaVerifierAddress;
 
     function setUp() public {
         // deploy the contract containing the MLDSA public key
         uint256 gasStart = gasleft();
-        DeployPKContract deployPKContract = new DeployPKContract();
-        mldsa_address = deployPKContract.run();
+        DeployPKContract deployPkContract = new DeployPKContract();
+        mldsaAddress = deployPkContract.run();
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
 
-        DeployMLDSAETHPKContract deployMLDSAETHPKContract = new DeployMLDSAETHPKContract();
-        mldsaeth_address = deployMLDSAETHPKContract.run();
+        DeployMLDSAETHPKContract deployMldsaEthPkContract = new DeployMLDSAETHPKContract();
+        mldsaEthAddress = deployMldsaEthPkContract.run();
 
         // deploy the contract containing the MLDSA core algorithm
         Script_Deploy_Dilithium deployVerifierContract = new Script_Deploy_Dilithium();
-        verifier_address = deployVerifierContract.run();
+        verifierAddress = deployVerifierContract.run();
 
         // deploy the contract containing the MLDSAETH core algorithm
-        Script_Deploy_ETHDilithium deployETHVerifierContract = new Script_Deploy_ETHDilithium();
-        verifier_eth_address = deployETHVerifierContract.run();
+        Script_Deploy_ETHDilithium deployEthVerifierContract = new Script_Deploy_ETHDilithium();
+        verifierEthAddress = deployEthVerifierContract.run();
 
         // deploy the contract containing the ECDSA core algorithm
-        Script_Deploy_ECDSA deployECDSAVerifierContract = new Script_Deploy_ECDSA();
-        ecdsa_verifier_address = deployECDSAVerifierContract.run();
+        Script_Deploy_ECDSA deployEcdsaVerifierContract = new Script_Deploy_ECDSA();
+        ecdsaVerifierAddress = deployEcdsaVerifierContract.run();
     }
 
     function testHybridVerify() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        address eth_address = Constants.addr;
+        address ethAddress = Constants.addr;
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory preQuantumSig;
@@ -60,20 +60,20 @@ contract TestHybridVerifier is Test {
             cmds[4] = Constants.seed_str;
 
             bytes memory result = vm.ffi(cmds);
-            (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
+            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
             preQuantumSig = abi.encodePacked(_r, _s, _v);
-            postQuantumSig = abi.encodePacked(c_tilde, z, h);
+            postQuantumSig = abi.encodePacked(cTilde, z, h);
         }
 
         // Scope 3: Verify
         {
             uint256 gasStart = gasleft();
             bool valid = hybrid.isValid(
-                abi.encodePacked(eth_address),
-                abi.encodePacked(mldsa_address),
-                ecdsa_verifier_address,
-                verifier_address,
+                abi.encodePacked(ethAddress),
+                abi.encodePacked(mldsaAddress),
+                ecdsaVerifierAddress,
+                verifierAddress,
                 data,
                 preQuantumSig,
                 postQuantumSig
@@ -87,7 +87,7 @@ contract TestHybridVerifier is Test {
     function testHybridVerifyETH() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        address eth_address = Constants.addr;
+        address ethAddress = Constants.addr;
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory preQuantumSig;
@@ -102,21 +102,21 @@ contract TestHybridVerifier is Test {
             cmds[4] = Constants.seed_str;
 
             bytes memory result = vm.ffi(cmds);
-            (bytes memory c_tilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
+            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
                 abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
 
             preQuantumSig = abi.encodePacked(_r, _s, _v);
-            postQuantumSig = abi.encodePacked(c_tilde, z, h);
+            postQuantumSig = abi.encodePacked(cTilde, z, h);
         }
 
         // Scope 3: Verify
         {
             uint256 gasStart = gasleft();
             bool valid = hybrid.isValid(
-                abi.encodePacked(eth_address),
-                abi.encodePacked(mldsaeth_address),
-                ecdsa_verifier_address,
-                verifier_eth_address,
+                abi.encodePacked(ethAddress),
+                abi.encodePacked(mldsaEthAddress),
+                ecdsaVerifierAddress,
+                verifierEthAddress,
                 data,
                 preQuantumSig,
                 postQuantumSig
