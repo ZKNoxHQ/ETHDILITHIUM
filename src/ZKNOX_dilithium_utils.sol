@@ -35,9 +35,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-uint256 constant ID_keccak = 0x00;
-uint256 constant ID_tetration = 0x01;
-uint256 constant ID_shake = 0x02;
+uint256 constant ID_KECCAK = 0x00;
+uint256 constant ID_TETRATION = 0x01;
+uint256 constant ID_SHAKE = 0x02;
 
 uint256 constant _DILITHIUM_WORD256_S = 32;
 uint256 constant _DILITHIUM_WORD32_S = 256;
@@ -45,7 +45,6 @@ uint256 constant _DILITHIUM_WORD32_S = 256;
 // DILITHIUM PARAMETERS
 uint256 constant n = 256;
 uint256 constant q = 8380417;
-uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
 uint256 constant GAMMA_1 = 131072;
