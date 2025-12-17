@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
-import "../src/ZKNOX_keccak_prng.sol";
+import {KeccakPrng, initPRNG, refill} from "../src/ZKNOX_keccak_prng.sol";
 
 contract KeccakPrngTest is Test {
     // Input and output provided by

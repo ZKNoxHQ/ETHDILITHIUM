@@ -37,8 +37,7 @@ pragma solidity ^0.8.20;
 
 import {PubKey} from "./ZKNOX_dilithium_utils.sol";
 
-// A PKContract stored:
-// - mldsaPk an expanded MLDSA public key
+// A PKContract stores an expanded MLDSA public key
 contract PKContract {
     PubKey private mldsaPk;
 

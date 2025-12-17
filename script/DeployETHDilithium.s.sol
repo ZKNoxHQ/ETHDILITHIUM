@@ -1,9 +1,8 @@
 pragma solidity ^0.8.25;
 
 import {BaseScript} from "./BaseScript.sol";
-import "../src/ZKNOX_ethdilithium.sol";
+import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-
 import {console} from "forge-std/Test.sol";
 
 contract Script_Deploy_ETHDilithium is BaseScript {

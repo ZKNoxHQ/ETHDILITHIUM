@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "../lib/account-abstraction/contracts/core/BaseAccount.sol";
-import "../lib/account-abstraction/contracts/core/Helpers.sol";
-import "../lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
-
-import "./ZKNOX_PKContract.sol";
-import "./ZKNOX_dilithium_utils.sol";
-import "./ZKNOX_hybrid.sol";
+import {BaseAccount, PackedUserOperation} from "../lib/account-abstraction/contracts/core/BaseAccount.sol";
+import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from  "../lib/account-abstraction/contracts/core/Helpers.sol";
+import {IEntryPoint} from "../lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
+import {ZKNOX_HybridVerifier} from  "./ZKNOX_hybrid.sol";
 
 contract ZKNOX_ERC4337_account is BaseAccount {
     IEntryPoint private _entryPoint;
@@ -18,14 +15,14 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     address private hybridVerifierLogicContractAddress;
 
     constructor(
-        IEntryPoint entryPoint,
+        IEntryPoint __entryPoint,
         bytes memory _preQuantumPubKey,
         bytes memory _postQuantumPubKey,
         address _preQuantumLogicContractAddress,
         address _postQuantumLogicContractAddress,
         address _hybridVerifierLogicContractAddress
     ) {
-        _entryPoint = entryPoint;
+        _entryPoint = __entryPoint;
         preQuantumPubKey = _preQuantumPubKey;
         postQuantumPubKey = _postQuantumPubKey;
         preQuantumLogicContractAddress = _preQuantumLogicContractAddress;

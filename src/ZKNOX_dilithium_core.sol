@@ -38,16 +38,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_NTT_dilithium.sol";
-import "./ZKNOX_shake.sol";
+import {nttFw, nttInv} from "./ZKNOX_NTT_dilithium.sol";
+import {PubKey, Signature} from "./ZKNOX_dilithium_utils.sol";
 import {
     q,
-    ZKNOX_Expand_Mat,
-    ZKNOX_MatVecProductDilithium,
-    ZKNOX_VECMULMOD,
-    ZKNOX_VECSUBMOD,
+    expandMat,
+    matVecProductDilithium,
+    VecMulMod,
+    VecSubMod,
     bitUnpackAtOffset,
-    omega,
+    OMEGA,
     k,
     l,
     n,
@@ -56,7 +56,7 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
-    require(hBytes.length >= omega + k, "Invalid h bytes length");
+    require(hBytes.length >= OMEGA + k, "Invalid h bytes length");
 
     uint256 kIdx = 0;
 
@@ -67,10 +67,10 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
             h[i][j] = 0;
         }
 
-        uint256 omegaVal = uint8(hBytes[omega + i]);
+        uint256 omegaVal = uint8(hBytes[OMEGA + i]);
 
         // Check bound on omegaVal
-        if (omegaVal < kIdx || omegaVal > omega) {
+        if (omegaVal < kIdx || omegaVal > OMEGA) {
             return (false, h);
         }
 
@@ -93,7 +93,7 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
     }
 
     // Check extra indices are zero
-    for (uint256 j = kIdx; j < omega; j++) {
+    for (uint256 j = kIdx; j < OMEGA; j++) {
         if (uint8(hBytes[j]) != 0) {
             return (false, h);
         }
@@ -193,16 +193,16 @@ function dilithiumCore2(
 ) pure returns (bytes memory wPrimeBytes) {
     // NTT(z)
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTFW(z[i]);
+        z[i] = nttFw(z[i]);
     }
 
     // 1. A*z
-    uint256[][][] memory aHat = ZKNOX_Expand_Mat(pk.aHat);
-    z = ZKNOX_MatVecProductDilithium(aHat, z); // A * z
+    uint256[][][] memory aHat = expandMat(pk.aHat);
+    z = matVecProductDilithium(aHat, z); // A * z
 
     // 2. A*z - c*t1
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1New[i], cNtt)));
+        z[i] = nttInv(VecSubMod(z[i], VecMulMod(t1New[i], cNtt)));
     }
 
     // 3. w_prime packed using a "solidity-friendly encoding"

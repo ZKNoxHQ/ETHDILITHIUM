@@ -17,7 +17,7 @@ contract PythonSignerBase is Test {
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytesToString(data); // convert bytes to string
         cmds[3] = "NIST";
-        cmds[4] = Constants.seed_str;
+        cmds[4] = Constants.SEED_STR;
 
         bytes memory result = vm.ffi(cmds); // vm is available here
         (bytes memory cTilde, bytes memory z, bytes memory h,,,) =

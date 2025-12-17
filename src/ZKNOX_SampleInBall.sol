@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./ZKNOX_shake.sol";
-import "./ZKNOX_keccak_prng.sol";
+import {CtxShake, shakeUpdate, shakeDigest, shakeSqueeze} from "./ZKNOX_shake.sol";
+import {KeccakPrng, initPRNG, nextByte} from "./ZKNOX_keccak_prng.sol";
 
 // SampleInBall as specified in Dilithium
 function sampleInBallNist(bytes memory cTilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {

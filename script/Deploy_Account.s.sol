@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
+import {console} from "forge-std/Test.sol";
 import {BaseScript} from "./BaseScript.sol";
 import {ZKNOX_ERC4337_account} from "../src/ZKNOX_ERC4337_account.sol";
-import "../lib/account-abstraction/contracts/core/EntryPoint.sol";
+import {EntryPoint} from "../lib/account-abstraction/contracts/core/EntryPoint.sol";
 import {IEntryPoint} from "../lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
 import {Constants} from "../test/ZKNOX_seed.sol";
 
@@ -18,7 +18,7 @@ contract DeployERC4337Account is BaseScript {
         address postQuantumLogicAddress = address(0x0000000000000000000000000000000000000000);
         address hybridVerifierLogicAddress = address(0x0000000000000000000000000000000000000000);
         IEntryPoint entryPoint = new EntryPoint();
-        bytes memory preQuantumPubKey = abi.encodePacked(Constants.addr);
+        bytes memory preQuantumPubKey = abi.encodePacked(Constants.ADDR);
         // address of the PKContract storing the MLDSA public key
         bytes memory postQuantumPubKey = hex"0000";
 

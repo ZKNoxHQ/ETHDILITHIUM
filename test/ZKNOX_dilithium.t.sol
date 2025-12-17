@@ -5,7 +5,6 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import "../src/ZKNOX_dilithium_utils.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Constants} from "./ZKNOX_seed.sol";
 
@@ -692,7 +691,7 @@ contract DilithiumTest is Test {
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = vm.toString(data);
         cmds[3] = "NIST";
-        cmds[4] = Constants.seed_str;
+        cmds[4] = Constants.SEED_STR;
 
         bytes memory result = vm.ffi(cmds);
         (bytes memory cTilde, bytes memory z, bytes memory h,,,) =

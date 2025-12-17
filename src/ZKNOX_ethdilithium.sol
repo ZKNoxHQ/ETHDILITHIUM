@@ -35,18 +35,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_NTT_dilithium.sol";
-import "./ZKNOX_dilithium_core.sol";
-import "./ZKNOX_dilithium_utils.sol";
-import "./ZKNOX_SampleInBall.sol";
-import "./ZKNOX_shake.sol";
+import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
+import {dilithiumCore1, dilithiumCore2}  from "./ZKNOX_dilithium_core.sol";
+import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
+import {KeccakPrng, initPRNG, refill} from "./ZKNOX_keccak_prng.sol";
 import {
     q,
-    ZKNOX_Expand_Vec,
-    omega,
-    GAMMA_1_MINUS_BETA
+    expandVec,
+    OMEGA,
+    GAMMA_1_MINUS_BETA,
+    TAU,
+    d,
+    PubKey,
+    Signature,
+    slice
 } from "./ZKNOX_dilithium_utils.sol";
-
 import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 
@@ -61,7 +64,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         assembly {
             pubKeyAddress := mload(add(pk, 20))
         }
-        PubKey memory public_key = IPKContract(pubKeyAddress).getPublicKey();
+        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
 
         // Step 1: check ctx length
         if (ctx.length > 255) {
@@ -75,7 +78,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
             Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        return verifyInternal(public_key, mPrime, sig);
+        return verifyInternal(publicKey, mPrime, sig);
     }
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
@@ -84,7 +87,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         assembly {
             pubKeyAddress := shr(96, calldataload(pk.offset))
         }
-        PubKey memory public_key = IPKContract(pubKeyAddress).getPublicKey();
+        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
 
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
@@ -92,7 +95,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
             Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        if (verifyInternal(public_key, mPrime, sig)) {
+        if (verifyInternal(publicKey, mPrime, sig)) {
             return IERC7913SignatureVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
@@ -112,7 +115,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         if (foo == false) {
             return false;
         }
-        if (normH > omega) {
+        if (normH > OMEGA) {
             return false;
         }
         for (i = 0; i < 4; i++) {
@@ -126,10 +129,10 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
 
         // C_NTT
         uint256[] memory cNtt = sampleInBallKeccakPrng(signature.cTilde, TAU, q);
-        cNtt = ZKNOX_NTTFW(cNtt);
+        cNtt = nttFw(cNtt);
 
         // t1New
-        uint256[][] memory t1New = ZKNOX_Expand_Vec(pk.t1);
+        uint256[][] memory t1New = expandVec(pk.t1);
 
         // SECOND CORE STEP
         bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);

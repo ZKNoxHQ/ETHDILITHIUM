@@ -45,8 +45,8 @@ uint256 constant _DILITHIUM_WORD32_S = 256;
 // DILITHIUM PARAMETERS
 uint256 constant n = 256;
 uint256 constant q = 8380417;
-uint256 constant nm1modq = 8347681;
-uint256 constant omega = 80;
+uint256 constant N_MINUS_1_MOD_Q = 8347681;
+uint256 constant OMEGA = 80;
 uint256 constant GAMMA_1 = 131072;
 uint256 constant GAMMA_1_MINUS_BETA = 130994; // γ1 - τ*η = 131072 - 39 * 2
 uint256 constant TAU = 39;
@@ -99,27 +99,27 @@ function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 s
     return result;
 }
 
-function ZKNOX_Expand_Mat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
+function expandMat(uint256[][][] memory table) pure returns (uint256[][][] memory b) {
     b = new uint256[][][](4);
     for (uint256 i = 0; i < 4; i++) {
         b[i] = new uint256[][](4);
         for (uint256 j = 0; j < 4; j++) {
-            b[i][j] = ZKNOX_Expand(table[i][j]);
+            b[i][j] = Expand(table[i][j]);
         }
     }
     return b;
 }
 
-function ZKNOX_Expand_Vec(uint256[][] memory table) pure returns (uint256[][] memory b) {
+function expandVec(uint256[][] memory table) pure returns (uint256[][] memory b) {
     b = new uint256[][](4);
     for (uint256 i = 0; i < 4; i++) {
         // b[i] = new uint256[](256);
-        b[i] = ZKNOX_Expand(table[i]);
+        b[i] = Expand(table[i]);
     }
     return b;
 }
 
-function ZKNOX_Expand(uint256[] memory a) pure returns (uint256[] memory b) {
+function Expand(uint256[] memory a) pure returns (uint256[] memory b) {
     /*
     for (uint256 i = 0; i < 32; i++) {
         uint256 ai = a[i];
@@ -145,7 +145,7 @@ function ZKNOX_Expand(uint256[] memory a) pure returns (uint256[] memory b) {
     return b;
 }
 
-function ZKNOX_Compact(uint256[] memory a) pure returns (uint256[] memory b) {
+function Compact(uint256[] memory a) pure returns (uint256[] memory b) {
     /*
     for (uint256 i = 0; i < a.length; i++) {
         b[i >> 3] ^= a[i] << ((i & 0x7) << 5);
@@ -168,7 +168,7 @@ function ZKNOX_Compact(uint256[] memory a) pure returns (uint256[] memory b) {
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function ZKNOX_VECMULMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+function VecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -179,7 +179,7 @@ function ZKNOX_VECMULMOD(uint256[] memory a, uint256[] memory b) pure returns (u
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function ZKNOX_VECADDMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+function VECADDMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -190,7 +190,7 @@ function ZKNOX_VECADDMOD(uint256[] memory a, uint256[] memory b) pure returns (u
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function ZKNOX_VECSUBMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+function VecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -199,23 +199,23 @@ function ZKNOX_VECSUBMOD(uint256[] memory a, uint256[] memory b) pure returns (u
     return res;
 }
 
-function ZKNOX_ScalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns (uint256[] memory result) {
+function scalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns (uint256[] memory result) {
     // Input: two vectors of elements of Fq²⁵⁶
     // Output: the scalar product <a,b> in Fq²⁵⁶
     // TODO USE q AS A PARAMETER FOR GENERALIZATION
     result = new uint256[](256);
     for (uint256 i = 0; i < a.length; i++) {
-        uint256[] memory toto = ZKNOX_VECMULMOD(a[i], b[i]);
-        result = ZKNOX_VECADDMOD(result, toto);
+        uint256[] memory toto = VecMulMod(a[i], b[i]);
+        result = VECADDMOD(result, toto);
     }
 }
 
-function ZKNOX_MatVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory mTimesV) {
+function MatVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory mTimesV) {
     // Input: a matrix of elements of Fq²⁵⁶ and a vector of elements of Fq²⁵⁶
     // Output: the multiplication M * v as a vector of elements of Fq²⁵⁶
     mTimesV = new uint256[][](v.length);
     for (uint256 i = 0; i < M.length; i++) {
-        mTimesV[i] = ZKNOX_ScalarProduct(M[i], v);
+        mTimesV[i] = scalarProduct(M[i], v);
     }
 }
 
@@ -223,7 +223,7 @@ uint256 constant VEC_SIZE = 256;
 uint256 constant ROW_COUNT = 4;
 uint256 constant COL_COUNT = 4;
 
-function ZKNOX_MatVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
+function matVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
     pure
     returns (uint256[][] memory mTimesV)
 {

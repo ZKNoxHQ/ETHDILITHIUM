@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
-import "../src/ZKNOX_PKContract.sol";
+import {PKContract} from "../src/ZKNOX_PKContract.sol";
 import {BaseScript} from "./BaseScript.sol";
+import {console} from "forge-std/Test.sol";
 
 contract DeployPKContract is BaseScript {
 function run() external returns (address) {

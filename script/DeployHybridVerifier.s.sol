@@ -1,21 +1,18 @@
 pragma solidity ^0.8.25;
 
 import {BaseScript} from "./BaseScript.sol";
-import "../src/ZKNOX_hybrid.sol";
+import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
 import {DeployPKContract} from "./Deploy_MLDSA_PK.s.sol";
 import {Script_Deploy_Dilithium} from "./DeployDilithium.s.sol";
 import {Script_Deploy_ECDSA} from "./DeployECDSA.s.sol";
-
 import {console} from "forge-std/Test.sol";
 import {Constants} from "../test/ZKNOX_seed.sol";
-
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Script_Deploy_Hybrid_Verifier is BaseScript {
     // SPDX-License-Identifier: MIT
 
     function run() external returns (address) {
-        address preQuantumAddress = Constants.addr;
+        address preQuantumAddress = Constants.ADDR;
         DeployPKContract deployPkContract = new DeployPKContract();
         address postQuantumAddress = deployPkContract.run();
         Script_Deploy_ECDSA scriptDeployEcdsa = new Script_Deploy_ECDSA();
@@ -37,7 +34,7 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
             cmds[1] = "pythonref/sig_hybrid.py";
             cmds[2] = vm.toString(data);
             cmds[3] = "NIST";
-            cmds[4] = Constants.seed_str;
+            cmds[4] = Constants.SEED_STR;
 
             bytes memory result = vm.ffi(cmds);
             (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =

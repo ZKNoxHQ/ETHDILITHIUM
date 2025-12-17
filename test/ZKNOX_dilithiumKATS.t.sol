@@ -5,7 +5,6 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import "../src/ZKNOX_dilithium_utils.sol";
 
 contract KATDilithiumTest is Test {
     ZKNOX_dilithium dilithium = new ZKNOX_dilithium();

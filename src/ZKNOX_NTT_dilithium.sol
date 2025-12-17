@@ -38,11 +38,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_dilithium_utils.sol";
+import {n, q, N_MINUS_1_MOD_Q} from "./ZKNOX_dilithium_utils.sol";
 
 //// internal version to spare call data cost
 
-function ZKNOX_NTTFW(uint256[] memory a) pure returns (uint256[] memory) {
+function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         uint256(0x4f066b004fe0330053df73004f062b003965690039756700495e0200000001),
         0x6d3dc8000881920070894a0039728300207fe40028edb000360dd50076b1ae,
@@ -113,7 +113,7 @@ function ZKNOX_NTTFW(uint256[] memory a) pure returns (uint256[] memory) {
     return a;
 }
 
-function ZKNOX_NTTINV(uint256[] memory a) pure returns (uint256[] memory) {
+function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         uint256(0x30d9d6002c008e002fffce0030d99600466a9a00467a98003681ff00000001),
         0x92e530049d22c0056f251005f601d00466d7e000f56b700775e6f0012a239,
@@ -184,7 +184,7 @@ function ZKNOX_NTTINV(uint256[] memory a) pure returns (uint256[] memory) {
         for { let j := 0 } gt(mload(a), j) { j := add(j, 1) } {
             //j<n
             let a_aj := add(a, mul(add(j, 1), 32)) //address of a[j]
-            mstore(a_aj, mulmod(mload(a_aj), nm1modq, q))
+            mstore(a_aj, mulmod(mload(a_aj), N_MINUS_1_MOD_Q, q))
         }
     }
 

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 //  Code obtained from `generate_test_vectors.py` python file
 
 import {Test, console} from "forge-std/Test.sol";
-import "../src/ZKNOX_dilithium_core.sol";
+import {unpackZ} from "../src/ZKNOX_dilithium_core.sol";
 
 contract DilithiumCoreTest is Test {
     function testUnpackZ() public view {

@@ -8,9 +8,7 @@ import {DeployPKContract as DeployMLDSAETHPKContract} from "../script/Deploy_MLD
 import {Script_Deploy_Dilithium} from "../script/DeployDilithium.s.sol";
 import {Script_Deploy_ETHDilithium} from "../script/DeployETHDilithium.s.sol";
 import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
-
 import {Constants} from "./ZKNOX_seed.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TestHybridVerifier is Test {
     address mldsaAddress;
@@ -46,7 +44,7 @@ contract TestHybridVerifier is Test {
     function testHybridVerify() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        address ethAddress = Constants.addr;
+        address ethAddress = Constants.ADDR;
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory preQuantumSig;
@@ -57,7 +55,7 @@ contract TestHybridVerifier is Test {
             cmds[1] = "pythonref/sig_hybrid.py";
             cmds[2] = vm.toString(data);
             cmds[3] = "NIST";
-            cmds[4] = Constants.seed_str;
+            cmds[4] = Constants.SEED_STR;
 
             bytes memory result = vm.ffi(cmds);
             (bytes memory cTilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =
@@ -87,7 +85,7 @@ contract TestHybridVerifier is Test {
     function testHybridVerifyETH() public {
         ZKNOX_HybridVerifier hybrid;
         hybrid = new ZKNOX_HybridVerifier();
-        address ethAddress = Constants.addr;
+        address ethAddress = Constants.ADDR;
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory preQuantumSig;
@@ -99,7 +97,7 @@ contract TestHybridVerifier is Test {
             cmds[1] = "pythonref/sig_hybrid.py";
             cmds[2] = vm.toString(data);
             cmds[3] = "ETH";
-            cmds[4] = Constants.seed_str;
+            cmds[4] = Constants.SEED_STR;
 
             bytes memory result = vm.ffi(cmds);
             (bytes memory cTilde, bytes memory z, bytes memory h, uint8 _v, uint256 _r, uint256 _s) =

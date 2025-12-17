@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
-import {ZKNOX_Expand, ZKNOX_Compact} from "../src/ZKNOX_dilithium_utils.sol";
+import {Expand, Compact} from "../src/ZKNOX_dilithium_utils.sol";
 
 contract UtilsTest is Test {
     function testCompactExpand() public pure {
@@ -45,8 +45,8 @@ contract UtilsTest is Test {
         cNtt[29] = uint256(0x006473290071095a0050eb140073c40d0004b5ae00782a070074561e0000109f);
         cNtt[30] = uint256(0x0018d51c0048847000583a13003aacb7007289ef000d69750014ead3000e1574);
         cNtt[31] = uint256(0x0072d0ce007c8fb300563b500016500d005c0ede000f93640035797e007dc998);
-        uint256[] memory cNttExpand = ZKNOX_Expand(cNtt);
-        uint256[] memory cNttBack = ZKNOX_Compact(cNttExpand);
+        uint256[] memory cNttExpand = Expand(cNtt);
+        uint256[] memory cNttBack = Compact(cNttExpand);
         for (uint256 i = 0; i < 32; i++) {
             assertEq(cNtt[i], cNttBack[i]);
         }

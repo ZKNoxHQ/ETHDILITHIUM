@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 //  Code obtained from `generate_sample_in_ball_test_vectors.py` python file
 
 import {Test} from "forge-std/Test.sol";
-import "../src/ZKNOX_dilithium_utils.sol";
-import "../src/ZKNOX_SampleInBall.sol";
+import {TAU, q} from "../src/ZKNOX_dilithium_utils.sol";
+import {sampleInBallKeccakPrng, sampleInBallNist} from "../src/ZKNOX_SampleInBall.sol";
 
 contract SampleInBallTest is Test {
     function testSampleInBallNIST() public pure {

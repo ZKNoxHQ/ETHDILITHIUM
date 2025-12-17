@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../lib/account-abstraction/contracts/core/EntryPoint.sol";
+import {EntryPoint} from "../lib/account-abstraction/contracts/core/EntryPoint.sol";
 import {IEntryPoint} from "../lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
 import {IStakeManager} from "../lib/account-abstraction/contracts/interfaces/IStakeManager.sol";
 import {PackedUserOperation} from "../lib/account-abstraction/contracts/interfaces/PackedUserOperation.sol";
@@ -10,14 +10,11 @@ import {PKContract} from "../src/ZKNOX_PKContract.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ERC4337_account} from "../src/ZKNOX_ERC4337_account.sol";
 import {ZKNOX_HybridVerifier} from "../src/ZKNOX_hybrid.sol";
-
 import {DeployPKContract} from "../script/Deploy_MLDSAETH_PK.s.sol";
 import {Script_Deploy_ETHDilithium} from "../script/DeployETHDilithium.s.sol";
 import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
 import {Script_Deploy_Hybrid_Verifier} from "../script/DeployHybridVerifier.s.sol";
-
-import "@openzeppelin/contracts/utils/Strings.sol";
-
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Constants} from "./ZKNOX_seed.sol";
 
 function bytes32ToHex(bytes32 value) pure returns (string memory) {
@@ -55,7 +52,7 @@ contract TestERC4337_Account is Test {
         // Actually deploying the v0.8 EntryPoint
         entryPoint = new EntryPoint();
 
-        bytes memory preQuantumPubKey = abi.encodePacked(Constants.addr);
+        bytes memory preQuantumPubKey = abi.encodePacked(Constants.ADDR);
         bytes memory postQuantumPubKey = abi.encodePacked(postQuantumAddress);
 
         // Deploy the Smart Account
@@ -76,7 +73,7 @@ contract TestERC4337_Account is Test {
         owner = 0x1234567890123456789012345678901234567890;
     }
 
-    function test_ValidateUserOp_Success() public {
+    function testValidateUserOpSuccess() public {
         // Create a UserOperation
         PackedUserOperation memory userOp = _createUserOp();
 
@@ -89,7 +86,7 @@ contract TestERC4337_Account is Test {
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytes32ToHex(userOpHash);
         cmds[3] = "ETH";
-        cmds[4] = Constants.seed_str;
+        cmds[4] = Constants.SEED_STR;
 
         bytes memory result = vm.ffi(cmds);
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
@@ -106,7 +103,7 @@ contract TestERC4337_Account is Test {
         assertEq(validationData, 0, "Signature validation should succeed");
     }
 
-    function test_ValidateUserOp_InvalidSignature() public {
+    function testValidateUserOpInvalidSignature() public {
         PackedUserOperation memory userOp = _createUserOp();
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
@@ -126,7 +123,7 @@ contract TestERC4337_Account is Test {
         assertEq(validationData, 1, "Invalid signature should fail");
     }
 
-    function test_Execute() public {
+    function testExecute() public {
         // Create a UserOperation
         PackedUserOperation memory userOp = _createUserOp();
 
@@ -140,7 +137,7 @@ contract TestERC4337_Account is Test {
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = bytes32ToHex(userOpHash);
         cmds[3] = "ETH";
-        cmds[4] = Constants.seed_str;
+        cmds[4] = Constants.SEED_STR;
 
         bytes memory result = vm.ffi(cmds);
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =

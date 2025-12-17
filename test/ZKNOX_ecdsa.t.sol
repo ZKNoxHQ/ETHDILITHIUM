@@ -15,13 +15,13 @@ contract ECDSATest is Test {
         cmds[1] = "pythonref/sig_hybrid.py";
         cmds[2] = "0x541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
         cmds[3] = "NIST";
-        cmds[4] = Constants.seed_str;
+        cmds[4] = Constants.SEED_STR;
 
         bytes memory result = vm.ffi(cmds);
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
         bytes memory sig = abi.encodePacked(r, s, v);
-        bytes memory pubkey = abi.encodePacked(Constants.addr);
+        bytes memory pubkey = abi.encodePacked(Constants.ADDR);
         bytes32 message = hex"541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
 
         uint256 gasStart = gasleft();
