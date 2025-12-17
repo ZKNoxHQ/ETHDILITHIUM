@@ -16,6 +16,7 @@ import {Script_Deploy_ECDSA} from "../script/DeployECDSA.s.sol";
 import {Script_Deploy_Hybrid_Verifier} from "../script/DeployHybridVerifier.s.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Constants} from "./ZKNOX_seed.sol";
+import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 function bytes32ToHex(bytes32 value) pure returns (string memory) {
     return Strings.toHexString(uint256(value), 32);
@@ -31,6 +32,8 @@ contract TestERC4337_Account is Test {
     address public owner;
     uint256 public ownerPrivateKey;
     Signature signature;
+
+    PythonSigner pythonSigner = new PythonSigner();
 
     function setUp() public {
         /**
@@ -80,17 +83,10 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        string[] memory cmds = new string[](5);
-        cmds[0] = "pythonref/myenv/bin/python";
-        cmds[1] = "pythonref/sig_hybrid.py";
-        cmds[2] = bytes32ToHex(userOpHash);
-        cmds[3] = "NIST";
-        cmds[4] = Constants.SEED_STR;
-
-        bytes memory result = vm.ffi(cmds);
-        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
-            abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-
+        string memory data = bytes32ToHex(userOpHash);
+        string memory mode = "NIST";
+        string memory seedStr = Constants.SEED_STR;
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) = pythonSigner.sign(data, mode, seedStr);
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
         bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
@@ -130,18 +126,10 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        // Using python
-        string[] memory cmds = new string[](5);
-        cmds[0] = "pythonref/myenv/bin/python";
-        cmds[1] = "pythonref/sig_hybrid.py";
-        cmds[2] = bytes32ToHex(userOpHash);
-        cmds[3] = "NIST";
-        cmds[4] = Constants.SEED_STR;
-
-        bytes memory result = vm.ffi(cmds);
-        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
-            abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
-
+        string memory data = bytes32ToHex(userOpHash);
+        string memory mode = "NIST";
+        string memory seedStr = Constants.SEED_STR;
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) = pythonSigner.sign(data, mode, seedStr);
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
         bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
-import {KeccakPrng, initPRNG, refill} from "../src/ZKNOX_keccak_prng.sol";
+import {KeccakPrng, initPrng, refill} from "../src/ZKNOX_keccak_prng.sol";
 
 contract KeccakPrngTest is Test {
     // Input and output provided by
@@ -28,22 +28,22 @@ contract KeccakPrngTest is Test {
 
     function test_keccak_prng_test_vectors() public view {
         // Test vector 1
-        KeccakPrng memory prng = initPRNG(input1);
+        KeccakPrng memory prng = initPrng(input1);
         bytes32 out = prng.pool;
         assertEq(output1, abi.encodePacked(out));
         // Test vector 2
-        prng = initPRNG(input2);
+        prng = initPrng(input2);
         refill(prng);
         out = prng.pool;
         assertEq(output2, abi.encodePacked(out));
 
         // Test vector 3
-        prng = initPRNG(input3);
+        prng = initPrng(input3);
         out = prng.pool;
         assertEq(output3, abi.encodePacked(out));
 
         // Test vector 4
-        prng = initPRNG(input4);
+        prng = initPrng(input4);
         uint256 out41 = uint256(prng.pool);
         assertEq(out41 >> 128, output41);
 

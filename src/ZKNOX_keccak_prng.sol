@@ -9,7 +9,7 @@ struct KeccakPrng {
 }
 
 // Initialize PRNG with keccak256(input).
-function initPRNG(bytes memory input) pure returns (KeccakPrng memory prng) {
+function initPrng(bytes memory input) pure returns (KeccakPrng memory prng) {
     prng.state = keccak256(input);
     // Preload first block to make the first 32 bytes available immediately
     bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));

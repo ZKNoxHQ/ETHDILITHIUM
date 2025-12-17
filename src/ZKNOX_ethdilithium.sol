@@ -38,14 +38,13 @@ pragma solidity ^0.8.25;
 import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
 import {dilithiumCore1, dilithiumCore2}  from "./ZKNOX_dilithium_core.sol";
 import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
-import {KeccakPrng, initPRNG, refill} from "./ZKNOX_keccak_prng.sol";
+import {KeccakPrng, initPrng, refill} from "./ZKNOX_keccak_prng.sol";
 import {
     q,
     expandVec,
     OMEGA,
     GAMMA_1_MINUS_BETA,
     TAU,
-    d,
     PubKey,
     Signature,
     slice
@@ -138,11 +137,11 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
 
         // FINAL HASH
-        KeccakPrng memory prng = initPRNG(abi.encodePacked(pk.tr, mPrime));
+        KeccakPrng memory prng = initPrng(abi.encodePacked(pk.tr, mPrime));
         bytes32 out1 = prng.pool;
         refill(prng);
         bytes32 out2 = prng.pool;
-        prng = initPRNG(abi.encodePacked(out1, out2, wPrimeBytes));
+        prng = initPrng(abi.encodePacked(out1, out2, wPrimeBytes));
         bytes32 finalHash = prng.pool;
         return finalHash == bytes32(signature.cTilde);
     }

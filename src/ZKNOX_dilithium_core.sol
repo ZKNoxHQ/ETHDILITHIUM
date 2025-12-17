@@ -44,8 +44,8 @@ import {
     q,
     expandMat,
     matVecProductDilithium,
-    VecMulMod,
-    VecSubMod,
+    vecMulMod,
+    vecSubMod,
     bitUnpackAtOffset,
     OMEGA,
     k,
@@ -202,7 +202,7 @@ function dilithiumCore2(
 
     // 2. A*z - c*t1
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = nttInv(VecSubMod(z[i], VecMulMod(t1New[i], cNtt)));
+        z[i] = nttInv(vecSubMod(z[i], vecMulMod(t1New[i], cNtt)));
     }
 
     // 3. w_prime packed using a "solidity-friendly encoding"

@@ -7,9 +7,11 @@ import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Constants} from "./ZKNOX_seed.sol";
+import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract DilithiumTest is Test {
     ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
+    PythonSigner pythonSigner = new PythonSigner();
 
     function testVerify() public {
         // Public key
@@ -685,22 +687,16 @@ contract DilithiumTest is Test {
         DeployPKContract deployPkContract = new DeployPKContract();
         address mldsaAddress = deployPkContract.run();
 
-        bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
-        string[] memory cmds = new string[](5);
-        cmds[0] = "pythonref/myenv/bin/python";
-        cmds[1] = "pythonref/sig_hybrid.py";
-        cmds[2] = vm.toString(data);
-        cmds[3] = "NIST";
-        cmds[4] = Constants.SEED_STR;
-
-        bytes memory result = vm.ffi(cmds);
-        (bytes memory cTilde, bytes memory z, bytes memory h,,,) =
-            abi.decode(result, (bytes, bytes, bytes, uint8, uint256, uint256));
+        string memory data = "0x1111222233334444111122223333444411112222333344441111222233334444";
+        bytes memory dataBytes = hex"1111222233334444111122223333444411112222333344441111222233334444";
+        string memory mode = "NIST";
+        string memory seedStr = Constants.SEED_STR;
+        (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign(data, mode, seedStr);
         bytes memory sig = abi.encodePacked(cTilde, z, h);
 
         // MESSAGE
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(abi.encodePacked(mldsaAddress), data, sig, "");
+        bool ver = dilithium.verify(abi.encodePacked(mldsaAddress), dataBytes, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);

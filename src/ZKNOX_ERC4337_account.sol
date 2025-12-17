@@ -15,14 +15,14 @@ contract ZKNOX_ERC4337_account is BaseAccount {
     address private hybridVerifierLogicContractAddress;
 
     constructor(
-        IEntryPoint __entryPoint,
+        IEntryPoint _entryPoint0,
         bytes memory _preQuantumPubKey,
         bytes memory _postQuantumPubKey,
         address _preQuantumLogicContractAddress,
         address _postQuantumLogicContractAddress,
         address _hybridVerifierLogicContractAddress
     ) {
-        _entryPoint = __entryPoint;
+        _entryPoint = _entryPoint0;
         preQuantumPubKey = _preQuantumPubKey;
         postQuantumPubKey = _postQuantumPubKey;
         preQuantumLogicContractAddress = _preQuantumLogicContractAddress;

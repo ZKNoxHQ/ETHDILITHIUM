@@ -104,7 +104,7 @@ function expandMat(uint256[][][] memory table) pure returns (uint256[][][] memor
     for (uint256 i = 0; i < 4; i++) {
         b[i] = new uint256[][](4);
         for (uint256 j = 0; j < 4; j++) {
-            b[i][j] = Expand(table[i][j]);
+            b[i][j] = expand(table[i][j]);
         }
     }
     return b;
@@ -114,12 +114,12 @@ function expandVec(uint256[][] memory table) pure returns (uint256[][] memory b)
     b = new uint256[][](4);
     for (uint256 i = 0; i < 4; i++) {
         // b[i] = new uint256[](256);
-        b[i] = Expand(table[i]);
+        b[i] = expand(table[i]);
     }
     return b;
 }
 
-function Expand(uint256[] memory a) pure returns (uint256[] memory b) {
+function expand(uint256[] memory a) pure returns (uint256[] memory b) {
     /*
     for (uint256 i = 0; i < 32; i++) {
         uint256 ai = a[i];
@@ -145,7 +145,7 @@ function Expand(uint256[] memory a) pure returns (uint256[] memory b) {
     return b;
 }
 
-function Compact(uint256[] memory a) pure returns (uint256[] memory b) {
+function compact(uint256[] memory a) pure returns (uint256[] memory b) {
     /*
     for (uint256 i = 0; i < a.length; i++) {
         b[i >> 3] ^= a[i] << ((i & 0x7) << 5);
@@ -168,7 +168,7 @@ function Compact(uint256[] memory a) pure returns (uint256[] memory b) {
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function VecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+function vecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -179,7 +179,7 @@ function VecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function VECADDMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+function vecAddMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -190,7 +190,7 @@ function VECADDMOD(uint256[] memory a, uint256[] memory b) pure returns (uint256
 
 //Vectorized modular multiplication
 //Multiply chunk wise vectors of n chunks modulo q
-function VecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+function vecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
     assert(a.length == b.length);
     uint256[] memory res = new uint256[](a.length);
     for (uint256 i = 0; i < a.length; i++) {
@@ -205,12 +205,12 @@ function scalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns 
     // TODO USE q AS A PARAMETER FOR GENERALIZATION
     result = new uint256[](256);
     for (uint256 i = 0; i < a.length; i++) {
-        uint256[] memory toto = VecMulMod(a[i], b[i]);
-        result = VECADDMOD(result, toto);
+        uint256[] memory toto = vecMulMod(a[i], b[i]);
+        result = vecAddMod(result, toto);
     }
 }
 
-function MatVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory mTimesV) {
+function matVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory mTimesV) {
     // Input: a matrix of elements of Fq²⁵⁶ and a vector of elements of Fq²⁵⁶
     // Output: the multiplication M * v as a vector of elements of Fq²⁵⁶
     mTimesV = new uint256[][](v.length);

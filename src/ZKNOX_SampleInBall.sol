@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {CtxShake, shakeUpdate, shakeDigest, shakeSqueeze} from "./ZKNOX_shake.sol";
-import {KeccakPrng, initPRNG, nextByte} from "./ZKNOX_keccak_prng.sol";
+import {KeccakPrng, initPrng, nextByte} from "./ZKNOX_keccak_prng.sol";
 
 // SampleInBall as specified in Dilithium
 function sampleInBallNist(bytes memory cTilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {
@@ -39,7 +39,7 @@ function sampleInBallNist(bytes memory cTilde, uint256 tau, uint256 q) pure retu
 
 // SampleInBall with KeccakPrng
 function sampleInBallKeccakPrng(bytes memory cTilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {
-    KeccakPrng memory prng = initPRNG(cTilde);
+    KeccakPrng memory prng = initPrng(cTilde);
 
     // signInt: 64 bits, little-endian (matches your SHAKE version)
     uint64 signInt = 0;
