@@ -46,8 +46,8 @@ contract ZKNOX_ERC4337_account is BaseAccount {
         returns (uint256 validationData)
     {
         (bytes memory preQuantumSig, bytes memory postQuantumSig) = abi.decode(userOp.signature, (bytes, bytes));
-        ZKNOX_HybridVerifier hybrid_verifier = ZKNOX_HybridVerifier(hybridVerifierLogicContractAddress);
-        bool isValid = hybrid_verifier.isValid(
+        ZKNOX_HybridVerifier hybridVerifier = ZKNOX_HybridVerifier(hybridVerifierLogicContractAddress);
+        bool isValid = hybridVerifier.isValid(
             preQuantumPubKey,
             postQuantumPubKey,
             preQuantumLogicContractAddress,

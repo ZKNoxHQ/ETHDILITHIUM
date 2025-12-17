@@ -6,7 +6,7 @@ import "./ZKNOX_keccak_prng.sol";
 
 // SampleInBall as specified in Dilithium
 function sampleInBallNist(bytes memory cTilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {
-    ctx_shake memory ctx;
+    CtxShake memory ctx;
     ctx = shakeUpdate(ctx, cTilde);
     bytes memory signBytes = shakeDigest(ctx, 8);
     uint256 signInt = 0;
@@ -37,9 +37,9 @@ function sampleInBallNist(bytes memory cTilde, uint256 tau, uint256 q) pure retu
     }
 }
 
-// SampleInBall with KeccakPRNG
+// SampleInBall with KeccakPrng
 function sampleInBallKeccakPrng(bytes memory cTilde, uint256 tau, uint256 q) pure returns (uint256[] memory c) {
-    KeccakPRNG memory prng = initPRNG(cTilde);
+    KeccakPrng memory prng = initPRNG(cTilde);
 
     // signInt: 64 bits, little-endian (matches your SHAKE version)
     uint64 signInt = 0;

@@ -11,7 +11,7 @@ contract PythonSignerBase is Test {
     }
 
     // reusable Python sign function
-    function python_sign(bytes memory data) internal returns (bytes memory signature) {
+    function pythonSign(bytes memory data) internal returns (bytes memory signature) {
         string[] memory cmds = new string[](5);
         cmds[0] = "pythonref/myenv/bin/python";
         cmds[1] = "pythonref/sig_hybrid.py";

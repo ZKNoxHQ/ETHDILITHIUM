@@ -38,21 +38,21 @@ pragma solidity ^0.8.20;
 import {PubKey} from "./ZKNOX_dilithium_utils.sol";
 
 // A PKContract stored:
-// - mldsa_pk an expanded MLDSA public key
+// - mldsaPk an expanded MLDSA public key
 contract PKContract {
-    PubKey private mldsa_pk;
+    PubKey private mldsaPk;
 
     // Constructor initializes the full key
     constructor(uint256[][][] memory _aHat, bytes memory _tr, uint256[][] memory _t1) {
-        mldsa_pk = PubKey({aHat: _aHat, tr: _tr, t1: _t1});
+        mldsaPk = PubKey({aHat: _aHat, tr: _tr, t1: _t1});
     }
 
     // Return the Post-Quantum public key
-    function get_mldsa_public_key() external view returns (PubKey memory) {
-        return mldsa_pk;
+    function getPublicKey() external view returns (PubKey memory) {
+        return mldsaPk;
     }
 }
 
 interface IPKContract {
-    function get_mldsa_public_key() external view returns (PubKey memory);
+    function getPublicKey() external view returns (PubKey memory);
 }

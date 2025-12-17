@@ -35,37 +35,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-int256 constant gamma_2 = 95232;
-int256 constant _2_gamma_2 = 190464;
-int256 constant _2_gamma_2_inverse = 44; // (8380417 - 1) / _2_gamma_2
+int256 constant GAMMA_2 = 95232;
+int256 constant _2_GAMMA_2 = 190464;
+int256 constant _2_GAMMA_2_INVERSE = 44; // (8380417 - 1) / _2_GAMMA_2
 import {q} from "./ZKNOX_dilithium_utils.sol";
 
 // Function to reduce r0 within the range of -(a << 1) < r0 <= (a << 1)
-function reduceModPM(int256 r0) pure returns (int256 res) {
-    res = r0 % _2_gamma_2;
-    if (res > gamma_2) {
-        res = res - _2_gamma_2;
+function reduceModPm(int256 r0) pure returns (int256 res) {
+    res = r0 % _2_GAMMA_2;
+    if (res > GAMMA_2) {
+        res = res - _2_GAMMA_2;
     }
 }
 
 // Decompose function equivalent to the Python version
 function decompose(uint256 r) pure returns (int256 r1, int256 r0) {
     int256 rp = int256(r % q);
-    r0 = reduceModPM(rp);
+    r0 = reduceModPm(rp);
     r1 = rp - r0;
 
     if (rp - r0 == 8380416) {
         r1 = 0;
         r0 = r0 - 1;
     } else {
-        r1 = r1 / _2_gamma_2;
+        r1 = r1 / _2_GAMMA_2;
     }
     return (r1, r0);
 }
 
 // Main function, use_hint
 function useHint(uint256 h, uint256 r) pure returns (uint256) {
-    int256 m = _2_gamma_2_inverse;
+    int256 m = _2_GAMMA_2_INVERSE;
     (int256 r1, int256 r0) = decompose(r);
 
     if (h == 1) {
@@ -93,7 +93,7 @@ function useHintVec(uint256[][] memory h, uint256[][] memory r) pure returns (ui
     }
 }
 
-function useHintETHDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (uint8[1024] memory hint) {
+function useHintEthDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (uint8[1024] memory hint) {
     for (uint256 i = 0; i < 4; i++) {
         for (uint256 j = 0; j < 256; j++) {
             hint[i * 256 + j] = uint8(uint256(useHint(h[i][j], r[i][j])));

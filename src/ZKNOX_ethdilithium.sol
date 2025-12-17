@@ -44,7 +44,7 @@ import {
     q,
     ZKNOX_Expand_Vec,
     omega,
-    gamma_1_minus_beta
+    GAMMA_1_MINUS_BETA
 } from "./ZKNOX_dilithium_utils.sol";
 
 import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
@@ -57,11 +57,11 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         returns (bool)
     {
         // Fetch the public key from the address `pk`
-        address pub_key_address;
+        address pubKeyAddress;
         assembly {
-            pub_key_address := mload(add(pk, 20))
+            pubKeyAddress := mload(add(pk, 20))
         }
-        PubKey memory public_key = IPKContract(pub_key_address).get_mldsa_public_key();
+        PubKey memory public_key = IPKContract(pubKeyAddress).getPublicKey();
 
         // Step 1: check ctx length
         if (ctx.length > 255) {
@@ -80,11 +80,11 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
         // Fetch the public key from the address `pk`
-        address pub_key_address;
+        address pubKeyAddress;
         assembly {
-            pub_key_address := shr(96, calldataload(pk.offset))
+            pubKeyAddress := shr(96, calldataload(pk.offset))
         }
-        PubKey memory public_key = IPKContract(pub_key_address).get_mldsa_public_key();
+        PubKey memory public_key = IPKContract(pubKeyAddress).getPublicKey();
 
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
@@ -118,14 +118,14 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
                 uint256 zij = z[i][j];
-                if (zij > gamma_1_minus_beta && (q - zij) > gamma_1_minus_beta) {
+                if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
                     return false;
                 }
             }
         }
 
         // C_NTT
-        uint256[] memory cNtt = sampleInBallKeccakPrng(signature.cTilde, tau, q);
+        uint256[] memory cNtt = sampleInBallKeccakPrng(signature.cTilde, TAU, q);
         cNtt = ZKNOX_NTTFW(cNtt);
 
         // t1New
@@ -135,7 +135,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
         bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
 
         // FINAL HASH
-        KeccakPRNG memory prng = initPRNG(abi.encodePacked(pk.tr, mPrime));
+        KeccakPrng memory prng = initPRNG(abi.encodePacked(pk.tr, mPrime));
         bytes32 out1 = prng.pool;
         refill(prng);
         bytes32 out2 = prng.pool;

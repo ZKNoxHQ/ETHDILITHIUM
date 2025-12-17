@@ -684,7 +684,7 @@ contract DilithiumTest is Test {
     function testVerifyShorter() public {
         // Public key contract
         DeployPKContract deployPkContract = new DeployPKContract();
-        address mldsa_address = deployPkContract.run();
+        address mldsaAddress = deployPkContract.run();
 
         bytes memory data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         string[] memory cmds = new string[](5);
@@ -701,7 +701,7 @@ contract DilithiumTest is Test {
 
         // MESSAGE
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(abi.encodePacked(mldsa_address), data, sig, "");
+        bool ver = dilithium.verify(abi.encodePacked(mldsaAddress), data, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-struct KeccakPRNG {
+struct KeccakPrng {
     bytes32 state; // keccak256(input)
     uint64 counter; // block counter
     bytes32 pool; // current 32-byte block
@@ -9,7 +9,7 @@ struct KeccakPRNG {
 }
 
 // Initialize PRNG with keccak256(input).
-function initPRNG(bytes memory input) pure returns (KeccakPRNG memory prng) {
+function initPRNG(bytes memory input) pure returns (KeccakPrng memory prng) {
     prng.state = keccak256(input);
     // Preload first block to make the first 32 bytes available immediately
     bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));
@@ -19,7 +19,7 @@ function initPRNG(bytes memory input) pure returns (KeccakPRNG memory prng) {
 }
 
 // Pull next 32-byte block into the pool.
-function refill(KeccakPRNG memory prng) pure {
+function refill(KeccakPrng memory prng) pure {
     bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
     prng.pool = blk;
     prng.remaining = 32;
@@ -33,7 +33,7 @@ function refill(KeccakPRNG memory prng) pure {
 }
 
 // Get one random byte (little-endian consumption from pool).
-function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
+function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
     if (prng.remaining == 0) {
         bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
         prng.pool = blk;

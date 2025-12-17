@@ -51,14 +51,14 @@ import {
     k,
     l,
     n,
-    gamma_1
+    GAMMA_1
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
-function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
+function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= omega + k, "Invalid h bytes length");
 
-    uint256 k_idx = 0;
+    uint256 kIdx = 0;
 
     h = new uint256[][](k);
     for (uint256 i = 0; i < k; i++) {
@@ -70,13 +70,13 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
         uint256 omegaVal = uint8(hBytes[omega + i]);
 
         // Check bound on omegaVal
-        if (omegaVal < k_idx || omegaVal > omega) {
+        if (omegaVal < kIdx || omegaVal > omega) {
             return (false, h);
         }
 
-        for (uint256 j = k_idx; j < omegaVal; j++) {
+        for (uint256 j = kIdx; j < omegaVal; j++) {
             // Coefficients must be in strictly increasing order
-            if (j > k_idx && uint8(hBytes[j]) <= uint8(hBytes[j - 1])) {
+            if (j > kIdx && uint8(hBytes[j]) <= uint8(hBytes[j - 1])) {
                 return (false, h);
             }
 
@@ -89,11 +89,11 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
             h[i][index] = 1;
         }
 
-        k_idx = omegaVal;
+        kIdx = omegaVal;
     }
 
     // Check extra indices are zero
-    for (uint256 j = k_idx; j < omega; j++) {
+    for (uint256 j = kIdx; j < omega; j++) {
         if (uint8(hBytes[j]) != 0) {
             return (false, h);
         }
@@ -106,24 +106,24 @@ function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coeff
     uint256 coeffBits;
     uint256 requiredBytes;
 
-    // Cache gamma_1 to avoid multiple SLOAD operations if it's a state variable
-    uint256 _gamma_1 = gamma_1;
+    // Cache GAMMA_1 to avoid multiple SLOAD operations if it's a state variable
+    uint256 _gamma1 = GAMMA_1;
 
     // Use unchecked arithmetic where overflow is impossible
     unchecked {
         // Level 2 parameter set
-        if (_gamma_1 == 131072) {
+        if (_gamma1 == 131072) {
             // 1 << 17, use literal to save gas
             coeffBits = 18;
             requiredBytes = (n * l * 18) >> 3; // Use bit shift instead of division
         }
         // Level 3 and 5 parameter set
-        else if (_gamma_1 == 524288) {
+        else if (_gamma1 == 524288) {
             // 1 << 19, use literal to save gas
             coeffBits = 20;
             requiredBytes = (n * l * 20) >> 3; // Use bit shift instead of division
         } else {
-            revert("gamma_1 must be either 2^17 or 2^19");
+            revert("GAMMA_1 must be either 2^17 or 2^19");
         }
     }
 
@@ -146,12 +146,12 @@ function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coeff
             // Allocate array once
             uint256[] memory coeffs = new uint256[](_n);
 
-            // Compute coefficients as gamma_1 - c
+            // Compute coefficients as GAMMA_1 - c
             for (uint256 j = 0; j < _n; ++j) {
                 uint256 alteredCoeff = alteredCoeffs[j];
 
                 // Simplified logic: use ternary operator and eliminate redundant check
-                coeffs[j] = alteredCoeff < _gamma_1 ? _gamma_1 - alteredCoeff : _q + _gamma_1 - alteredCoeff;
+                coeffs[j] = alteredCoeff < _gamma1 ? _gamma1 - alteredCoeff : _q + _gamma1 - alteredCoeff;
             }
 
             coefficients[i] = coeffs;
@@ -168,7 +168,7 @@ function dilithiumCore1(Signature memory signature)
     pure
     returns (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z)
 {
-    (foo, h) = unpack_h(signature.h);
+    (foo, h) = unpackH(signature.h);
     uint256 i;
     uint256 j;
     normH = 0;

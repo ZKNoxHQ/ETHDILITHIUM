@@ -43,7 +43,7 @@ uint256 constant _RATE = 136;
 bool constant _SPONGE_ABSORBING = false;
 bool constant _SPONGE_SQUEEZING = true;
 
-struct ctx_shake {
+struct CtxShake {
     uint64[25] state;
     uint8[200] buff;
     uint256 i;
@@ -174,7 +174,7 @@ function shakeAbsorb(uint256 i, uint8[200] memory buf, uint64[25] memory state, 
 }
 
 //can be ignored, as it is a zeroized structure
-function shakeInit() pure returns (ctx_shake memory ctx) {
+function shakeInit() pure returns (CtxShake memory ctx) {
     // forgefmt: disable-next-line
         ctx.state=[uint64(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];// forgefmt: disable-next-line
         ctx.buff=[uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
@@ -183,7 +183,7 @@ function shakeInit() pure returns (ctx_shake memory ctx) {
     return ctx;
 }
 
-function shakeUpdate(ctx_shake memory ctx, bytes memory input) pure returns (ctx_shake memory ctxout) {
+function shakeUpdate(CtxShake memory ctx, bytes memory input) pure returns (CtxShake memory ctxout) {
     if (ctx.direction == _SPONGE_SQUEEZING) {
         (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
     }
@@ -192,7 +192,7 @@ function shakeUpdate(ctx_shake memory ctx, bytes memory input) pure returns (ctx
     return ctxout;
 }
 
-function shakeSqueeze(ctx_shake memory ctx, uint256 n) pure returns (ctx_shake memory ctxout, bytes memory) {
+function shakeSqueeze(CtxShake memory ctx, uint256 n) pure returns (CtxShake memory ctxout, bytes memory) {
     bytes memory output = new bytes(n);
     uint256 tosqueeze = n;
     uint256 offset = 0;
@@ -242,7 +242,7 @@ function shakePermute(uint8[200] memory buf, uint64[25] memory state)
     return (buffer, state); //zeroization of buf external to this function
 }
 
-function shakePad(ctx_shake memory ctx) pure returns (ctx_shake memory ctxout) {
+function shakePad(CtxShake memory ctx) pure returns (CtxShake memory ctxout) {
     ctx.buff[ctx.i] ^= 0x1f;
     ctx.buff[_RATE - 1] ^= 0x80;
     (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
@@ -252,7 +252,7 @@ function shakePad(ctx_shake memory ctx) pure returns (ctx_shake memory ctxout) {
     return ctx;
 }
 
-function shakeDigest(ctx_shake memory ctx, uint256 size8) pure returns (bytes memory output) {
+function shakeDigest(CtxShake memory ctx, uint256 size8) pure returns (bytes memory output) {
     output = new bytes(size8);
     if (ctx.direction == _SPONGE_ABSORBING) {
         ctx.buff[ctx.i] ^= 0x1f;

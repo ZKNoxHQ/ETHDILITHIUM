@@ -25,8 +25,8 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
 
         vm.startBroadcast();
 
-        ZKNOX_HybridVerifier HybridVerifier = new ZKNOX_HybridVerifier();
-        console.log("HybridVerifier deployed at:", address(HybridVerifier));
+        ZKNOX_HybridVerifier hybridVerifier = new ZKNOX_HybridVerifier();
+        console.log("hybridVerifier deployed at:", address(hybridVerifier));
 
         bytes32 data = hex"1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory preQuantumSig;
@@ -48,7 +48,7 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
         }
 
         // Scope 3: Verify
-        bool valid = HybridVerifier.isValid(
+        bool valid = hybridVerifier.isValid(
             abi.encodePacked(preQuantumAddress),
             abi.encodePacked(postQuantumAddress),
             preQuantumLogicAddress,
@@ -61,6 +61,6 @@ contract Script_Deploy_Hybrid_Verifier is BaseScript {
         if (valid == false) revert("verification failure");
 
         vm.stopBroadcast();
-        return address(HybridVerifier);
+        return address(hybridVerifier);
     }
 }

@@ -48,9 +48,9 @@ uint256 constant q = 8380417;
 uint256 constant kq = 4290773504; // (2**32 // q) * q
 uint256 constant nm1modq = 8347681;
 uint256 constant omega = 80;
-uint256 constant gamma_1 = 131072;
-uint256 constant gamma_1_minus_beta = 130994; // γ1 - τ*η = 131072 - 39 * 2
-uint256 constant tau = 39;
+uint256 constant GAMMA_1 = 131072;
+uint256 constant GAMMA_1_MINUS_BETA = 130994; // γ1 - τ*η = 131072 - 39 * 2
+uint256 constant TAU = 39;
 uint256 constant d = 13;
 uint256 constant k = 4;
 uint256 constant l = 4;
