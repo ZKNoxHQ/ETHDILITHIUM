@@ -14,11 +14,9 @@ function initPrng(bytes memory input) pure returns (KeccakPrng memory prng) {
     uint64 counter = 0;
     bytes32 blk;
     assembly {
-        let ptr := mload(0x40)        // free memory pointer
-        mstore(ptr, state)            // write 32 bytes of state
-        // write 8 bytes of uint64 counter after 32 bytes
+        let ptr := mload(0x40)
+        mstore(ptr, state)
         mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
-        // hash exactly 40 bytes
         blk := keccak256(ptr, 40)
     }
     prng.pool = blk;
@@ -26,18 +24,15 @@ function initPrng(bytes memory input) pure returns (KeccakPrng memory prng) {
     prng.counter = 1;
 }
 
-
 // Pull next 32-byte block into the pool.
 function refill(KeccakPrng memory prng) pure {
     bytes32 state = prng.state;
     uint64 counter = prng.counter;
     bytes32 blk;
     assembly {
-        let ptr := mload(0x40)        // free memory pointer
-        mstore(ptr, state)            // write 32 bytes of state
-        // write 8 bytes of uint64 counter after 32 bytes
+        let ptr := mload(0x40)
+        mstore(ptr, state)
         mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
-        // hash exactly 40 bytes
         blk := keccak256(ptr, 40)
     }
     prng.pool = blk;
@@ -46,8 +41,7 @@ function refill(KeccakPrng memory prng) pure {
         prng.counter += 1;
     }
     assembly {
-        // write-back struct (since prng is memory)
-        mstore(prng, mload(prng)) // no-op to silence "unused" in some toolchains
+        mstore(prng, mload(prng))
     }
 }
 
@@ -58,11 +52,9 @@ function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
         uint64 counter = prng.counter;
         bytes32 blk;
         assembly {
-            let ptr := mload(0x40)        // free memory pointer
-            mstore(ptr, state)            // write 32 bytes of state
-            // write 8 bytes of uint64 counter after 32 bytes
+            let ptr := mload(0x40)
+            mstore(ptr, state)
             mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
-            // hash exactly 40 bytes
             blk := keccak256(ptr, 40)
         }
         prng.pool = blk;
@@ -82,5 +74,5 @@ function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
     }
     assembly {
         mstore(prng, mload(prng))
-    } // write-back
+    }
 }

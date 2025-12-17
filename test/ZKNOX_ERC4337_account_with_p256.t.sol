@@ -89,7 +89,7 @@ contract TestERC4337_Account_With_P256 is Test {
         string memory data = bytes32ToHex(userOpHash);
         string memory mode = "NIST";
         string memory seedStr = Constants.SEED_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h, ,,) = pythonSigner.sign(data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign(data, mode, seedStr);
         // overwrite with a p256 signature
         (bytes32 r, bytes32 s) = vm.signP256(Constants.SEED, userOpHash);
         bytes memory preQuantumSig = abi.encodePacked(r, s);
@@ -134,7 +134,7 @@ contract TestERC4337_Account_With_P256 is Test {
         string memory data = bytes32ToHex(userOpHash);
         string memory mode = "NIST";
         string memory seedStr = Constants.SEED_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h, ,,) = pythonSigner.sign(data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign(data, mode, seedStr);
         // overwrite with a p256 signature
         (bytes32 r, bytes32 s) = vm.signP256(Constants.SEED, userOpHash);
         bytes memory preQuantumSig = abi.encodePacked(r, s);

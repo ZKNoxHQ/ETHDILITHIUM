@@ -2,9 +2,9 @@
 pragma solidity ^0.8.25;
 
 import {BaseAccount, PackedUserOperation} from "../lib/account-abstraction/contracts/core/BaseAccount.sol";
-import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from  "../lib/account-abstraction/contracts/core/Helpers.sol";
+import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "../lib/account-abstraction/contracts/core/Helpers.sol";
 import {IEntryPoint} from "../lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
-import {ZKNOX_HybridVerifier} from  "./ZKNOX_hybrid.sol";
+import {ZKNOX_HybridVerifier} from "./ZKNOX_hybrid.sol";
 
 contract ZKNOX_ERC4337_account is BaseAccount {
     IEntryPoint private _entryPoint;

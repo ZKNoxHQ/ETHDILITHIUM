@@ -73,9 +73,7 @@ contract ZKNOX_HybridVerifier {
 
         // Verify post-quantum signature
         IERC7913SignatureVerifier postQuantumCore = IERC7913SignatureVerifier(postQuantumLogicContractAddress);
-        if (
-            postQuantumCore.verify(postQuantumPubKey, digest, postQuantumSig) != postQuantumCore.verify.selector
-        ) {
+        if (postQuantumCore.verify(postQuantumPubKey, digest, postQuantumSig) != postQuantumCore.verify.selector) {
             return false;
         }
         return true;

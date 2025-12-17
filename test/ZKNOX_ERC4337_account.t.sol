@@ -86,7 +86,8 @@ contract TestERC4337_Account is Test {
         string memory data = bytes32ToHex(userOpHash);
         string memory mode = "NIST";
         string memory seedStr = Constants.SEED_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) = pythonSigner.sign(data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+            pythonSigner.sign(data, mode, seedStr);
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
         bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
@@ -129,7 +130,8 @@ contract TestERC4337_Account is Test {
         string memory data = bytes32ToHex(userOpHash);
         string memory mode = "NIST";
         string memory seedStr = Constants.SEED_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) = pythonSigner.sign(data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+            pythonSigner.sign(data, mode, seedStr);
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
         bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);

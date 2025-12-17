@@ -36,19 +36,10 @@
 pragma solidity ^0.8.25;
 
 import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
-import {dilithiumCore1, dilithiumCore2}  from "./ZKNOX_dilithium_core.sol";
+import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
 import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
 import {KeccakPrng, initPrng, refill} from "./ZKNOX_keccak_prng.sol";
-import {
-    q,
-    expandVec,
-    OMEGA,
-    GAMMA_1_MINUS_BETA,
-    TAU,
-    PubKey,
-    Signature,
-    slice
-} from "./ZKNOX_dilithium_utils.sol";
+import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
 import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 

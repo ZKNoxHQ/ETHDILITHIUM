@@ -56,7 +56,8 @@ contract TestHybridVerifier is Test {
         {
             string memory mode = "NIST";
             string memory seedStr = Constants.SEED_STR;
-            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) = pythonSigner.sign(data, mode, seedStr);
+            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+                pythonSigner.sign(data, mode, seedStr);
             preQuantumSig = abi.encodePacked(r, s, v);
             postQuantumSig = abi.encodePacked(cTilde, z, h);
         }
@@ -91,7 +92,8 @@ contract TestHybridVerifier is Test {
         {
             string memory mode = "ETH";
             string memory seedStr = Constants.SEED_STR;
-            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) = pythonSigner.sign(data, mode, seedStr);
+            (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
+                pythonSigner.sign(data, mode, seedStr);
             preQuantumSig = abi.encodePacked(r, s, v);
             postQuantumSig = abi.encodePacked(cTilde, z, h);
         }
