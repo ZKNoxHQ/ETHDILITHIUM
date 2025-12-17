@@ -50,6 +50,8 @@ function reduceModPm(int256 r0) pure returns (int256 res) {
 
 // Decompose function equivalent to the Python version
 function decompose(uint256 r) pure returns (int256 r1, int256 r0) {
+    // casting to 'int256' is safe because q is 23-bit long
+    // forge-lint: disable-next-line(unsafe-typecast)
     int256 rp = int256(r % q);
     r0 = reduceModPm(rp);
     r1 = rp - r0;
@@ -70,12 +72,17 @@ function useHint(uint256 h, uint256 r) pure returns (uint256) {
 
     if (h == 1) {
         if (r0 > 0) {
+            // casting to 'int256' is safe because q is 23-bit long
+            // forge-lint: disable-next-line(unsafe-typecast)
             return uint256((r1 + 1) % m);
         }
         // (r1-1)%m
+        // casting to 'uint256' is safe because q is 23-bit long
+        // forge-lint: disable-next-line(unsafe-typecast)
         return uint256((r1 + m - 1) % m);
     }
-
+    // casting to 'uint256' is safe because r1 is small enough as output by decompose
+    // forge-lint: disable-next-line(unsafe-typecast)
     return uint256(r1);
 }
 
@@ -128,8 +135,14 @@ function useHintDilithium(uint256[][] memory h, uint256[][] memory r) pure retur
             result2 = useHint(h[i][j + 2], r[i][j + 2]);
             result3 = useHint(h[i][j + 3], r[i][j + 3]);
             // storing by slices of 3 bytes (as 4*6 = 3*8)
+            // casting to 'uint8' is safe because result1 is small enough (property of useHint function)
+            // forge-lint: disable-next-line(unsafe-typecast)
             hintI[k] = bytes1(uint8((result1 & 3) << 6 | result0));
+            // casting to 'uint8' is safe because result2 is small enough (property of useHint function)
+            // forge-lint: disable-next-line(unsafe-typecast)
             hintI[k + 1] = bytes1(uint8((result2 & 15) << 4 | result1 >> 2));
+            // casting to 'uint8' is safe because result3 is small enough (property of useHint function)
+            // forge-lint: disable-next-line(unsafe-typecast)
             hintI[k + 2] = bytes1(uint8(result3 << 2 | result2 >> 4));
             k += 3;
         }

@@ -44,6 +44,8 @@ function sampleInBallKeccakPrng(bytes memory cTilde, uint256 tau, uint256 q) pur
     // signInt: 64 bits, little-endian (matches your SHAKE version)
     uint64 signInt = 0;
     for (uint256 k = 0; k < 8; k++) {
+        // casting to 'uint64' is safe because 0 <= k < 8 so 8*k < 64 has maximum 6<64 bits
+        // forge-lint: disable-next-line(unsafe-typecast)
         signInt |= uint64(nextByte(prng)) << uint64(8 * k);
     }
 

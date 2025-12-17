@@ -8,19 +8,38 @@ struct KeccakPrng {
     uint8 remaining; // remaining bytes in pool [0..32]
 }
 
-// Initialize PRNG with keccak256(input).
 function initPrng(bytes memory input) pure returns (KeccakPrng memory prng) {
     prng.state = keccak256(input);
-    // Preload first block to make the first 32 bytes available immediately
-    bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));
+    bytes32 state = prng.state;
+    uint64 counter = 0;
+    bytes32 blk;
+    assembly {
+        let ptr := mload(0x40)        // free memory pointer
+        mstore(ptr, state)            // write 32 bytes of state
+        // write 8 bytes of uint64 counter after 32 bytes
+        mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+        // hash exactly 40 bytes
+        blk := keccak256(ptr, 40)
+    }
     prng.pool = blk;
     prng.remaining = 32;
     prng.counter = 1;
 }
 
+
 // Pull next 32-byte block into the pool.
 function refill(KeccakPrng memory prng) pure {
-    bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
+    bytes32 state = prng.state;
+    uint64 counter = prng.counter;
+    bytes32 blk;
+    assembly {
+        let ptr := mload(0x40)        // free memory pointer
+        mstore(ptr, state)            // write 32 bytes of state
+        // write 8 bytes of uint64 counter after 32 bytes
+        mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+        // hash exactly 40 bytes
+        blk := keccak256(ptr, 40)
+    }
     prng.pool = blk;
     prng.remaining = 32;
     unchecked {
@@ -35,7 +54,17 @@ function refill(KeccakPrng memory prng) pure {
 // Get one random byte (little-endian consumption from pool).
 function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
     if (prng.remaining == 0) {
-        bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
+        bytes32 state = prng.state;
+        uint64 counter = prng.counter;
+        bytes32 blk;
+        assembly {
+            let ptr := mload(0x40)        // free memory pointer
+            mstore(ptr, state)            // write 32 bytes of state
+            // write 8 bytes of uint64 counter after 32 bytes
+            mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+            // hash exactly 40 bytes
+            blk := keccak256(ptr, 40)
+        }
         prng.pool = blk;
         prng.remaining = 32;
         unchecked {
@@ -43,6 +72,8 @@ function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
         }
     }
     uint256 poolInt = uint256(prng.pool);
+    // casting to 'uint8' is safe because poolInt is 256-bit long and so the input is 256-248 = 8-bit long
+    // forge-lint: disable-next-line(unsafe-typecast)
     b = uint8(poolInt >> 248);
     prng.pool = bytes32(poolInt << 8);
 

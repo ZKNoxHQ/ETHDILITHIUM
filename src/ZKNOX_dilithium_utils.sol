@@ -73,7 +73,7 @@ function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 s
     // Pre-calculate mask once
     uint256 coeffMask;
     unchecked {
-        coeffMask = coeffBits == 256 ? type(uint256).max : (1 << coeffBits) - 1;
+        coeffMask = coeffBits == 256 ? type(uint256).max : (uint256(1) << coeffBits) - 1;
     }
 
     unchecked {
