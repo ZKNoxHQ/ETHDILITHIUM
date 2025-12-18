@@ -84,11 +84,8 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        string memory data = bytes32ToHex(userOpHash);
-        string memory mode = "ETH";
-        string memory seedStr = Constants.SEED_STR;
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
-            pythonSigner.sign(data, mode, seedStr);
+            pythonSigner.sign("pythonref", bytes32ToHex(userOpHash), "ETH", Constants.SEED_STR);
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
         bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);
@@ -128,11 +125,9 @@ contract TestERC4337_Account is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        string memory data = bytes32ToHex(userOpHash);
-        string memory mode = "ETH";
-        string memory seedStr = Constants.SEED_STR;
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
-            pythonSigner.sign(data, mode, seedStr);
+            pythonSigner.sign("pythonref", bytes32ToHex(userOpHash), "ETH", Constants.SEED_STR);
+
         bytes memory preQuantumSig = abi.encodePacked(r, s, v);
         bytes memory postQuantumSig = abi.encodePacked(cTilde, z, h);
         userOp.signature = abi.encode(preQuantumSig, postQuantumSig);

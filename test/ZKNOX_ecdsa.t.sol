@@ -17,7 +17,7 @@ contract ECDSATest is Test {
         string memory mode = "NIST";
         string memory seedStr = Constants.SEED_STR;
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
-            pythonSigner.sign(data, mode, seedStr);
+            pythonSigner.sign("pythonref", data, mode, seedStr);
         bytes memory sig = abi.encodePacked(r, s, v);
         bytes memory pubkey = abi.encodePacked(Constants.ADDR);
         bytes32 message = hex"541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";

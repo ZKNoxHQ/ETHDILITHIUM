@@ -85,11 +85,8 @@ contract TestERC4337_Account_With_P256 is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-
-        string memory data = bytes32ToHex(userOpHash);
-        string memory mode = "NIST";
-        string memory seedStr = Constants.SEED_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign(data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h,,,) =
+            pythonSigner.sign("pythonref", bytes32ToHex(userOpHash), "NIST", Constants.SEED_STR);
         // overwrite with a p256 signature
         (bytes32 r, bytes32 s) = vm.signP256(Constants.SEED, userOpHash);
         bytes memory preQuantumSig = abi.encodePacked(r, s);
@@ -131,10 +128,8 @@ contract TestERC4337_Account_With_P256 is Test {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Sign the userOpHash with both MLDSA and ECDSA
-        string memory data = bytes32ToHex(userOpHash);
-        string memory mode = "NIST";
-        string memory seedStr = Constants.SEED_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign(data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h,,,) =
+            pythonSigner.sign("pythonref", bytes32ToHex(userOpHash), "NIST", Constants.SEED_STR);
         // overwrite with a p256 signature
         (bytes32 r, bytes32 s) = vm.signP256(Constants.SEED, userOpHash);
         bytes memory preQuantumSig = abi.encodePacked(r, s);
