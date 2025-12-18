@@ -38,104 +38,118 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_NTT_dilithium.sol";
-import "./ZKNOX_dilithium_core.sol";
-import "./ZKNOX_dilithium_utils.sol";
-import "./ZKNOX_SampleInBall.sol";
+import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
+import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
+import {sampleInBallNist} from "./ZKNOX_SampleInBall.sol";
+import {CtxShake, shakeUpdate, shakeDigest} from "./ZKNOX_shake.sol";
+import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, d, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
+import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
+import {IPKContract} from "./ZKNOX_PKContract.sol";
 
-import "./ZKNOX_shake.sol";
-import {
-    q,
-    ZKNOX_Expand,
-    ZKNOX_Expand_Vec,
-    ZKNOX_Expand_Mat,
-    ZKNOX_MatVecProductDilithium,
-    ZKNOX_VECMULMOD,
-    ZKNOX_VECSUBMOD,
-    ID_keccak,
-    omega,
-    gamma_1_minus_beta,
-    tau,
-    d
-} from "./ZKNOX_dilithium_utils.sol";
-import {useHintDilithium} from "./ZKNOX_hint.sol";
-
-contract ZKNOX_dilithium {
-    function verify(PubKey memory pk, bytes memory m, Signature memory signature, bytes memory ctx)
+contract ZKNOX_dilithium is IERC7913SignatureVerifier {
+    function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
         view
         returns (bool)
     {
+        // Fetch the public key from the address `pk`
+        address pubKeyAddress;
+        assembly {
+            pubKeyAddress := mload(add(pk, 20))
+        }
+        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
+
         // Step 1: check ctx length
         if (ctx.length > 255) {
             revert("ctx bytes must have length at most 255");
         }
+        // Step 2: mPrime = 0x00 || len(ctx) || ctx || m
+        bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
-        // Step 2: m_prime = 0x00 || len(ctx) || ctx || m
-        bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
+        Signature memory sig =
+            Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
         // Step 3: delegate to internal verify
-        return verify_internal(pk, m_prime, signature);
+        return verifyInternal(publicKey, mPrime, sig);
     }
 
-    function verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
+    function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
+        // Fetch the public key from the address `pk`
+        address pubKeyAddress;
+        assembly {
+            pubKeyAddress := shr(96, calldataload(pk.offset))
+        }
+        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
+
+        bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
+
+        Signature memory sig =
+            Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
+
+        // Step 3: delegate to internal verify
+        if (verifyInternal(publicKey, mPrime, sig)) {
+            return IERC7913SignatureVerifier.verify.selector;
+        }
+        return 0xFFFFFFFF;
+    }
+
+    function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal
-        view
+        pure
         returns (bool)
     {
         uint256 i;
         uint256 j;
 
         // FIRST CORE STEP
-        (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z) = dilithium_core_1(signature);
+        (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z) = dilithiumCore1(signature);
 
         if (foo == false) {
             return false;
         }
-        if (norm_h > omega) {
+        if (normH > OMEGA) {
             return false;
         }
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
                 uint256 zij = z[i][j];
-                if (zij > gamma_1_minus_beta && (q - zij) > gamma_1_minus_beta) {
+                if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
                     return false;
                 }
             }
         }
 
         // C_NTT
-        uint256[] memory c_ntt = sampleInBallNIST(signature.c_tilde, tau, q);
-        c_ntt = ZKNOX_NTTFW(c_ntt);
+        uint256[] memory cNtt = sampleInBallNist(signature.cTilde, TAU, q);
+        cNtt = nttFw(cNtt);
 
         // compute NTT_FW((1<<d) * t1)
-        uint256[][] memory t1_new = ZKNOX_Expand_Vec(pk.t1);
+        uint256[][] memory t1New = expandVec(pk.t1);
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
-                t1_new[i][j] <<= d;
+                t1New[i][j] <<= d;
             }
-            t1_new[i] = ZKNOX_NTTFW(t1_new[i]);
+            t1New[i] = nttFw(t1New[i]);
         }
 
         // SECOND CORE STEP
-        bytes memory w_prime_bytes = dilithium_core_2(pk, z, c_ntt, h, t1_new);
-
+        bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
         // FINAL HASH
-        ctx_shake memory sctx;
-        sctx = shake_update(sctx, pk.tr);
-        sctx = shake_update(sctx, m_prime);
-        bytes memory mu = shake_digest(sctx, 64);
+        CtxShake memory sctx;
+        sctx = shakeUpdate(sctx, pk.tr);
+        sctx = shakeUpdate(sctx, mPrime);
+        bytes memory mu = shakeDigest(sctx, 64);
 
-        ctx_shake memory sctx2;
-        sctx2 = shake_update(sctx2, mu);
-        sctx2 = shake_update(sctx2, w_prime_bytes);
-        bytes32 final_hash = bytes32(shake_digest(sctx2, 32));
+        CtxShake memory sctx2;
+        sctx2 = shakeUpdate(sctx2, mu);
+        sctx2 = shakeUpdate(sctx2, wPrimeBytes);
+        bytes32 finalHash = bytes32(shakeDigest(sctx2, 32));
 
-        if (signature.c_tilde.length < 32) {
+        if (signature.cTilde.length < 32) {
             return false;
         }
         for (i = 0; i < 32; i++) {
-            if (signature.c_tilde[i] != final_hash[i]) {
+            if (signature.cTilde[i] != finalHash[i]) {
                 return false;
             }
         }
@@ -144,4 +158,3 @@ contract ZKNOX_dilithium {
 }
 
 //end of contract
-/* the contract shall be initialized with a valid precomputation of psi_rev and psi_invrev contracts provided to the input ntt contract*/

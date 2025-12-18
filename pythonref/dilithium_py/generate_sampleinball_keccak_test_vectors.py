@@ -18,6 +18,7 @@ file.write("""
 pragma solidity ^0.8.13;
 //  Code obtained from `generate_sample_in_ball_test_vectors.py` python file
 
+import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 import "../src/ZKNOX_SampleInBall.sol";
@@ -32,13 +33,10 @@ tau = 39
 c_nist = D.R.sample_in_ball(c_tilde, tau)
 
 file.write("""
-function testSampleInBallNIST() public {{
-        bytes memory c_tilde = hex"{}";
-        // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
+function testSampleInBallNIST() public pure {{
+        bytes memory c_tilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
 file.write(solidity_poly(c_nist, 'expected_c'))
 file.write("""
-        uint256 tau = 39;
-        uint256 q = 8380417;
         uint256[] memory c = sampleInBallNIST(c_tilde, tau, q);
         for (uint256 i = 0; i < 256; i++) {
             assertEq(c[i], expected_c[i]);
@@ -48,13 +46,10 @@ file.write("""
 # C KeccakPRNG
 c_keccak_prng = D.R.sample_in_ball(c_tilde, tau, _xof=Keccak256PRNG)
 file.write("""
-function testSampleInBallKeccakPRNG() public {{
-        bytes memory c_tilde = hex"{}";
-        // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
+function testSampleInBallKeccakPRNG() public pure {{
+        bytes memory c_tilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
 file.write(solidity_poly(c_keccak_prng, 'expected_c'))
 file.write("""
-        uint256 tau = 39;
-        uint256 q = 8380417;
         uint256[] memory c = sampleInBallKeccakPRNG(c_tilde, tau, q);
         for (uint256 i = 0; i < 256; i++) {
             assertEq(c[i], expected_c[i]);

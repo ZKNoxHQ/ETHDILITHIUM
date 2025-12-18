@@ -2,4 +2,19 @@ cache/
 out/
 
 __pycache__
-python-ref/myenv/
+pythonref/myenv
+.idea
+
+broadcast/
+c-lowram/.vscode/
+c-lowram/PQCsignKAT_Dilithium2.req
+c-lowram/PQCsignKAT_Dilithium2.rsp
+c-lowram/PQCsignKAT_Dilithium2_ETH.rsp
+c-lowram/nistkat/.gitignore
+c-lowram/nistkat/PQCgenKAT_sign2_eth
+c-ref/PQCsignKAT_Dilithium2.req
+c-ref/PQCsignKAT_Dilithium2.rsp
+c-ref/PQCsignKAT_Dilithium2_ETH.rsp
+c-ref/nistkat/PQCgenKAT_sign2_eth
+
+pythonref/seed.py

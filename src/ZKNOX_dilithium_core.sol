@@ -38,32 +38,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {console} from "forge-std/Test.sol";
-
-import "./ZKNOX_NTT_dilithium.sol";
-
-import "./ZKNOX_shake.sol";
+import {nttFw, nttInv} from "./ZKNOX_NTT_dilithium.sol";
+import {PubKey, Signature} from "./ZKNOX_dilithium_utils.sol";
 import {
     q,
-    ZKNOX_Expand,
-    ZKNOX_Expand_Vec,
-    ZKNOX_Expand_Mat,
-    ZKNOX_MatVecProductDilithium,
-    ZKNOX_VECMULMOD,
-    ZKNOX_VECSUBMOD,
+    expandMat,
+    matVecProductDilithium,
+    vecMulMod,
+    vecSubMod,
     bitUnpackAtOffset,
-    omega,
+    OMEGA,
     k,
     l,
     n,
-    gamma_1
+    GAMMA_1
 } from "./ZKNOX_dilithium_utils.sol";
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
-function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
-    require(hBytes.length >= omega + k, "Invalid h bytes length");
+function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
+    require(hBytes.length >= OMEGA + k, "Invalid h bytes length");
 
-    uint256 k_idx = 0;
+    uint256 kIdx = 0;
 
     h = new uint256[][](k);
     for (uint256 i = 0; i < k; i++) {
@@ -72,16 +67,16 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
             h[i][j] = 0;
         }
 
-        uint256 omegaVal = uint8(hBytes[omega + i]);
+        uint256 omegaVal = uint8(hBytes[OMEGA + i]);
 
         // Check bound on omegaVal
-        if (omegaVal < k_idx || omegaVal > omega) {
+        if (omegaVal < kIdx || omegaVal > OMEGA) {
             return (false, h);
         }
 
-        for (uint256 j = k_idx; j < omegaVal; j++) {
+        for (uint256 j = kIdx; j < omegaVal; j++) {
             // Coefficients must be in strictly increasing order
-            if (j > k_idx && uint8(hBytes[j]) <= uint8(hBytes[j - 1])) {
+            if (j > kIdx && uint8(hBytes[j]) <= uint8(hBytes[j - 1])) {
                 return (false, h);
             }
 
@@ -94,11 +89,11 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
             h[i][index] = 1;
         }
 
-        k_idx = omegaVal;
+        kIdx = omegaVal;
     }
 
     // Check extra indices are zero
-    for (uint256 j = k_idx; j < omega; j++) {
+    for (uint256 j = kIdx; j < OMEGA; j++) {
         if (uint8(hBytes[j]) != 0) {
             return (false, h);
         }
@@ -107,92 +102,109 @@ function unpack_h(bytes memory hBytes) pure returns (bool success, uint256[][] m
     return (true, h);
 }
 
-function unpack_z(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
+function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
     uint256 coeffBits;
     uint256 requiredBytes;
 
-    // Level 2 parameter set
-    if (gamma_1 == (1 << 17)) {
-        coeffBits = 18;
-        requiredBytes = (n * l * 18) / 8; // Total bytes for all polynomials
-    }
-    // Level 3 and 5 parameter set
-    else if (gamma_1 == (1 << 19)) {
-        coeffBits = 20;
-        requiredBytes = (n * l * 20) / 8; // Total bytes for all polynomials
-    } else {
-        revert("gamma_1 must be either 2^17 or 2^19");
+    // Cache GAMMA_1 to avoid multiple SLOAD operations if it's a state variable
+    uint256 _gamma1 = GAMMA_1;
+
+    // Use unchecked arithmetic where overflow is impossible
+    unchecked {
+        // Level 2 parameter set
+        if (_gamma1 == 131072) {
+            // 1 << 17, use literal to save gas
+            coeffBits = 18;
+            requiredBytes = (n * l * 18) >> 3; // Use bit shift instead of division
+        }
+        // Level 3 and 5 parameter set
+        else if (_gamma1 == 524288) {
+            // 1 << 19, use literal to save gas
+            coeffBits = 20;
+            requiredBytes = (n * l * 20) >> 3; // Use bit shift instead of division
+        } else {
+            revert("GAMMA_1 must be either 2^17 or 2^19");
+        }
     }
 
     require(inputBytes.length >= requiredBytes, "Insufficient data");
 
-    // Initialize 2D array
-    coefficients = new uint256[][](l);
+    // Cache frequently used values
+    uint256 _l = l;
+    uint256 _n = n;
+    uint256 _q = q;
 
+    // Initialize 2D array
+    coefficients = new uint256[][](_l);
     uint256 bitOffset = 0;
 
-    for (uint256 i = 0; i < l; i++) {
-        // Unpack the altered coefficients for polynomial i
-        uint256[] memory alteredCoeffs = bitUnpackAtOffset(inputBytes, coeffBits, bitOffset, n);
+    unchecked {
+        for (uint256 i = 0; i < _l; ++i) {
+            // Unpack the altered coefficients for polynomial i
+            uint256[] memory alteredCoeffs = bitUnpackAtOffset(inputBytes, coeffBits, bitOffset, _n);
 
-        // Compute coefficients as gamma_1 - c
-        coefficients[i] = new uint256[](n);
-        for (uint256 j = 0; j < n; j++) {
-            if (alteredCoeffs[j] < gamma_1) {
-                coefficients[i][j] = gamma_1 - alteredCoeffs[j];
-            } else {
-                coefficients[i][j] = q + gamma_1 - alteredCoeffs[j];
+            // Allocate array once
+            uint256[] memory coeffs = new uint256[](_n);
+
+            // Compute coefficients as GAMMA_1 - c
+            for (uint256 j = 0; j < _n; ++j) {
+                uint256 alteredCoeff = alteredCoeffs[j];
+
+                // Simplified logic: use ternary operator and eliminate redundant check
+                coeffs[j] = alteredCoeff < _gamma1 ? _gamma1 - alteredCoeff : _q + _gamma1 - alteredCoeff;
             }
-        }
 
-        // Move to next polynomial
-        bitOffset += n * coeffBits;
+            coefficients[i] = coeffs;
+
+            // Move to next polynomial
+            bitOffset += _n * coeffBits;
+        }
     }
 
     return coefficients;
 }
 
-function dilithium_core_1(Signature memory signature)
+function dilithiumCore1(Signature memory signature)
     pure
-    returns (bool foo, uint256 norm_h, uint256[][] memory h, uint256[][] memory z)
+    returns (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z)
 {
-    (foo, h) = unpack_h(signature.h);
+    (foo, h) = unpackH(signature.h);
     uint256 i;
     uint256 j;
-    norm_h = 0;
+    normH = 0;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 256; j++) {
             if (h[i][j] == 1) {
-                norm_h += 1;
+                normH += 1;
             }
             // else { /* check that h[i][j] == 0 ? */}
         }
     }
 
-    z = unpack_z(signature.z);
+    z = unpackZ(signature.z);
 }
 
-function dilithium_core_2(
+function dilithiumCore2(
     PubKey memory pk,
     uint256[][] memory z,
-    uint256[] memory c_ntt,
+    uint256[] memory cNtt,
     uint256[][] memory h,
-    uint256[][] memory t1_new
-) view returns (bytes memory w_prime_bytes) {
+    uint256[][] memory t1New
+) pure returns (bytes memory wPrimeBytes) {
     // NTT(z)
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTFW(z[i]);
+        z[i] = nttFw(z[i]);
     }
 
     // 1. A*z
-    uint256[][][] memory A_hat = ZKNOX_Expand_Mat(pk.a_hat);
-    z = ZKNOX_MatVecProductDilithium(A_hat, z); // A * z
+    uint256[][][] memory aHat = expandMat(pk.aHat);
+    z = matVecProductDilithium(aHat, z); // A * z
 
     // 2. A*z - c*t1
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = ZKNOX_NTTINV(ZKNOX_VECSUBMOD(z[i], ZKNOX_VECMULMOD(t1_new[i], c_ntt)));
+        z[i] = nttInv(vecSubMod(z[i], vecMulMod(t1New[i], cNtt)));
     }
 
     // 3. w_prime packed using a "solidity-friendly encoding"
-    w_prime_bytes = useHintDilithium(h, z);
+    wPrimeBytes = useHintDilithium(h, z);
 }

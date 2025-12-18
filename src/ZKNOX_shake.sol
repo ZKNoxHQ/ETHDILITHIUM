@@ -39,13 +39,11 @@
 //this is a direct translation from https://github.com/coruus/py-keccak/blob/master/fips202/keccak.py
 pragma solidity ^0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
-
 uint256 constant _RATE = 136;
 bool constant _SPONGE_ABSORBING = false;
 bool constant _SPONGE_SQUEEZING = true;
 
-struct ctx_shake {
+struct CtxShake {
     uint64[25] state;
     uint8[200] buff;
     uint256 i;
@@ -57,11 +55,11 @@ function rol64(uint256 x, uint256 s) pure returns (uint64) {
     return (uint64)((x << s) ^ (x >> (64 - s)));
 }
 
-function F1600(uint64[25] memory state) pure returns (uint64[25] memory) {
+function f1600(uint64[25] memory state) pure returns (uint64[25] memory) {
     // forgefmt: disable-next-line
-    uint256[24] memory _KECCAK_PI = [uint256(10), 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20, 14, 22, 9, 6, 1];// forgefmt: disable-next-line
-    uint64[24] memory _KECCAK_RC = [uint64(0x0000000000000001), 0x0000000000008082,0x800000000000808a,0x8000000080008000,0x000000000000808b, 0x0000000080000001,0x8000000080008081, 0x8000000000008009,0x000000000000008a, 0x0000000000000088,0x0000000080008009, 0x000000008000000a,0x000000008000808b, 0x800000000000008b,0x8000000000008089, 0x8000000000008003,0x8000000000008002, 0x8000000000000080,0x000000000000800a, 0x800000008000000a,0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008];// forgefmt: disable-next-line
-    uint256[24] memory _KECCAK_RHO =[uint256(1), 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62, 18, 39, 61, 20, 44];
+    uint256[24] memory _keccakPi = [uint256(10), 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20, 14, 22, 9, 6, 1];// forgefmt: disable-next-line
+    uint64[24] memory _keccakRc = [uint64(0x0000000000000001), 0x0000000000008082,0x800000000000808a,0x8000000080008000,0x000000000000808b, 0x0000000080000001,0x8000000080008081, 0x8000000000008009,0x000000000000008a, 0x0000000000000088,0x0000000080008009, 0x000000008000000a,0x000000008000808b, 0x800000000000008b,0x8000000000008089, 0x8000000000008003,0x8000000000008002, 0x8000000000000080,0x000000000000800a, 0x800000008000000a,0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008];// forgefmt: disable-next-line
+    uint256[24] memory _keccakRho =[uint256(1), 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62, 18, 39, 61, 20, 44];
 
     uint64[5] memory bc = [uint64(0), 0, 0, 0, 0];
 
@@ -106,13 +104,13 @@ function F1600(uint64[25] memory state) pure returns (uint64[25] memory) {
             for { let x := 0 } gt(768, x) { x := add(x, 32) } {
                 //x in [0..23]
                 //  for (uint256 x = 0; x < 24; x++) {
-                let keccakpix := mload(add(_KECCAK_PI, x)) //_KECCAK_PI[x]
-                let kpix := add(state, shl(5, keccakpix)) //@_KECCAK_PI[x];
+                let keccakpix := mload(add(_keccakPi, x)) //_keccakPi[x]
+                let kpix := add(state, shl(5, keccakpix)) //@_keccakPi[x];
                 mstore(bc, mload(kpix)) //bc[0] = state[keccakpix];
-                let res := mload(add(x, _KECCAK_RHO)) // _KECCAK_RHO[x]
-                res := and(0xffffffffffffffff, xor(shl(res, t), shr(sub(64, res), t))) //rol64(t, _KECCAK_RHO[x]);
+                let res := mload(add(x, _keccakRho)) // _keccakRho[x]
+                res := and(0xffffffffffffffff, xor(shl(res, t), shr(sub(64, res), t))) //rol64(t, _keccakRho[x]);
 
-                mstore(kpix, res) //state[keccakpix] = uint64(res);//rol64(t,res);//rol64(t, _KECCAK_RHO[x]);
+                mstore(kpix, res) //state[keccakpix] = uint64(res);//rol64(t,res);//rol64(t, _keccakRho[x]);
                 t := mload(bc) // t = bc[0];
             }
 
@@ -140,16 +138,16 @@ function F1600(uint64[25] memory state) pure returns (uint64[25] memory) {
                     )
                 }
 
-                mstore(state, and(xor(mload(state), mload(add(_KECCAK_RC, shl(5, i)))), 0xffffffffffffffff)) //state[0] ^= _KECCAK_RC[i];
+                mstore(state, and(xor(mload(state), mload(add(_keccakRc, shl(5, i)))), 0xffffffffffffffff)) //state[0] ^= _keccakRc[i];
             } //end loop y
 
         } //end loop i
 
     }
     return state;
-} //end F1600
+} //end f1600
 
-function shake_absorb(uint256 i, uint8[200] memory buf, uint64[25] memory state, bytes memory input)
+function shakeAbsorb(uint256 i, uint8[200] memory buf, uint64[25] memory state, bytes memory input)
     pure
     returns (uint256 iout, uint8[200] memory bufout, uint64[25] memory stateout)
 {
@@ -166,7 +164,7 @@ function shake_absorb(uint256 i, uint8[200] memory buf, uint64[25] memory state,
         i += willabsorb;
 
         if (i == _RATE) {
-            (buf, state) = shake_permute(buf, state);
+            (buf, state) = shakePermute(buf, state);
             i = 0;
         }
         todo -= willabsorb;
@@ -176,7 +174,7 @@ function shake_absorb(uint256 i, uint8[200] memory buf, uint64[25] memory state,
 }
 
 //can be ignored, as it is a zeroized structure
-function shake_init() pure returns (ctx_shake memory ctx) {
+function shakeInit() pure returns (CtxShake memory ctx) {
     // forgefmt: disable-next-line
         ctx.state=[uint64(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];// forgefmt: disable-next-line
         ctx.buff=[uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,uint8(0),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
@@ -185,16 +183,16 @@ function shake_init() pure returns (ctx_shake memory ctx) {
     return ctx;
 }
 
-function shake_update(ctx_shake memory ctx, bytes memory input) pure returns (ctx_shake memory ctxout) {
+function shakeUpdate(CtxShake memory ctx, bytes memory input) pure returns (CtxShake memory ctxout) {
     if (ctx.direction == _SPONGE_SQUEEZING) {
-        (ctx.buff, ctx.state) = shake_permute(ctx.buff, ctx.state);
+        (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
     }
     ctxout.direction = _SPONGE_ABSORBING;
-    (ctxout.i, ctxout.buff, ctxout.state) = shake_absorb(ctx.i, ctx.buff, ctx.state, input);
+    (ctxout.i, ctxout.buff, ctxout.state) = shakeAbsorb(ctx.i, ctx.buff, ctx.state, input);
     return ctxout;
 }
 
-function shake_squeeze(ctx_shake memory ctx, uint256 n) pure returns (ctx_shake memory ctxout, bytes memory) {
+function shakeSqueeze(CtxShake memory ctx, uint256 n) pure returns (CtxShake memory ctxout, bytes memory) {
     bytes memory output = new bytes(n);
     uint256 tosqueeze = n;
     uint256 offset = 0;
@@ -211,7 +209,7 @@ function shake_squeeze(ctx_shake memory ctx, uint256 n) pure returns (ctx_shake 
         offset += willsqueeze;
         ctx.i += willsqueeze;
         if (ctx.i == _RATE) {
-            (ctx.buff, ctx.state) = shake_permute(ctx.buff, ctx.state);
+            (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
             ctx.i = 0;
         }
         tosqueeze -= willsqueeze;
@@ -220,7 +218,7 @@ function shake_squeeze(ctx_shake memory ctx, uint256 n) pure returns (ctx_shake 
     return (ctx, output);
 }
 
-function shake_permute(uint8[200] memory buf, uint64[25] memory state)
+function shakePermute(uint8[200] memory buf, uint64[25] memory state)
     pure
     returns (uint8[200] memory buffer, uint64[25] memory stateout)
 {
@@ -238,31 +236,31 @@ function shake_permute(uint8[200] memory buf, uint64[25] memory state)
         }
     }
 
-    // Call F1600 Keccak permutation function here
-    state = F1600(state);
+    // Call f1600 Keccak permutation function here
+    state = f1600(state);
     //directly return buffer: it is zeroized by default
     return (buffer, state); //zeroization of buf external to this function
 }
 
-function shake_pad(ctx_shake memory ctx) pure returns (ctx_shake memory ctxout) {
+function shakePad(CtxShake memory ctx) pure returns (CtxShake memory ctxout) {
     ctx.buff[ctx.i] ^= 0x1f;
     ctx.buff[_RATE - 1] ^= 0x80;
-    (ctx.buff, ctx.state) = shake_permute(ctx.buff, ctx.state);
+    (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
 
     ctx.i = 0;
 
     return ctx;
 }
 
-function shake_digest(ctx_shake memory ctx, uint256 size8) pure returns (bytes memory output) {
+function shakeDigest(CtxShake memory ctx, uint256 size8) pure returns (bytes memory output) {
     output = new bytes(size8);
     if (ctx.direction == _SPONGE_ABSORBING) {
         ctx.buff[ctx.i] ^= 0x1f;
         ctx.buff[_RATE - 1] ^= 0x80;
-        (ctx.buff, ctx.state) = shake_permute(ctx.buff, ctx.state);
+        (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
 
         ctx.i = 0;
     }
     //display_state(ctx.state);
-    (, output) = shake_squeeze(ctx, size8);
+    (, output) = shakeSqueeze(ctx, size8);
 }

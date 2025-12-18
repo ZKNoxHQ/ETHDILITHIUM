@@ -1,43 +1,62 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import {console} from "forge-std/Test.sol";
-
-struct KeccakPRNG {
+struct KeccakPrng {
     bytes32 state; // keccak256(input)
     uint64 counter; // block counter
     bytes32 pool; // current 32-byte block
     uint8 remaining; // remaining bytes in pool [0..32]
 }
 
-// Initialize PRNG with keccak256(input).
-function initPRNG(bytes memory input) pure returns (KeccakPRNG memory prng) {
+function initPrng(bytes memory input) pure returns (KeccakPrng memory prng) {
     prng.state = keccak256(input);
-    // Preload first block to make the first 32 bytes available immediately
-    bytes32 blk = keccak256(abi.encodePacked(prng.state, uint64(0)));
+    bytes32 state = prng.state;
+    uint64 counter = 0;
+    bytes32 blk;
+    assembly {
+        let ptr := mload(0x40)
+        mstore(ptr, state)
+        mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+        blk := keccak256(ptr, 40)
+    }
     prng.pool = blk;
     prng.remaining = 32;
     prng.counter = 1;
 }
 
 // Pull next 32-byte block into the pool.
-function refill(KeccakPRNG memory prng) pure {
-    bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
+function refill(KeccakPrng memory prng) pure {
+    bytes32 state = prng.state;
+    uint64 counter = prng.counter;
+    bytes32 blk;
+    assembly {
+        let ptr := mload(0x40)
+        mstore(ptr, state)
+        mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+        blk := keccak256(ptr, 40)
+    }
     prng.pool = blk;
     prng.remaining = 32;
     unchecked {
         prng.counter += 1;
     }
     assembly {
-        // write-back struct (since prng is memory)
-        mstore(prng, mload(prng)) // no-op to silence "unused" in some toolchains
+        mstore(prng, mload(prng))
     }
 }
 
 // Get one random byte (little-endian consumption from pool).
-function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
+function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
     if (prng.remaining == 0) {
-        bytes32 blk = keccak256(abi.encodePacked(prng.state, prng.counter));
+        bytes32 state = prng.state;
+        uint64 counter = prng.counter;
+        bytes32 blk;
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, state)
+            mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+            blk := keccak256(ptr, 40)
+        }
         prng.pool = blk;
         prng.remaining = 32;
         unchecked {
@@ -45,6 +64,8 @@ function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
         }
     }
     uint256 poolInt = uint256(prng.pool);
+    // casting to 'uint8' is safe because poolInt is 256-bit long and so the input is 256-248 = 8-bit long
+    // forge-lint: disable-next-line(unsafe-typecast)
     b = uint8(poolInt >> 248);
     prng.pool = bytes32(poolInt << 8);
 
@@ -53,5 +74,5 @@ function nextByte(KeccakPRNG memory prng) pure returns (uint8 b) {
     }
     assembly {
         mstore(prng, mload(prng))
-    } // write-back
+    }
 }

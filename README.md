@@ -49,6 +49,8 @@ Current deployments addresses:
 |-|-|-|-|
 |ML-DSA|NIST legacy implementation|0x9B26cBD1643ba392a9a040529c0035693a4f6806|[Ethereum (sepolia)](https://sepolia.etherscan.io/address/9B26cBD1643ba392a9a040529c0035693a4f6806)|
 |ML-DSA-ETH|EVM-friendly implementation|0x4e086d551a2fa9269193056616ac8bd63cf5be15|[Ethereum (sepolia)](https://sepolia.etherscan.io/address/0x4e086d551a2fa9269193056616ac8bd63cf5be15)|
+|ML-DSA|NIST legacy implementation|0xe894f23a95cb5c6198d0d5917877f594aeb255ef|[Arbitrum (sepolia)](https://sepolia.arbiscan.io/address/0xe894f23a95cb5c6198d0d5917877f594aeb255ef)|
+|ML-DSA-ETH|EVM-friendly implementation|0x0cbf65fa28418d5590db76220759cad4d5b9c4aa|[Arbitrum (sepolia)](https://sepolia.arbiscan.io/address/0x0cbf65fa28418d5590db76220759cad4d5b9c4aa)|
 
 
 ## CONCLUSION

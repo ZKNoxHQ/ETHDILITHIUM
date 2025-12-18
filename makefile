@@ -1,5 +1,5 @@
-DIRSIGNER = 'python-ref'
-PYTHON=python-ref/myenv/bin/python
+DIRSIGNER = 'pythonref'
+PYTHON=pythonref/myenv/bin/python
 CORES := $(shell nproc)
 
 # INSTALL

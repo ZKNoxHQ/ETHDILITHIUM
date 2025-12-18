@@ -72,23 +72,95 @@ def transaction_hash(nonce, to, data, value):
     return K.squeeze(32)
 
 
-# def print_signature_transaction(sig, pk, tx_hash):
-#     TX_HASH = "0x" + tx_hash.hex()
+def deploy_onchain(A_hat_compact, t1_compact, tr, privatekey, apikey, version):
+    print("Solidity deployment")
 
-#     salt = sig[HEAD_LEN:HEAD_LEN + SALT_LEN]
-#     SALT = "0x"+salt.hex()
+    SOL = """
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-#     enc_s = sig[HEAD_LEN + SALT_LEN:]
-#     s2 = decompress(enc_s, pk.sig_bytelen - HEAD_LEN - SALT_LEN, 512)
-#     s2 = [elt % q for elt in s2]
-#     s2_compact = falcon_compact(s2)
-#     S2 = str(s2_compact)
-#     pk_compact = falcon_compact(Poly(pk.pk, q).ntt())
-#     PK = str(pk_compact)
-#     print("TX_HASH = {}".format(TX_HASH))
-#     print("PK = {}".format(PK))
-#     print("S2 = {}".format(S2))
-#     print("SALT = {}".format(SALT))
+import "forge-std/Script.sol";
+import "../src/ZKNOX_PKContract.sol";
+import {BaseScript} from "./BaseScript.sol";
+
+contract DeployPKContract is BaseScript {
+function run() external returns (address) {
+    vm.startBroadcast();
+
+    // Example of public key
+    uint256[][][] memory A_hat = new uint256[][][](4);
+    for (uint256 i = 0; i < 4; i++) {
+        A_hat[i] = new uint256[][](4);
+        for (uint256 j = 0; j < 4; j++) {
+            A_hat[i][j] = new uint256[](32);
+        }
+    }
+    """
+    for ii in range(4):
+        for jj in range(4):
+            for kk in range(32):
+                SOL += "A_hat[{}][{}][{}] = uint256({});\n".format(
+                    ii, jj, kk, A_hat_compact[ii][jj][kk])
+    SOL += "bytes memory tr = hex\"{}\";\n".format(tr.hex())
+    SOL += """uint256[][] memory t1 = new uint256[][](4);
+    for (uint256 i = 0; i < 4; i++) {
+        t1[i] = new uint256[](32);
+    }
+    """
+    for ii in range(4):
+        for jj in range(32):
+            SOL += "t1[{}][{}] = uint256({});\n".format(
+                ii,
+                jj,
+                t1_compact[ii][0][jj]
+            )
+
+    SOL += """
+    // Deploy PKContract
+    PKContract pk = new PKContract(A_hat, tr, t1);
+
+    console.log("Deployed PKContract at:", address(pk));
+
+    vm.stopBroadcast();
+    return address(pk);
+}
+}
+"""
+    sol_file = open("../script/Deploy_{}_PK.s.sol".format(version), 'w')
+    sol_file.write(SOL)
+    sol_file.close()
+    print("Solidity file script/Deploy_{}_PK.s.sol saved.".format(version))
+
+    if not privatekey:
+        print("Error: Provide --privatekey")
+        return
+    if not apikey:
+        print("Error: Provide --apikey")
+        return
+
+    result = subprocess.run(
+        [
+            "forge",
+            "script",
+            "../script/Deploy_{}_PK.s.sol".format(version),
+            "--rpc-url",
+            "https://api.zan.top/arb-sepolia",
+            "--private-key",
+            privatekey,
+            "--broadcast",
+            "--tc",
+            "DeployPKContract",
+            "--etherscan-api-key",
+            apikey,
+            "--verify",
+            "--priority-gas-price",
+            "1"
+        ],
+        capture_output=True,
+        text=True
+    )
+    print(result.stdout)
+    print(result.stderr)
 
 
 def verify_signature(pk, data, sig, version):
@@ -158,8 +230,8 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
         text=True
     )
     print("STDOUT:", result.stdout)
-    print("STDERR:", result.stderr)
-    print("RETURN CODE:", result.returncode)
+    # print("STDERR:", result.stderr)
+    # print("RETURN CODE:", result.returncode)
 
 
 def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private_key, version):
@@ -227,7 +299,7 @@ def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private
 
 def cli():
     parser = argparse.ArgumentParser(description="CLI for MLDSA Signature")
-    parser.add_argument("action", choices=["keygen", "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
+    parser.add_argument("action", choices=["keygen", "keygenonchainsend", "keygenledgeronchainsend", "sign", "signledger", "verify", "verifyonchain", "verifyonchainsend"],
                         help="Action to perform")
     parser.add_argument("--version", type=str,
                         help="Version to use (MLDSA or MLDSAETH)")
@@ -241,6 +313,8 @@ def cli():
     #                     help="Value in hexadecimal for the transaction")
     parser.add_argument("--privkey", type=str,
                         help="Private key file for signing")
+    parser.add_argument("--seed", type=str,
+                        help="Seed for keygen")
     parser.add_argument("--pubkey", type=str,
                         help="Public key file for verification")
     parser.add_argument("--contractaddress", type=str,
@@ -249,6 +323,8 @@ def cli():
                         help="RPC for on-chain verification")
     parser.add_argument("--privatekey", type=str,
                         help="Ethereum ECDSA private key for sending a transaction")
+    parser.add_argument("--apikey", type=str,
+                        help="Ethereum API key for sending a transaction")
     parser.add_argument("--signature", type=str, help="Signature to verify")
 
     args = parser.parse_args()
@@ -264,6 +340,71 @@ def cli():
         save_pk(pk, "public_key.pem", args.version)
         save_sk(sk, "private_key.pem", args.version)
         print("Keys generated and saved.")
+
+    if args.action == "keygenonchainsend":
+        if not args.version or not args.privatekey or not args.apikey or not args.seed:
+            print("Error: Provide --version, --privatekey, --apikey and --seed")
+            return
+
+        seed = bytes.fromhex(args.seed)
+        if args.version == "MLDSA":
+            pk, sk = Dilithium2.key_derive(seed=seed)
+            ρ, t1 = Dilithium2._unpack_pk(pk)
+            A_hat = Dilithium2._expand_matrix_from_seed(ρ)
+            tr = Dilithium2._h(pk, 64)
+        else:
+            pk, sk = Dilithium2.key_derive(
+                seed=seed, _xof=Keccak256PRNG, _xof2=Keccak256PRNG)
+            A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
+
+        # Compact PK for Solidity
+        A_hat_compact = A_hat.compact_256(32)
+        t1_compact = t1.compact_256(32)
+
+        save_pk(pk, "public_key.pem", args.version)
+        save_sk(sk, "private_key.pem", args.version)
+        print("Keys generated and saved.")
+
+        deploy_onchain(A_hat_compact, t1_compact, tr,
+                       args.privatekey, args.apikey, args.version)
+
+    if args.action == "keygenledgeronchainsend":
+
+        if not args.privatekey or not args.apikey:
+            print("Error: Provide --privatekey and --apikey")
+            return
+
+        result = subprocess.run(
+            ["node", "../ledger/keygen-apdu.js"],
+            capture_output=True,
+            text=True
+        )
+        print(result.stdout)
+
+        vars = {}
+        with open("../ledger/public_key.pem", "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                key, value = map(str.strip, line.split("=", 1))
+                vars[key] = value
+
+        pk = bytes.fromhex(vars['pk'])
+
+        if vars['version'] == 'MLDSA':
+            ρ, t1 = Dilithium2._unpack_pk(pk)
+            A_hat = Dilithium2._expand_matrix_from_seed(ρ)
+            tr = Dilithium2._h(pk, 64)
+        elif vars['version'] == 'MLDSAETH':
+            A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
+
+        # Compact PK for Solidity
+        A_hat_compact = A_hat.compact_256(32)
+        t1_compact = t1.compact_256(32)
+
+        deploy_onchain(A_hat_compact, t1_compact, tr,
+                       args.privatekey, args.apikey, args.version)
 
     elif args.action == "sign":
         if not args.data or not args.privkey:

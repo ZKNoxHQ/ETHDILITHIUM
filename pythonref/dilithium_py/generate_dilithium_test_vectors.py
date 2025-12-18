@@ -27,6 +27,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
+import {PKContract} from "../src/ZKNOX_PKContract.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 
 contract DilithiumTest is Test {
@@ -42,32 +43,16 @@ file.write(solidity_compact_vec(t1_compact, 't1'))
 
 # SIG
 sig = D.sign(sk, msg, _xof=XOF)
-z_bytes = sig[D.c_tilde_bytes: -(D.k + D.omega)]
-h_bytes = sig[-(D.k + D.omega):]
 assert D.verify(pk, msg, sig, _xof=XOF)
-c_tilde, z, h = D._unpack_sig(sig)
 
-file.write("\n// Signature\n")
-file.write("bytes memory c_tilde = hex\"{}\";\n".format(c_tilde.hex()))
-file.write("bytes memory z_bytes = hex\"{}\";".format(z_bytes.hex()))
-file.write("bytes memory h_bytes = hex\"{}\";".format(h_bytes.hex()))
+file.write("\nPKContract PubKeyContract = new PKContract(A_hat, tr, t1);\n")
+file.write("bytes memory sig = hex\"{}\";\n".format(sig.hex()))
 file.write("""
-        // CREATE PK OBJECT
-        PubKey memory pk;
-        pk.a_hat = A_hat;
-        pk.tr = tr;
-        pk.t1 = t1;
-
-        // CREATE SIG OBJECT
-        Signature memory sig;
-        sig.c_tilde = c_tilde;
-        sig.z = z_bytes;
-        sig.h = h_bytes;
 
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(pk, msgs, sig, "");
+        bool ver = dilithium.verify(abi.encodePacked(address(PubKeyContract)), msgs, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);

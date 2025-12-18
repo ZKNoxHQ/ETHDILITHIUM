@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console} from "forge-std/Test.sol";
-import {_2_gamma_2, useHint, decompose, reduceModPM} from "../src/ZKNOX_hint.sol";
+import {Test} from "forge-std/Test.sol";
+import {useHint, decompose, reduceModPm} from "../src/ZKNOX_hint.sol";
 
 contract HintTest is Test {
     function testUseHint() public pure {
@@ -22,7 +22,7 @@ contract HintTest is Test {
 
     function testReduceModPM() public pure {
         int256 rp = 5432321;
-        int256 r0 = reduceModPM(rp);
+        int256 r0 = reduceModPm(rp);
         assertEq(r0, -91135); // obtained in python
     }
 }
