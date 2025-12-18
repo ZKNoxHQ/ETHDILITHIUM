@@ -21,7 +21,7 @@ seed = bytes.fromhex(sys.argv[3])
 pk, sk = D.key_derive(seed, _xof=xof, _xof2=xof2)
 
 # MLDSA signature
-sig = D.sign(sk, msg, _xof=xof, _xof2=xof2)
+sig = D.sign(sk, msg, deterministic=True, _xof=xof, _xof2=xof2)
 assert D.verify(pk, msg, sig, _xof=xof, _xof2=xof2)
 c_tilde = sig[:D.c_tilde_bytes]
 z_bytes = sig[D.c_tilde_bytes: -(D.k + D.omega)]
