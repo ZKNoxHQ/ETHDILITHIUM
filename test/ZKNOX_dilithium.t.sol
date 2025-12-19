@@ -690,7 +690,7 @@ contract DilithiumTest is Test {
         string memory data = "0x1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory dataBytes = hex"1111222233334444111122223333444411112222333344441111222233334444";
         string memory mode = "NIST";
-        string memory seedStr = Constants.SEED_STR;
+        string memory seedStr = Constants.SEED_POSTQUANTUM_STR;
         (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign("pythonref", data, mode, seedStr);
         bytes memory sig = abi.encodePacked(cTilde, z, h);
 

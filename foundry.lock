@@ -1,4 +1,7 @@
 {
+  "lib/ETHFALCON": {
+    "rev": "0f9174e443d79946ce59958c52985c9455e4a603"
+  },
   "lib/account-abstraction": {
     "tag": {
       "name": "v0.8.0",

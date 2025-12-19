@@ -15,11 +15,11 @@ contract ECDSATest is Test {
         string memory data = "0x541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
         bytes memory dataBytes = hex"541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
         string memory mode = "NIST";
-        string memory seedStr = Constants.SEED_STR;
+        string memory seedStr = Constants.SEED_PREQUANTUUM_STR;
         (bytes memory cTilde, bytes memory z, bytes memory h, uint8 v, uint256 r, uint256 s) =
             pythonSigner.sign("pythonref", data, mode, seedStr);
         bytes memory sig = abi.encodePacked(r, s, v);
-        bytes memory pubkey = abi.encodePacked(Constants.ADDR);
+        bytes memory pubkey = abi.encodePacked(Constants.ADDR_PREQUANTUM);
         bytes32 message = hex"541378a6e14874788370668707e1a0de6cdd4556deb4c95d1508e31f99656bd9";
 
         uint256 gasStart = gasleft();
