@@ -691,7 +691,7 @@ contract ETHDilithiumTest is Test {
         bytes memory dataBytes = hex"1111222233334444111122223333444411112222333344441111222233334444";
         string memory mode = "ETH";
         string memory seedStr = Constants.SEED_POSTQUANTUM_STR;
-        (bytes memory cTilde, bytes memory z, bytes memory h,,,) = pythonSigner.sign("pythonref", data, mode, seedStr);
+        (bytes memory cTilde, bytes memory z, bytes memory h) = pythonSigner.sign("pythonref", data, mode, seedStr);
         bytes memory sig = abi.encodePacked(cTilde, z, h);
 
         // MESSAGE
