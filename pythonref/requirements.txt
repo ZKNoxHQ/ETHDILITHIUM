@@ -2,4 +2,4 @@ pycryptodome == 3.23.0
 eth_abi
 numpy
 eth_account
-git+https://github.com/ZKNoxHQ/NTT.git@main#egg=polyntt&subdirectory=assets/pythonref/
+polyntt @ git+https://github.com/ZKNoxHQ/NTT.git@main#subdirectory=assets/pythonref/
