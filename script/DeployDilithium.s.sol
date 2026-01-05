@@ -11,10 +11,8 @@ contract Script_Deploy_Dilithium is BaseScript {
     function run() external returns (address) {
         vm.startBroadcast();
 
-        bytes32 salt = keccak256(abi.encodePacked("ZKNOX_MLDSA_VERIFIER_V1"));
-        ZKNOX_dilithium dilithium = new ZKNOX_dilithium{salt: salt}();
+        ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
         console.log("Dilithium deployed at:", address(dilithium));
-        console.log("Salt used:", salt);
 
         // Public key
         uint256[][][] memory aHat = new uint256[][][](4);
