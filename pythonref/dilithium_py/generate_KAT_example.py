@@ -57,6 +57,7 @@ contract KATDilithiumTest is Test {
 """)
 
 file.write("// Public key\n")
+file.write("// pubkey = {}\n".format(pk.hex()))
 file.write(solidity_compact_mat(A_hat_compact, 'A_hat'))
 file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
 file.write(solidity_compact_vec(t1_compact, 't1'))

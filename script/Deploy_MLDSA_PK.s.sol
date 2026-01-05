@@ -531,6 +531,7 @@ contract DeployPKContract is BaseScript {
         A_hat[3][3][31] = uint256(108751599048789315637851218334243792768266049591821586677966605275921628193);
         bytes memory tr =
             hex"b7f71ab32ea3537e391f64f4c2ae6bf7998f8009838175d4f85291235407df0a13187ffeef41937f08d6bb77a0808ad7014a1b4da73335eb7053466d933a270c";
+
         uint256[][] memory t1 = new uint256[][](4);
         for (uint256 i = 0; i < 4; i++) {
             t1[i] = new uint256[](32);
@@ -664,9 +665,7 @@ contract DeployPKContract is BaseScript {
         t1[3][30] = uint256(10298699627987699816620688049300605469492622156762887621308713034318700);
         t1[3][31] = uint256(22646355205239905763810420408885430589125390328608912656056361699770886);
 
-        // Deploy PKContract
         PKContract pk = new PKContract(A_hat, tr, t1);
-
         console.log("Deployed PKContract at:", address(pk));
 
         vm.stopBroadcast();
