@@ -17,11 +17,10 @@ file.write("""
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 //  Code obtained from `generate_sample_in_ball_test_vectors.py` python file
-
-import {Test, console} from "forge-std/Test.sol";
-import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
-import "../src/ZKNOX_dilithium_utils.sol";
-import "../src/ZKNOX_SampleInBall.sol";
+           
+import {Test} from "forge-std/Test.sol";
+import {TAU, q} from "../src/ZKNOX_dilithium_utils.sol";
+import {sampleInBallKeccakPrng, sampleInBallNist} from "../src/ZKNOX_SampleInBall.sol";
 
 contract SampleInBallTest is Test {
 """)
@@ -34,25 +33,25 @@ c_nist = D.R.sample_in_ball(c_tilde, tau)
 
 file.write("""
 function testSampleInBallNIST() public pure {{
-        bytes memory c_tilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
-file.write(solidity_poly(c_nist, 'expected_c'))
+        bytes memory cTilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
+file.write(solidity_poly(c_nist, 'expectedC'))
 file.write("""
-        uint256[] memory c = sampleInBallNIST(c_tilde, tau, q);
+        uint256[] memory c = sampleInBallNist(cTilde, TAU, q);
         for (uint256 i = 0; i < 256; i++) {
-            assertEq(c[i], expected_c[i]);
+            assertEq(c[i], expectedC[i]);
         }
     }\n""")
 
 # C KeccakPRNG
 c_keccak_prng = D.R.sample_in_ball(c_tilde, tau, _xof=Keccak256PRNG)
 file.write("""
-function testSampleInBallKeccakPRNG() public pure {{
-        bytes memory c_tilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
-file.write(solidity_poly(c_keccak_prng, 'expected_c'))
+function testSampleInBallKeccakPrng() public pure {{
+        bytes memory cTilde = hex"{}"; // forgefmt: disable-next-line\n""".format(c_tilde.hex()))
+file.write(solidity_poly(c_keccak_prng, 'expectedC'))
 file.write("""
-        uint256[] memory c = sampleInBallKeccakPRNG(c_tilde, tau, q);
+        uint256[] memory c = sampleInBallKeccakPrng(cTilde, TAU, q);
         for (uint256 i = 0; i < 256; i++) {
-            assertEq(c[i], expected_c[i]);
+            assertEq(c[i], expectedC[i]);
         }
     }\n""")
 

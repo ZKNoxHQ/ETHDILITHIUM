@@ -48,7 +48,6 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import "../src/ZKNOX_dilithium_utils.sol";
 
 contract KATDilithiumTest is Test {
     ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
@@ -58,10 +57,10 @@ contract KATDilithiumTest is Test {
 
 file.write("// Public key\n")
 file.write("// pubkey = {}\n".format(pk.hex()))
-file.write(solidity_compact_mat(A_hat_compact, 'A_hat'))
+file.write(solidity_compact_mat(A_hat_compact, 'aHat'))
 file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
 file.write(solidity_compact_vec(t1_compact, 't1'))
-file.write("PKContract PubKeyContract = new PKContract(A_hat, tr, t1);\n")
+file.write("PKContract pubKeyContract = new PKContract(aHat, tr, t1);\n")
 
 # SIG
 sig = D.sign(sk, msg, _xof=XOF)
@@ -74,7 +73,7 @@ file.write("""
 file.write("bytes memory msgs = hex\"{}\";\n".format(msg.hex()))
 file.write("""
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(abi.encodePacked(address(PubKeyContract)), msgs, sig, "");
+        bool ver = dilithium.verify(abi.encodePacked(address(pubKeyContract)), msgs, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);

@@ -28,16 +28,19 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import "../src/ZKNOX_dilithium_utils.sol";
+import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
+import {Constants} from "./ZKNOX_seed.sol";
+import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract DilithiumTest is Test {
     ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
+    PythonSigner pythonSigner = new PythonSigner();
 
     function testVerify() public {
 """)
 
 file.write("// Public key\n")
-file.write(solidity_compact_mat(A_hat_compact, 'A_hat'))
+file.write(solidity_compact_mat(A_hat_compact, 'aHat'))
 file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
 file.write(solidity_compact_vec(t1_compact, 't1'))
 
@@ -45,14 +48,34 @@ file.write(solidity_compact_vec(t1_compact, 't1'))
 sig = D.sign(sk, msg, _xof=XOF)
 assert D.verify(pk, msg, sig, _xof=XOF)
 
-file.write("\nPKContract PubKeyContract = new PKContract(A_hat, tr, t1);\n")
+file.write("\nPKContract pubKeyContract = new PKContract(aHat, tr, t1);\n")
 file.write("bytes memory sig = hex\"{}\";\n".format(sig.hex()))
 file.write("""
 
         // MESSAGE
         bytes memory msgs = "We are ZKNox.";
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(abi.encodePacked(address(PubKeyContract)), msgs, sig, "");
+        bool ver = dilithium.verify(abi.encodePacked(address(pubKeyContract)), msgs, sig, "");
+        uint256 gasUsed = gasStart - gasleft();
+        console.log("Gas used:", gasUsed);
+        assertTrue(ver);
+    }
+
+    function testVerifyShorter() public {
+        // Public key contract
+        DeployPKContract deployPkContract = new DeployPKContract();
+        address mldsaAddress = deployPkContract.run();
+
+        string memory data = "0x1111222233334444111122223333444411112222333344441111222233334444";
+        bytes memory dataBytes = hex"1111222233334444111122223333444411112222333344441111222233334444";
+        string memory mode = "NIST";
+        string memory seedStr = Constants.SEED_POSTQUANTUM_STR;
+        (bytes memory cTilde, bytes memory z, bytes memory h) = pythonSigner.sign("pythonref", data, mode, seedStr);
+        bytes memory sig = abi.encodePacked(cTilde, z, h);
+
+        // MESSAGE
+        uint256 gasStart = gasleft();
+        bool ver = dilithium.verify(abi.encodePacked(mldsaAddress), dataBytes, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
