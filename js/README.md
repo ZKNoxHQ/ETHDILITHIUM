@@ -16,5 +16,13 @@ node onchain_keygen.js \
 --privatekey <wallet_private_key>
 ```
 
+For example, in order to generate the MLDSA key with seed `cafe..cafe`, together with the Ethereum account of private key `0x00..01` (but it has no fund, don't use it!), on Sepolia L1:
+```
+node onchain_keygen.js \
+--seed 0xcafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe \
+--rpcurl wss://ethereum-sepolia-rpc.publicnode.com \
+--privatekey 0x0000000000000000000000000000000000000000000000000000000000000001
+```
+
 ## Deploying a signed transaction
 TODO
