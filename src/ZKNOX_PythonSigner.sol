@@ -9,13 +9,13 @@ contract PythonSigner is Test {
     }
 
     // reusable Python sign function
-    function sign(string memory python_repo_path, string memory data, string memory mode, string memory seedStr)
+    function sign(string memory pythonRepoPath, string memory data, string memory mode, string memory seedStr)
         external
         returns (bytes memory cTilde, bytes memory z, bytes memory h)
     {
         string[] memory cmds = new string[](5);
-        cmds[0] = string(abi.encodePacked(python_repo_path, "/myenv/bin/python"));
-        cmds[1] = string(abi.encodePacked(python_repo_path, "/sig_sol.py"));
+        cmds[0] = string(abi.encodePacked(pythonRepoPath, "/myenv/bin/python"));
+        cmds[1] = string(abi.encodePacked(pythonRepoPath, "/sig_sol.py"));
         cmds[2] = data;
         cmds[3] = mode;
         cmds[4] = seedStr;
