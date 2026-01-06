@@ -8,9 +8,9 @@ npm install @noble/post-quantum
 ```
 
 ## Deploying a generated public key
-In order to deploy a PKContract using MLDSA (NIST version) on-chain using javascript, simply run
+In order to deploy an ERC4337 account using MLDSA (NIST version) and ECDSA on-chain using javascript, simply run
 ```
-node deployMyKey.js <wallet_private_key>
+node execute.js <wallet_private_key>
 ```
 Note that for now, this deploys a dummy MLDSA key whose seed is `deadbeef...deadbeef`, on Arbitrum Sepolia.
 
