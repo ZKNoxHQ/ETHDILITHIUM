@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@noble/hashes": "^2.0.1",
+    "@noble/post-quantum": "^0.5.4",
+    "ethers": "^6.16.0"
+  }
+}
