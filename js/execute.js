@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import { ml_dsa44 } from '@noble/post-quantum/ml-dsa.js';
 import { decodePublicKey, recoverAhat, compact_module_256 } from './utils_mldsa.js';
 import { deployPublicKey } from './pkDeploy.js';
@@ -21,11 +22,13 @@ async function main() {
     const privateKey = process.argv[2];
     const providerUrl = "https://eth-sepolia-testnet.api.pocket.network";
     const factoryAddress = "0xeF20058f1b1D56dFe950bB42293111671888b54a"; // adddress on sepolia
-    const preQuantumPubKey = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-    
-    // const seed = hexToU8(args.seed);
-    const seed = hexToU8("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
-    const { publicKey, secretKey } = ml_dsa44.keygen(seed);
+    // seeds
+    const prequantum_seed = "0xcafecafecafecafecafecafecafecafecafecafecafecafecafecafecafecafe";
+    const postquantum_seed = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+    // prequantum pubkey
+    const preQuantumPubKey = new ethers.Wallet(prequantum_seed).address;
+    // postquantum pubkey
+    const { publicKey, _ } = ml_dsa44.keygen(hexToU8(postquantum_seed));
     const { rho, t1, tr } = decodePublicKey(publicKey);
     const trHex = "0x" + Buffer.from(tr).toString("hex");
     
