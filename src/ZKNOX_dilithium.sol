@@ -45,12 +45,12 @@ import {sampleInBallNist} from "./ZKNOX_SampleInBall.sol";
 import {CtxShake, shakeUpdate, shakeDigest} from "./ZKNOX_shake.sol";
 import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, d, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
-import {IPKContract} from "./ZKNOX_PKContract.sol";
+import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
 
 contract ZKNOX_dilithium is ISigVerifier {
     function setKey(bytes memory pubkey) external returns (bytes memory) {
         // Decode the raw public key data
-        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = abi.decode(key, (bytes, bytes, bytes));
+        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = abi.decode(pubkey, (bytes, bytes, bytes));
 
         // Encode into the format PKContract expects
         bytes memory publicKeyData = abi.encode(aHatEncoded, tr, t1Encoded);
@@ -97,9 +97,6 @@ contract ZKNOX_dilithium is ISigVerifier {
 
         // Step 2: Get the public key directly from PKContract
         PubKey memory publicKey = IPKContract(pkContractAddress).getPublicKey();
-
-        // Step 3: Get the public key from PKContract
-        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
 
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
