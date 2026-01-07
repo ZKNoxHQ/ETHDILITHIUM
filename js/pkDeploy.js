@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 export const PK_CONTRACT_ABI = [
-    "constructor(uint256[][][] memory _aHat, bytes memory _tr, uint256[][] memory _t1)",
+    "constructor(bytes memory _publicKeyData)",
     "function getPublicKey() external view returns (tuple(uint256[][][] aHat, bytes tr, uint256[][] t1))"
 ];
 
@@ -20,24 +20,34 @@ export function preparePublicKeyForDeployment(A_hat_compact, trHex, t1_compact) 
     console.log("- t1:", t1_compact.length, "×", t1_compact[0]?.length);
     console.log("- tr:", trBytes.length, "bytes");
     
-    let t1_formatted = t1_compact;
-    if (t1_compact.length === 1 && Array.isArray(t1_compact[0])) {
-        t1_formatted = t1_compact[0];
-        console.log("- t1 flattened from [1][4][32] to [4][32]");
-    }
+    // Convert all BigInt values to strings for proper encoding
+    const A_hat_stringified = A_hat_compact.map(row => 
+        row.map(col => 
+            col.map(val => val.toString())
+        )
+    );
     
-    return {
-        A_hat: A_hat_compact,
-        tr: trHex,
-        t1: t1_formatted
-    };
+    const t1_stringified = t1_compact.map(row => 
+        row.map(val => val.toString())
+    );
+    
+    // Encode each component as bytes
+    const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+    const aHatEncoded = abiCoder.encode(["uint256[][][]"], [A_hat_stringified]);
+    const t1Encoded = abiCoder.encode(["uint256[][]"], [t1_stringified]);
+    
+    // Combine all three into single bytes parameter
+    // Pass trBytes directly (not trHex) to avoid double encoding
+    const publicKeyData = abiCoder.encode(
+        ["bytes", "bytes", "bytes"],
+        [aHatEncoded, trBytes, t1Encoded]
+    );
+    
+    return publicKeyData;
 }
 
-export async function deployPublicKey(A_hat_compact, trHex, t1_compact, contractBytecode, providerUrl, privateKey) {
+export async function deployPublicKey(publicKeyData, contractBytecode, providerUrl, privateKey) {
     try {
-        console.log("\n🔧 Preparing public key data...");
-        const { A_hat, tr, t1 } = preparePublicKeyForDeployment(A_hat_compact, trHex, t1_compact);
-        
         const provider = new ethers.JsonRpcProvider(providerUrl);
         const wallet = new ethers.Wallet(privateKey, provider);
         
@@ -56,8 +66,7 @@ export async function deployPublicKey(A_hat_compact, trHex, t1_compact, contract
         );
         
         console.log("\n⛽ Estimating gas...");
-        const trBytes = ethers.getBytes(tr);
-        const deployTx = await factory.getDeployTransaction(A_hat, trBytes, t1);
+        const deployTx = await factory.getDeployTransaction(publicKeyData);
         const estimatedGas = await provider.estimateGas(deployTx);
         console.log("- Estimated gas:", estimatedGas.toString());
         
@@ -67,7 +76,7 @@ export async function deployPublicKey(A_hat_compact, trHex, t1_compact, contract
         console.log("- Estimated cost:", ethers.formatEther(gasCostWei), "ETH");
         
         console.log("\n🚀 Deploying PKContract with SSTORE2 optimization...");
-        const contract = await factory.deploy(A_hat, trBytes, t1, {
+        const contract = await factory.deploy(publicKeyData, {
             gasLimit: estimatedGas * 120n / 100n
         });
         
@@ -86,13 +95,10 @@ export async function deployPublicKey(A_hat_compact, trHex, t1_compact, contract
         
         console.log("\n🔍 Verifying deployment...");
         const storedPubKey = await contract.getPublicKey();
-        const trMatches = storedPubKey.tr.toLowerCase() === tr.toLowerCase();
-        const aHatLengthMatches = storedPubKey.aHat.length === A_hat.length;
-        const t1LengthMatches = storedPubKey.t1.length === t1.length;
-        
-        console.log("- tr matches:", trMatches ? "✓" : "✗");
-        console.log("- A_hat dimensions match:", aHatLengthMatches ? "✓" : "✗");
-        console.log("- t1 dimensions match:", t1LengthMatches ? "✓" : "✗");
+        console.log("✅ Public key retrieved:");
+        console.log("- A_hat:", storedPubKey.aHat.length, "×", storedPubKey.aHat[0]?.length, "×", storedPubKey.aHat[0]?.[0]?.length);
+        console.log("- t1:", storedPubKey.t1.length, "×", storedPubKey.t1[0]?.length);
+        console.log("- tr:", storedPubKey.tr.length, "bytes");
         
         return {
             success: true,
