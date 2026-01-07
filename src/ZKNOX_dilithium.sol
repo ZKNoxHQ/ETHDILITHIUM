@@ -82,11 +82,17 @@ contract ZKNOX_dilithium is ISigVerifier {
     }
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
-        // Fetch the public key from the address `pk`
-        address pubKeyAddress;
+        // Step 1: Extract the SSTORE2 storage address from pk
+        address storagePointer;
         assembly {
-            pubKeyAddress := shr(96, calldataload(pk.offset))
+            storagePointer := shr(96, calldataload(pk.offset))
         }
+        
+        // Step 2: Read the actual PKContract address from SSTORE2 storage
+        bytes memory storedData = SSTORE2.read(storagePointer);
+        address pubKeyAddress = abi.decode(storedData, (address));
+        
+        // Step 3: Get the public key from PKContract
         PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
 
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
