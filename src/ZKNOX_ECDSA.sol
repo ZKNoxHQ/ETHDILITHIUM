@@ -37,9 +37,14 @@
  */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
-import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
+import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 
-contract ZKNOX_ecdsa is IERC7913SignatureVerifier {
+contract ZKNOX_ecdsa is ISigVerifier {
+
+    function setKey(bytes memory pubkey) external returns (bytes memory) {
+        return pubkey;
+    }
+
     function verify(bytes calldata pubkey, bytes32 digest, bytes calldata sig) external pure returns (bytes4) {
         require(pubkey.length == 20, "bytes length != 20");
 
@@ -60,7 +65,7 @@ contract ZKNOX_ecdsa is IERC7913SignatureVerifier {
         }
 
         if (recovered == preQuantumAddress) {
-            return IERC7913SignatureVerifier.verify.selector;
+            return ISigVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
     }

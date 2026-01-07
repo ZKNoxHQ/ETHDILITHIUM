@@ -35,15 +35,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import "sstore2/SSTORE2.sol";
 import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
 import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
 import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
 import {KeccakPrng, initPrng, refill} from "./ZKNOX_keccak_prng.sol";
 import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
-import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
+import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 
-contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
+contract ZKNOX_ethdilithium is ISigVerifier {
+
+    function setKey(bytes memory pubkey) external returns (bytes memory) {
+        // deploy a PKContract and return the corresponding address
+        address pointer = SSTORE2.write(pubkey);
+        return abi.encodePacked(pointer);
+    }
+
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
         view
@@ -86,7 +94,7 @@ contract ZKNOX_ethdilithium is IERC7913SignatureVerifier {
 
         // Step 3: delegate to internal verify
         if (verifyInternal(publicKey, mPrime, sig)) {
-            return IERC7913SignatureVerifier.verify.selector;
+            return ISigVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
     }
