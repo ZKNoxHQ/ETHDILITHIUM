@@ -48,11 +48,18 @@ import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 import {IPKContract} from "./ZKNOX_PKContract.sol";
 
 contract ZKNOX_dilithium is ISigVerifier {
-
     function setKey(bytes memory pubkey) external returns (bytes memory) {
-        // deploy a PKContract and return the corresponding address
-        address pointer = SSTORE2.write(pubkey);
-        return abi.encodePacked(pointer);
+        // Decode the raw public key data
+        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = abi.decode(key, (bytes, bytes, bytes));
+
+        // Encode into the format PKContract expects
+        bytes memory publicKeyData = abi.encode(aHatEncoded, tr, t1Encoded);
+
+        // Deploy a new PKContract with this data
+        PKContract pkContract = new PKContract(publicKeyData);
+
+        // Return the PKContract address as bytes
+        return abi.encodePacked(address(pkContract));
     }
 
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
@@ -82,16 +89,15 @@ contract ZKNOX_dilithium is ISigVerifier {
     }
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
-        // Step 1: Extract the SSTORE2 storage address from pk
-        address storagePointer;
+        // Step 1: pk contains the PKContract address (returned by setKey)
+        address pkContractAddress;
         assembly {
-            storagePointer := shr(96, calldataload(pk.offset))
+            pkContractAddress := shr(96, calldataload(pk.offset))
         }
-        
-        // Step 2: Read the actual PKContract address from SSTORE2 storage
-        bytes memory storedData = SSTORE2.read(storagePointer);
-        address pubKeyAddress = abi.decode(storedData, (address));
-        
+
+        // Step 2: Get the public key directly from PKContract
+        PubKey memory publicKey = IPKContract(pkContractAddress).getPublicKey();
+
         // Step 3: Get the public key from PKContract
         PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
 
