@@ -666,7 +666,8 @@ contract ETHDilithiumTest is Test {
         t1[3][30] = uint256(0x0077db56005abc2b001e418900306a95004a99780049ce1b0010be52003bb21a);
         t1[3][31] = uint256(0x006824670011db7d006f638c003f4763000f3c75004fe271003d5bc200018b91);
 
-        PKContract pubKeyContract = new PKContract(aHat, tr, t1);
+        bytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));
+        PKContract pubKeyContract = new PKContract(publicKeyData);
 
         // Signature
         bytes memory sig =

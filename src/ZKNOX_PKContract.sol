@@ -21,22 +21,24 @@ contract PKContract {
     bytes32 private immutable trPart2;
 
     /// @notice Constructor stores public key components using SSTORE2
-    /// @param _aHat A_hat matrix (uint256[4][4][32])
-    /// @param _tr 64-byte tr value
-    /// @param _t1 t1 vector (uint256[4][32])
-    constructor(uint256[][][] memory _aHat, bytes memory _tr, uint256[][] memory _t1) {
-        require(_tr.length == 64, "tr must be 64 bytes");
+    /// @param _publicKeyData ABI-encoded tuple of (aHat, tr, t1)
+    constructor(bytes memory _publicKeyData) {
+        // Decode the combined data
+        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) =
+            abi.decode(_publicKeyData, (bytes, bytes, bytes));
 
-        // Encode and store large arrays as contract bytecode via SSTORE2
-        aHatPointer = SSTORE2.write(abi.encode(_aHat));
-        t1Pointer = SSTORE2.write(abi.encode(_t1));
+        require(tr.length == 64, "tr must be 64 bytes");
+
+        // Store pre-encoded arrays directly as contract bytecode via SSTORE2
+        aHatPointer = SSTORE2.write(aHatEncoded);
+        t1Pointer = SSTORE2.write(t1Encoded);
 
         // Store tr in immutable slots (cheaper than SSTORE2 for small data)
         bytes32 part1;
         bytes32 part2;
         assembly {
-            part1 := mload(add(_tr, 32))
-            part2 := mload(add(_tr, 64))
+            part1 := mload(add(tr, 32))
+            part2 := mload(add(tr, 64))
         }
         trPart1 = part1;
         trPart2 = part2;

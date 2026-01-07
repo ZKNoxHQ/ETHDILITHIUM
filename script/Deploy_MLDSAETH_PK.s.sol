@@ -664,8 +664,11 @@ contract DeployPKContract is BaseScript {
         t1[3][30] = uint256(216091844856543354266715233658140308460660393014492468601315903214132361428);
         t1[3][31] = uint256(67429064328064727021126387102489676063156993897201537271883092513160316454);
 
-        // Deploy PKContract
-        PKContract pk = new PKContract(A_hat, tr, t1);
+        // Combine into single bytes parameter
+        bytes memory publicKeyData = abi.encode(abi.encode(A_hat), tr, abi.encode(t1));
+
+        // Deploy with single parameter
+        PKContract pk = new PKContract(publicKeyData);
 
         console.log("Deployed PKContract at:", address(pk));
 

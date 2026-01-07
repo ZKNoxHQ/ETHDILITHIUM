@@ -668,7 +668,11 @@ contract Script_Deploy_ETHDilithium is BaseScript {
         t1[3][30] = uint256(0x005f5b4f00588f73002e28e9007fd4270011039b0079e40700460a0f0019347b);
         t1[3][31] = uint256(0x004cbba50061e765004f4f33004220a2001cbaf300338143003c4bf80009e295);
 
-        PKContract pubKeyContract = new PKContract(aHat, tr, t1);
+        // Combine into single bytes parameter
+        bytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));
+
+        // Deploy with single parameter
+        PKContract pubKeyContract = new PKContract(publicKeyData);
 
         // Signature
         bytes memory sig =
