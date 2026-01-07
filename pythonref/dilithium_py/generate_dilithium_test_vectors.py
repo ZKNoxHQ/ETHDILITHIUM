@@ -47,8 +47,8 @@ file.write(solidity_compact_vec(t1_compact, 't1'))
 # SIG
 sig = D.sign(sk, msg, _xof=XOF)
 assert D.verify(pk, msg, sig, _xof=XOF)
-
-file.write("\nPKContract pubKeyContract = new PKContract(aHat, tr, t1);\n")
+file.write("\nbytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));\n")
+file.write("PKContract pubKeyContract = new PKContract(publicKeyData);\n")
 file.write("bytes memory sig = hex\"{}\";\n".format(sig.hex()))
 file.write("""
 

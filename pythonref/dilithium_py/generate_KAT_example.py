@@ -60,7 +60,8 @@ file.write("// pubkey = {}\n".format(pk.hex()))
 file.write(solidity_compact_mat(A_hat_compact, 'aHat'))
 file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
 file.write(solidity_compact_vec(t1_compact, 't1'))
-file.write("PKContract pubKeyContract = new PKContract(aHat, tr, t1);\n")
+file.write("\nbytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));\n")
+file.write("PKContract pubKeyContract = new PKContract(publicKeyData);\n")
 
 # SIG
 sig = D.sign(sk, msg, _xof=XOF)
