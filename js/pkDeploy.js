@@ -15,10 +15,6 @@ export function preparePublicKeyForDeployment(A_hat_compact, trHex, t1_compact) 
         throw new Error(`tr must be exactly 64 bytes, got ${trBytes.length} bytes`);
     }
     
-    console.log("📊 Public Key Dimensions:");
-    console.log("- A_hat:", A_hat_compact.length, "×", A_hat_compact[0]?.length, "×", A_hat_compact[0]?.[0]?.length);
-    console.log("- t1:", t1_compact.length, "×", t1_compact[0]?.length);
-    console.log("- tr:", trBytes.length, "bytes");
     
     // Convert all BigInt values to strings for proper encoding
     const A_hat_stringified = A_hat_compact.map(row => 

@@ -44,12 +44,10 @@ async function main() {
 
     console.log("\n🚀 Starting full deployment process...");
 
-    // Step 1: Prepare public key data
-    console.log("\nStep 1: Encoding public key data...");
     const publicKeyData = preparePublicKeyForDeployment(A_hat_compact, trHex, t1_compact);
 
     // Step 2: Deploy PKContract
-    console.log("\nStep 2: Deploying PKContract...");
+    console.log("\nStep 1: Deploying PKContract...");
     const pkResult = await deployPublicKey(
         publicKeyData,
         CONTRACT_BYTECODE,
@@ -66,7 +64,7 @@ async function main() {
     
     // Step 3: Deploy ERC4337 Account
     console.log("\n" + "=".repeat(60));
-    console.log("Step 3: Deploying ERC4337 Account...");
+    console.log("Step 2: Deploying ERC4337 Account...");
     const accountResult = await deployERC4337Account(
         factoryAddress,
         preQuantumPubKey,
