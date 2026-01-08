@@ -86,5 +86,5 @@ expanded_pk_bytes = prepare_public_key_for_deployment(
     A_hat_compact, tr.hex(), t1_compact
 )
 
-print(encode(['bytes'], [expanded_pk_bytes]).hex())
+print(expanded_pk_bytes.hex())
 
