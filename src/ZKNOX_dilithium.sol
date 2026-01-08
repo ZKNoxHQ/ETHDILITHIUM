@@ -46,28 +46,11 @@ import {CtxShake, shakeUpdate, shakeDigest} from "./ZKNOX_shake.sol";
 import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, d, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 contract ZKNOX_dilithium is ISigVerifier {
     function setKey(bytes memory pubkey) external returns (bytes memory) {
-        console.log("setKey: received", pubkey.length, "bytes");
-
-        // Try to decode to validate
-        try this.validatePubkey(pubkey) {
-            console.log("Pubkey validation passed");
-        } catch {
-            console.log("Pubkey validation FAILED");
-            revert("Invalid pubkey structure");
-        }
-
-        // Deploy with more gas
         PKContract pkContract = new PKContract(pubkey);
         return abi.encodePacked(address(pkContract));
-    }
-
-    function validatePubkey(bytes memory pubkey) external pure {
-        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = abi.decode(pubkey, (bytes, bytes, bytes));
-        require(tr.length == 64, "Invalid tr");
     }
 
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)

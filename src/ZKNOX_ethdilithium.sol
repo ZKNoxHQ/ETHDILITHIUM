@@ -46,16 +46,7 @@ import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
 
 contract ZKNOX_ethdilithium is ISigVerifier {
     function setKey(bytes memory pubkey) external returns (bytes memory) {
-        // Decode the raw public key data
-        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = abi.decode(pubkey, (bytes, bytes, bytes));
-
-        // Encode into the format PKContract expects
-        bytes memory publicKeyData = abi.encode(aHatEncoded, tr, t1Encoded);
-
-        // Deploy a new PKContract with this data
-        PKContract pkContract = new PKContract(publicKeyData);
-
-        // Return the PKContract address as bytes
+        PKContract pkContract = new PKContract(pubkey);
         return abi.encodePacked(address(pkContract));
     }
 
