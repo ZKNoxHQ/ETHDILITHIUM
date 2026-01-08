@@ -80,7 +80,8 @@ if sys.argv[1] == 'ETH':
     t1 = t1.scale(1 << D.d).to_ntt()
 
 A_hat_compact = A_hat.compact_256(32)
-t1_compact = t1.compact_256(32)[0]
+t1_compact_raw = t1.compact_256(32)
+t1_compact = [row[0] for row in t1_compact_raw]
 
 expanded_pk_bytes = prepare_public_key_for_deployment(
     A_hat_compact, tr.hex(), t1_compact

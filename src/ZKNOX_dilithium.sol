@@ -48,11 +48,10 @@ import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-
 contract ZKNOX_dilithium is ISigVerifier {
     function setKey(bytes memory pubkey) external returns (bytes memory) {
         console.log("setKey: received", pubkey.length, "bytes");
-        
+
         // Try to decode to validate
         try this.validatePubkey(pubkey) {
             console.log("Pubkey validation passed");
@@ -60,15 +59,14 @@ contract ZKNOX_dilithium is ISigVerifier {
             console.log("Pubkey validation FAILED");
             revert("Invalid pubkey structure");
         }
-        
+
         // Deploy with more gas
         PKContract pkContract = new PKContract(pubkey);
         return abi.encodePacked(address(pkContract));
     }
 
     function validatePubkey(bytes memory pubkey) external pure {
-        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = 
-            abi.decode(pubkey, (bytes, bytes, bytes));
+        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) = abi.decode(pubkey, (bytes, bytes, bytes));
         require(tr.length == 64, "Invalid tr");
     }
 
