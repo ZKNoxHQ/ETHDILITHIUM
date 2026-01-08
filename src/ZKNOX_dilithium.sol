@@ -62,7 +62,7 @@ contract ZKNOX_dilithium is ISigVerifier {
         }
         
         // Deploy with more gas
-        PKContract pkContract = new PKContract{gas: 5_000_000}(pubkey);
+        PKContract pkContract = new PKContract(pubkey);
         return abi.encodePacked(address(pkContract));
     }
 
