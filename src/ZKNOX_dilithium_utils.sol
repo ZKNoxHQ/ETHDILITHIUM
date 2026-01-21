@@ -113,21 +113,12 @@ function expandMat(uint256[][][] memory table) pure returns (uint256[][][] memor
 function expandVec(uint256[][] memory table) pure returns (uint256[][] memory b) {
     b = new uint256[][](4);
     for (uint256 i = 0; i < 4; i++) {
-        // b[i] = new uint256[](256);
         b[i] = expand(table[i]);
     }
     return b;
 }
 
 function expand(uint256[] memory a) pure returns (uint256[] memory b) {
-    /*
-    for (uint256 i = 0; i < 32; i++) {
-        uint256 ai = a[i];
-        for (uint256 j = 0; j < 8; j++) {
-            b[(i << 3) + j] = (ai >> (j << 5)) & mask32;
-        }
-    }
-    */
     require(a.length == 32, "Input array must have exactly 32 elements");
     b = new uint256[](256);
 
@@ -137,7 +128,7 @@ function expand(uint256[] memory a) pure returns (uint256[] memory b) {
         for { let i := 0 } lt(i, 32) { i := add(i, 1) } {
             let ai := mload(aa)
             for { let j := 0 } lt(j, 8) { j := add(j, 1) } {
-                mstore(add(bb, mul(32, add(j, shl(3, i)))), and(shr(shl(5, j), ai), 0xffffffff)) //b[(i << 3) + j] = (ai >> (j << 5)) & mask32;
+                mstore(add(bb, mul(32, add(j, shl(3, i)))), and(shr(shl(5, j), ai), 0xffffffff))
             }
             aa := add(aa, 32)
         }
@@ -146,18 +137,13 @@ function expand(uint256[] memory a) pure returns (uint256[] memory b) {
 }
 
 function compact(uint256[] memory a) pure returns (uint256[] memory b) {
-    /*
-    for (uint256 i = 0; i < a.length; i++) {
-        b[i >> 3] ^= a[i] << ((i & 0x7) << 5);
-    }
-    */
     require(a.length == 256, "Input array must have exactly 256 elements");
     b = new uint256[](32);
     assembly {
         let aa := add(a, 32)
         let bb := add(b, 32)
         for { let i := 0 } lt(i, 256) { i := add(i, 1) } {
-            let bi := add(bb, mul(32, shr(3, i))) //shr(3,i)*32 !=shl(1,i)
+            let bi := add(bb, mul(32, shr(3, i)))
             mstore(bi, xor(mload(bi), shl(shl(5, and(i, 0x7)), mload(aa))))
             aa := add(aa, 32)
         }
@@ -166,43 +152,70 @@ function compact(uint256[] memory a) pure returns (uint256[] memory b) {
     return b;
 }
 
-//Vectorized modular multiplication
-//Multiply chunk wise vectors of n chunks modulo q
-function vecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+// OPTIMIZATION: Full assembly implementation of vecMulMod
+function vecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory res) {
     assert(a.length == b.length);
-    uint256[] memory res = new uint256[](a.length);
-    for (uint256 i = 0; i < a.length; i++) {
-        res[i] = mulmod(a[i], b[i], q);
+    res = new uint256[](a.length);
+    
+    assembly {
+        let len := mload(a)
+        let a_ptr := add(a, 32)
+        let b_ptr := add(b, 32)
+        let res_ptr := add(res, 32)
+        let end := add(a_ptr, shl(5, len))
+        
+        for {} lt(a_ptr, end) {} {
+            mstore(res_ptr, mulmod(mload(a_ptr), mload(b_ptr), q))
+            a_ptr := add(a_ptr, 32)
+            b_ptr := add(b_ptr, 32)
+            res_ptr := add(res_ptr, 32)
+        }
     }
-    return res;
 }
 
-//Vectorized modular multiplication
-//Multiply chunk wise vectors of n chunks modulo q
-function vecAddMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+// OPTIMIZATION: Full assembly implementation of vecAddMod
+function vecAddMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory res) {
     assert(a.length == b.length);
-    uint256[] memory res = new uint256[](a.length);
-    for (uint256 i = 0; i < a.length; i++) {
-        res[i] = addmod(a[i], b[i], q);
+    res = new uint256[](a.length);
+    
+    assembly {
+        let len := mload(a)
+        let a_ptr := add(a, 32)
+        let b_ptr := add(b, 32)
+        let res_ptr := add(res, 32)
+        let end := add(a_ptr, shl(5, len))
+        
+        for {} lt(a_ptr, end) {} {
+            mstore(res_ptr, addmod(mload(a_ptr), mload(b_ptr), q))
+            a_ptr := add(a_ptr, 32)
+            b_ptr := add(b_ptr, 32)
+            res_ptr := add(res_ptr, 32)
+        }
     }
-    return res;
 }
 
-//Vectorized modular multiplication
-//Multiply chunk wise vectors of n chunks modulo q
-function vecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory) {
+// OPTIMIZATION: Full assembly implementation of vecSubMod
+function vecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory res) {
     assert(a.length == b.length);
-    uint256[] memory res = new uint256[](a.length);
-    for (uint256 i = 0; i < a.length; i++) {
-        res[i] = addmod(a[i], q - b[i], q);
+    res = new uint256[](a.length);
+    
+    assembly {
+        let len := mload(a)
+        let a_ptr := add(a, 32)
+        let b_ptr := add(b, 32)
+        let res_ptr := add(res, 32)
+        let end := add(a_ptr, shl(5, len))
+        
+        for {} lt(a_ptr, end) {} {
+            mstore(res_ptr, addmod(mload(a_ptr), sub(q, mload(b_ptr)), q))
+            a_ptr := add(a_ptr, 32)
+            b_ptr := add(b_ptr, 32)
+            res_ptr := add(res_ptr, 32)
+        }
     }
-    return res;
 }
 
 function scalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns (uint256[] memory result) {
-    // Input: two vectors of elements of Fq²⁵⁶
-    // Output: the scalar product <a,b> in Fq²⁵⁶
-    // TODO USE q AS A PARAMETER FOR GENERALIZATION
     result = new uint256[](256);
     for (uint256 i = 0; i < a.length; i++) {
         uint256[] memory toto = vecMulMod(a[i], b[i]);
@@ -211,8 +224,6 @@ function scalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns 
 }
 
 function matVecProduct(uint256[][][] memory M, uint256[][] memory v) pure returns (uint256[][] memory mTimesV) {
-    // Input: a matrix of elements of Fq²⁵⁶ and a vector of elements of Fq²⁵⁶
-    // Output: the multiplication M * v as a vector of elements of Fq²⁵⁶
     mTimesV = new uint256[][](v.length);
     for (uint256 i = 0; i < M.length; i++) {
         mTimesV[i] = scalarProduct(M[i], v);
@@ -246,7 +257,7 @@ function matVecProductDilithium(uint256[][][] memory M, uint256[][] memory v)
                 let a_mij := add(mij, 32)
                 let a_vj := add(vj, 32)
                 for { let offset_k := 0 } gt(8192, offset_k) { offset_k := add(offset_k, 32) } {
-                    let tmp_k := add(a_tmp, offset_k) //address of tmp[k]
+                    let tmp_k := add(a_tmp, offset_k)
                     mstore(tmp_k, add(mload(tmp_k), mulmod(mload(add(a_mij, offset_k)), mload(add(a_vj, offset_k)), q)))
                 }
             }

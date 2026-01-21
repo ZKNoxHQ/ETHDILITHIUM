@@ -46,28 +46,30 @@ function refill(KeccakPrng memory prng) pure {
 }
 
 // Get one random byte (little-endian consumption from pool).
-// OPTIMIZATION: entire function body in unchecked (all operations are bounded)
 function nextByte(KeccakPrng memory prng) pure returns (uint8 b) {
-    unchecked {
-        if (prng.remaining == 0) {
-            bytes32 state = prng.state;
-            uint64 counter = prng.counter;
-            bytes32 blk;
-            assembly {
-                let ptr := mload(0x40)
-                mstore(ptr, state)
-                mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
-                blk := keccak256(ptr, 40)
-            }
-            prng.pool = blk;
-            prng.remaining = 32;
+    if (prng.remaining == 0) {
+        bytes32 state = prng.state;
+        uint64 counter = prng.counter;
+        bytes32 blk;
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, state)
+            mstore(add(ptr, 32), shl(192, counter)) // shift left 24 bytes (256-64)
+            blk := keccak256(ptr, 40)
+        }
+        prng.pool = blk;
+        prng.remaining = 32;
+        unchecked {
             prng.counter += 1;
         }
-        uint256 poolInt = uint256(prng.pool);
-        // casting to 'uint8' is safe because poolInt is 256-bit long and so the input is 256-248 = 8-bit long
-        // forge-lint: disable-next-line(unsafe-typecast)
-        b = uint8(poolInt >> 248);
-        prng.pool = bytes32(poolInt << 8);
+    }
+    uint256 poolInt = uint256(prng.pool);
+    // casting to 'uint8' is safe because poolInt is 256-bit long and so the input is 256-248 = 8-bit long
+    // forge-lint: disable-next-line(unsafe-typecast)
+    b = uint8(poolInt >> 248);
+    prng.pool = bytes32(poolInt << 8);
+
+    unchecked {
         prng.remaining -= 1;
     }
     assembly {

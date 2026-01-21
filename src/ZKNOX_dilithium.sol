@@ -38,21 +38,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "sstore2/SSTORE2.sol";
 import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
 import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
 import {sampleInBallNist} from "./ZKNOX_SampleInBall.sol";
 import {CtxShake, shakeUpdate, shakeDigest} from "./ZKNOX_shake.sol";
 import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, d, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
-import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
-import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
+import {IERC7913SignatureVerifier} from "@openzeppelin/contracts/interfaces/IERC7913.sol";
+import {IPKContract} from "./ZKNOX_PKContract.sol";
 
-contract ZKNOX_dilithium is ISigVerifier {
-    function setKey(bytes memory pubkey) external returns (bytes memory) {
-        PKContract pkContract = new PKContract(pubkey);
-        return abi.encodePacked(address(pkContract));
-    }
-
+contract ZKNOX_dilithium is IERC7913SignatureVerifier {
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
         view
@@ -80,14 +74,12 @@ contract ZKNOX_dilithium is ISigVerifier {
     }
 
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
-        // Step 1: pk contains the PKContract address (returned by setKey)
-        address pkContractAddress;
+        // Fetch the public key from the address `pk`
+        address pubKeyAddress;
         assembly {
-            pkContractAddress := shr(96, calldataload(pk.offset))
+            pubKeyAddress := shr(96, calldataload(pk.offset))
         }
-
-        // Step 2: Get the public key directly from PKContract
-        PubKey memory publicKey = IPKContract(pkContractAddress).getPublicKey();
+        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
 
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
@@ -96,7 +88,7 @@ contract ZKNOX_dilithium is ISigVerifier {
 
         // Step 3: delegate to internal verify
         if (verifyInternal(publicKey, mPrime, sig)) {
-            return ISigVerifier.verify.selector;
+            return IERC7913SignatureVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
     }
@@ -118,11 +110,15 @@ contract ZKNOX_dilithium is ISigVerifier {
         if (normH > OMEGA) {
             return false;
         }
-        for (i = 0; i < 4; i++) {
-            for (j = 0; j < 256; j++) {
-                uint256 zij = z[i][j];
-                if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
-                    return false;
+        
+        // OPTIMIZATION: unchecked - i bounded [0..3], j bounded [0..255]
+        unchecked {
+            for (i = 0; i < 4; i++) {
+                for (j = 0; j < 256; j++) {
+                    uint256 zij = z[i][j];
+                    if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
+                        return false;
+                    }
                 }
             }
         }
@@ -133,11 +129,15 @@ contract ZKNOX_dilithium is ISigVerifier {
 
         // compute NTT_FW((1<<d) * t1)
         uint256[][] memory t1New = expandVec(pk.t1);
-        for (i = 0; i < 4; i++) {
-            for (j = 0; j < 256; j++) {
-                t1New[i][j] <<= d;
+        
+        // OPTIMIZATION: unchecked - i bounded [0..3], j bounded [0..255]
+        unchecked {
+            for (i = 0; i < 4; i++) {
+                for (j = 0; j < 256; j++) {
+                    t1New[i][j] <<= d;
+                }
+                t1New[i] = nttFw(t1New[i]);
             }
-            t1New[i] = nttFw(t1New[i]);
         }
 
         // SECOND CORE STEP
@@ -153,15 +153,18 @@ contract ZKNOX_dilithium is ISigVerifier {
         sctx2 = shakeUpdate(sctx2, wPrimeBytes);
         bytes32 finalHash = bytes32(shakeDigest(sctx2, 32));
 
+        // OPTIMIZATION: bytes32 direct comparison instead of byte-by-byte loop
         if (signature.cTilde.length < 32) {
             return false;
         }
-        for (i = 0; i < 32; i++) {
-            if (signature.cTilde[i] != finalHash[i]) {
-                return false;
-            }
+        
+        bytes32 cTildeBytes32;
+        bytes memory cTildeData = signature.cTilde;
+        assembly {
+            cTildeBytes32 := mload(add(cTildeData, 32))
         }
-        return true;
+        
+        return cTildeBytes32 == finalHash;
     }
 }
 
