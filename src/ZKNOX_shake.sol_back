@@ -147,31 +147,28 @@ function f1600(uint64[25] memory state) pure returns (uint64[25] memory) {
     return state;
 } //end f1600
 
-// OPTIMIZATION: unchecked for bounded loop variables
 function shakeAbsorb(uint256 i, uint8[200] memory buf, uint64[25] memory state, bytes memory input)
     pure
     returns (uint256 iout, uint8[200] memory bufout, uint64[25] memory stateout)
 {
     uint256 todo = input.length;
+
     uint256 index = 0;
-    
-    unchecked {
-        while (todo > 0) {
-            uint256 cando = _RATE - i;
-            uint256 willabsorb = (cando < todo) ? cando : todo;
+    while (todo > 0) {
+        uint256 cando = _RATE - i;
+        uint256 willabsorb = (cando < todo) ? cando : todo;
 
-            for (uint256 j = 0; j < willabsorb; j++) {
-                buf[i + j] ^= uint8(input[index + j]);
-            }
-            i += willabsorb;
-
-            if (i == _RATE) {
-                (buf, state) = shakePermute(buf, state);
-                i = 0;
-            }
-            todo -= willabsorb;
-            index += willabsorb;
+        for (uint256 j = 0; j < willabsorb; j++) {
+            buf[i + j] ^= uint8(input[index + j]);
         }
+        i += willabsorb;
+
+        if (i == _RATE) {
+            (buf, state) = shakePermute(buf, state);
+            i = 0;
+        }
+        todo -= willabsorb;
+        index += willabsorb;
     }
     return (i, buf, state);
 }
@@ -195,29 +192,27 @@ function shakeUpdate(CtxShake memory ctx, bytes memory input) pure returns (CtxS
     return ctxout;
 }
 
-// OPTIMIZATION: unchecked for bounded loop variables
 function shakeSqueeze(CtxShake memory ctx, uint256 n) pure returns (CtxShake memory ctxout, bytes memory) {
     bytes memory output = new bytes(n);
     uint256 tosqueeze = n;
     uint256 offset = 0;
 
-    unchecked {
-        while (tosqueeze > 0) {
-            uint256 cansqueeze = _RATE - ctx.i;
-            uint256 willsqueeze = (cansqueeze < tosqueeze) ? cansqueeze : tosqueeze;
+    while (tosqueeze > 0) {
+        uint256 cansqueeze = _RATE - ctx.i;
+        uint256 willsqueeze = (cansqueeze < tosqueeze) ? cansqueeze : tosqueeze;
 
-            for (uint256 j = 0; j < willsqueeze; j++) {
-                uint256 read = ctx.i + j;
-                output[offset + j] = bytes1(uint8((ctx.state[(read >> 3)] >> ((read & 7) << 3)) & 0xff));
-            }
-            offset += willsqueeze;
-            ctx.i += willsqueeze;
-            if (ctx.i == _RATE) {
-                (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
-                ctx.i = 0;
-            }
-            tosqueeze -= willsqueeze;
+        for (uint256 j = 0; j < willsqueeze; j++) {
+            uint256 read = ctx.i + j;
+
+            output[offset + j] = bytes1(uint8((ctx.state[(read >> 3)] >> ((read & 7) << 3)) & 0xff));
         }
+        offset += willsqueeze;
+        ctx.i += willsqueeze;
+        if (ctx.i == _RATE) {
+            (ctx.buff, ctx.state) = shakePermute(ctx.buff, ctx.state);
+            ctx.i = 0;
+        }
+        tosqueeze -= willsqueeze;
     }
 
     return (ctx, output);
