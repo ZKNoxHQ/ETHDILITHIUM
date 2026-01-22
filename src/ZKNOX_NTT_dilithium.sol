@@ -42,6 +42,7 @@ import {n, q, N_MINUS_1_MOD_Q} from "./ZKNOX_dilithium_utils.sol";
 
 //// internal version to spare call data cost
 
+// OPTIMIZATION: Hoisted loop-invariant calculations, precalculated bounds
 function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         uint256(0x4f066b004fe0330053df73004f062b003965690039756700495e0200000001),
@@ -84,26 +85,29 @@ function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
     uint256 S;
 
     assembly ("memory-safe") {
-        for {} gt(n, m) {} {
+        let aBase := add(a, 32) // OPTIMIZATION: base address computed once
+        
+        for {} lt(m, n) {} {
             //while(m<n)
             t := shr(1, t)
+            let t32 := shl(5, t) // OPTIMIZATION: mul(t, 32) hoisted out of j loop
 
-            for { let i := 0 } gt(m, i) { i := add(i, 1) } {
+            for { let i := 0 } lt(i, m) { i := add(i, 1) } {
                 let j1 := shl(1, mul(i, t))
-                let j2 := sub(add(j1, t), 1) //j2=j1+t-1;
+                let jEnd := add(j1, t) // OPTIMIZATION: precalculated loop bound (was j2+1)
 
                 //uint256 S = psirev[m+i];
-                S := mload(add(psirev, mul(32, shr(3, add(m, i))))) //line index+load(line)
-                S := and(shr(mul(32, and(add(m, i), 0x7)), S), 0xffffffff) //shift word in line
+                let mi := add(m, i)
+                S := mload(add(psirev, shl(5, shr(3, mi)))) //line index+load(line)
+                S := and(shr(shl(5, and(mi, 0x7)), S), 0xffffffff) //shift word in line
 
-                for { let j := j1 } gt(add(j2, 1), j) { j := add(j, 1) } {
-                    let a_aj := add(a, mul(add(j, 1), 32)) //address of a[j]
+                for { let j := j1 } lt(j, jEnd) { j := add(j, 1) } {
+                    let a_aj := add(aBase, shl(5, j)) //address of a[j]
                     let U := mload(a_aj)
 
-                    a_aj := add(a_aj, mul(t, 32)) //address of a[j+t]
-                    let V := mulmod(mload(a_aj), S, q)
-                    mstore(a_aj, addmod(U, sub(q, V), q))
-                    a_aj := sub(a_aj, mul(t, 32)) //back to address of a[j]
+                    let a_ajt := add(a_aj, t32) //address of a[j+t]
+                    let V := mulmod(mload(a_ajt), S, q)
+                    mstore(a_ajt, addmod(U, sub(q, V), q))
                     mstore(a_aj, addmod(U, V, q))
                 }
             }
@@ -113,6 +117,7 @@ function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
     return a;
 }
 
+// OPTIMIZATION: Hoisted loop-invariant calculations, precalculated bounds
 function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         uint256(0x30d9d6002c008e002fffce0030d99600466a9a00467a98003681ff00000001),
@@ -155,39 +160,41 @@ function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
     uint256 S;
 
     assembly ("memory-safe") {
+        let aBase := add(a, 32) // OPTIMIZATION: base address computed once
+        
         for {} gt(m, 1) {} {
             // while(m > 1)
             let j1 := 0
             let h := shr(1, m) //uint h = m>>1;
-            for { let i := 0 } gt(h, i) { i := add(i, 1) } {
-                //while(m<n)
-                let j2 := sub(add(j1, t), 1)
-                S := mload(add(psirev, mul(32, shr(3, add(h, i)))))
-                S := and(shr(mul(32, and(add(h, i), 7)), S), 0xffffffff)
+            let t32 := shl(5, t) // OPTIMIZATION: mul(t, 32) hoisted out of j loop
+            let t2 := shl(1, t) // OPTIMIZATION: 2*t for j1 increment
+            
+            for { let i := 0 } lt(i, h) { i := add(i, 1) } {
+                let jEnd := add(j1, t) // OPTIMIZATION: precalculated loop bound
+                let hi := add(h, i)
+                S := mload(add(psirev, shl(5, shr(3, hi))))
+                S := and(shr(shl(5, and(hi, 7)), S), 0xffffffff)
 
-                for { let j := j1 } gt(add(j2, 1), j) { j := add(j, 1) } {
-                    let a_aj := add(a, mul(add(j, 1), 32)) //address of a[j]
+                for { let j := j1 } lt(j, jEnd) { j := add(j, 1) } {
+                    let a_aj := add(aBase, shl(5, j)) //address of a[j]
                     let U := mload(a_aj) //U=a[j];
-                    a_aj := add(a_aj, mul(t, 32)) //address of a[j+t]
-                    let V := mload(a_aj)
-                    mstore(a_aj, mulmod(addmod(U, sub(q, V), q), S, q)) //a[j+t]=mulmod(addmod(U,q-V,q),S[0],q);
-                    a_aj := sub(a_aj, mul(t, 32)) //back to address of a[j]
+                    let a_ajt := add(a_aj, t32) //address of a[j+t]
+                    let V := mload(a_ajt)
+                    mstore(a_ajt, mulmod(addmod(U, sub(q, V), q), S, q)) //a[j+t]=mulmod(addmod(U,q-V,q),S[0],q);
                     mstore(a_aj, addmod(U, V, q)) // a[j]=addmod(U,V,q);
                 } //end loop j
-                j1 := add(j1, shl(1, t)) //j1=j1+2t
+                j1 := add(j1, t2) //j1=j1+2t
             } //end loop i
             t := shl(1, t)
             m := shr(1, m)
         } //end while
 
-
-        for { let j := 0 } gt(mload(a), j) { j := add(j, 1) } {
-            //j<n
-            let a_aj := add(a, mul(add(j, 1), 32)) //address of a[j]
+        // OPTIMIZATION: use constant n instead of mload(a)
+        for { let j := 0 } lt(j, n) { j := add(j, 1) } {
+            let a_aj := add(aBase, shl(5, j)) //address of a[j]
             mstore(a_aj, mulmod(mload(a_aj), N_MINUS_1_MOD_Q, q))
         }
     }
 
     return a;
 }
-
