@@ -98,8 +98,6 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         pure
         returns (bool)
     {
-        uint256 i;
-        uint256 j;
 
         // FIRST CORE STEP
         (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z) = dilithiumCore1(signature);
@@ -113,8 +111,8 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         
         // OPTIMIZATION: unchecked - i bounded [0..3], j bounded [0..255]
         unchecked {
-            for (i = 0; i < 4; i++) {
-                for (j = 0; j < 256; j++) {
+            for (uint256 i = 0; i < 4; i++) {
+                for (uint256 j = 0; j < 256; j++) {
                     uint256 zij = z[i][j];
                     if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
                         return false;
@@ -132,8 +130,8 @@ contract ZKNOX_dilithium is IERC7913SignatureVerifier {
         
         // OPTIMIZATION: unchecked - i bounded [0..3], j bounded [0..255]
         unchecked {
-            for (i = 0; i < 4; i++) {
-                for (j = 0; j < 256; j++) {
+            for (uint256 i = 0; i < 4; i++) {
+                for (uint256 j = 0; j < 256; j++) {
                     t1New[i][j] <<= d;
                 }
                 t1New[i] = nttFw(t1New[i]);
