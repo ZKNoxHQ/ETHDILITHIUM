@@ -23,19 +23,15 @@ msg = drbg.random_bytes(msg_len)
 D.set_drbg_seed(seed)
 pk, sk = D.keygen()
 
+A_hat, tr, t1_new = D.pk_for_eth(pk, _xof=shake256, _xof2=shake128)
+
 # Check that the signature matches
 sm_KAT = data["sm"]
 sig_KAT = sm_KAT[:-msg_len]
 
-# PK
-ρ, t1 = D._unpack_pk(pk)
-A_hat = D._expand_matrix_from_seed(ρ, _xof=shake128)
-tr = D._h(pk, 64, _xof=shake256)
-
 # Compact PK for Solidity
 A_hat_compact = A_hat.compact_256(32)
-t1_compact = t1.compact_256(32)
-
+t1_compact = t1_new.compact_256(32)
 
 XOF = shake256
 file = open(

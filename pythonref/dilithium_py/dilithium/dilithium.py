@@ -565,12 +565,12 @@ class Dilithium:
             sk, mu, rnd, external_mu=True, _xof=_xof, _xof2=_xof2)
         return sig
 
-    def pk_for_eth(self, pk, zk=False):
+    def pk_for_eth(self, pk, _xof=Keccak256PRNG, _xof2=Keccak256PRNG, zk=False):
         # a preprocessing for ETHDilithium
         # - tr is computed for saving one hash
         # - t1 is computed in the NTT domain (and shifted by d).
         rho, t1 = self._unpack_pk(pk)
-        tr = self._h(pk, 64, _xof=Keccak256PRNG)
-        A_hat = self._expand_matrix_from_seed(rho, _xof=Keccak256PRNG, zk=zk)
+        tr = self._h(pk, 64, _xof=_xof)
+        A_hat = self._expand_matrix_from_seed(rho, _xof=_xof2, zk=zk)
         t1_new = t1.scale(1 << self.d).to_ntt()
         return A_hat, tr, t1_new

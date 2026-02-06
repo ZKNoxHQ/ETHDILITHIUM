@@ -131,14 +131,8 @@ contract ZKNOX_dilithium is ISigVerifier {
         uint256[] memory cNtt = sampleInBallNist(signature.cTilde, TAU, q);
         cNtt = nttFw(cNtt);
 
-        // compute NTT_FW((1<<d) * t1)
+        // t1 is now stored in the ntt domain, with the 1<<d shift
         uint256[][] memory t1New = expandVec(pk.t1);
-        for (i = 0; i < 4; i++) {
-            for (j = 0; j < 256; j++) {
-                t1New[i][j] <<= d;
-            }
-            t1New[i] = nttFw(t1New[i]);
-        }
 
         // SECOND CORE STEP
         bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);

@@ -9,13 +9,11 @@ D.set_drbg_seed(b"123456789012345678901234567890123456789012345678")
 pk, sk = D.keygen()
 
 # PK
-ρ, t1 = D._unpack_pk(pk)
-A_hat = D._expand_matrix_from_seed(ρ, _xof=shake128)
-tr = D._h(pk, 64, _xof=shake256)
+A_hat, tr, t1_new = D.pk_for_eth(pk, _xof=shake256, _xof2=shake128)
 
 # Compact PK for Solidity
 A_hat_compact = A_hat.compact_256(32)
-t1_compact = t1.compact_256(32)
+t1_compact = t1_new.compact_256(32)
 
 XOF = shake256
 file = open(
