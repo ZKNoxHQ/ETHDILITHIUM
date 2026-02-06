@@ -131,7 +131,7 @@ contract ZKNOX_dilithium is ISigVerifier {
         uint256[] memory cNtt = sampleInBallNist(signature.cTilde, TAU, q);
         cNtt = nttFw(cNtt);
 
-        // t1 is now stored in the ntt domain, with the 1<<d shift
+        // t1 is stored in the NTT domain, with a 1<<d shift
         uint256[][] memory t1New = expandVec(pk.t1);
 
         // SECOND CORE STEP
@@ -147,15 +147,7 @@ contract ZKNOX_dilithium is ISigVerifier {
         sctx2 = shakeUpdate(sctx2, wPrimeBytes);
         bytes32 finalHash = bytes32(shakeDigest(sctx2, 32));
 
-        if (signature.cTilde.length < 32) {
-            return false;
-        }
-        for (i = 0; i < 32; i++) {
-            if (signature.cTilde[i] != finalHash[i]) {
-                return false;
-            }
-        }
-        return true;
+        return finalHash == bytes32(signature.cTilde);
     }
 }
 
