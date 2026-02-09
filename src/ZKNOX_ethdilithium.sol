@@ -2,7 +2,7 @@
 // License: This software is licensed under MIT License
 // This Code may be reused including this header, license and copyright notice.
 // FILE: ZKNOX_ethdilithium.sol
-// Description:
+// Description: Ethereum-compatible Dilithium signature verifier using Keccak-based PRNG
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -15,12 +15,34 @@ import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, PubKey, Signature, slice} 
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
 
+/**
+ * @title ZKNOX_ethdilithium
+ * @notice Ethereum-compatible Dilithium post-quantum signature verifier.
+ * @dev Uses Keccak-based PRNG instead of SHAKE for final hash generation.
+ *      Public keys are stored in dedicated PKContract instances.
+ */
 contract ZKNOX_ethdilithium is ISigVerifier {
+    /**
+     * @notice Deploys a new PKContract containing the public key.
+     * @dev Stores the public key using SSTORE2 for gas efficiency.
+     * @param pubkey Serialized Dilithium public key.
+     * @return ABI-encoded address of the deployed PKContract.
+     */
     function setKey(bytes memory pubkey) external returns (bytes memory) {
         PKContract pkContract = new PKContract(pubkey);
         return abi.encodePacked(address(pkContract));
     }
 
+    /**
+     * @notice Verifies a Dilithium signature with context.
+     * @dev Builds the context-encoded message and delegates verification
+     *      to the internal verification routine.
+     * @param pk ABI-encoded PKContract address.
+     * @param m Message to verify.
+     * @param signature Dilithium signature.
+     * @param ctx Optional context (max 255 bytes).
+     * @return True if the signature is valid, false otherwise.
+     */
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
         view
@@ -41,6 +63,7 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         // Step 2: mPrime = 0x00 || len(ctx) || ctx || m
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
+        // Parse signature
         Signature memory sig =
             Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
@@ -48,6 +71,15 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         return verifyInternal(publicKey, mPrime, sig);
     }
 
+    /**
+     * @notice Verifies a Dilithium signature using the ISigVerifier interface.
+     * @dev Compatible with Ethereum-style verification flows.
+     *      Does not support custom context.
+     * @param pk Encoded PKContract address.
+     * @param m Message hash.
+     * @param signature Dilithium signature.
+     * @return Selector on success, 0xFFFFFFFF on failure.
+     */
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
         // Step 1: pk contains the PKContract address (returned by setKey)
         address pkContractAddress;
@@ -58,8 +90,10 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         // Step 2: Get the public key directly from PKContract
         PubKey memory publicKey = IPKContract(pkContractAddress).getPublicKey();
 
+        // mPrime = 0x00 || 0x00 || m
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
+        // Parse signature
         Signature memory sig =
             Signature({cTilde: slice(signature, 0, 32), z: slice(signature, 32, 2304), h: slice(signature, 2336, 84)});
 
@@ -70,6 +104,15 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         return 0xFFFFFFFF;
     }
 
+    /**
+     * @notice Performs the core Dilithium verification algorithm.
+     * @dev Implements NIST Dilithium verification with Keccak-based hashing.
+     *      Includes norm checks, NTT transformation, and final hash comparison.
+     * @param pk Expanded public key.
+     * @param mPrime Context-encoded message.
+     * @param signature Parsed Dilithium signature.
+     * @return True if the signature is valid, false otherwise.
+     */
     function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal
         pure
@@ -84,36 +127,49 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         if (foo == false) {
             return false;
         }
+
         if (normH > OMEGA) {
             return false;
         }
+
+        // z-norm check
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 256; j++) {
                 uint256 zij = z[i][j];
+
+                // Check ||z||∞ ≤ GAMMA_1 - BETA
                 if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
                     return false;
                 }
             }
         }
 
-        // C_NTT
+        // C_NTT: Sample challenge and apply NTT
         uint256[] memory cNtt = sampleInBallKeccakPrng(signature.cTilde, TAU, q);
+
         cNtt = nttFw(cNtt);
 
-        // t1New
+        // Expand t1 (stored in compressed form)
         uint256[][] memory t1New = expandVec(pk.t1);
 
         // SECOND CORE STEP
         bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
 
-        // FINAL HASH
+        // FINAL HASH (Keccak-based PRNG)
         KeccakPrng memory prng = initPrng(abi.encodePacked(pk.tr, mPrime));
+
         bytes32 out1 = prng.pool;
+
         refill(prng);
+
         bytes32 out2 = prng.pool;
+
         prng = initPrng(abi.encodePacked(out1, out2, wPrimeBytes));
+
         bytes32 finalHash = prng.pool;
+
+        // Compare challenge hashes
         return finalHash == bytes32(signature.cTilde);
     }
 }
-//end of contract
+// end of contract

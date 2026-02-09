@@ -63,15 +63,15 @@ function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
                 // OPTIMIZATION: pointer-based butterfly loop
                 // ptr starts at &a[j1], ptr_end = ptr + t*32
                 // j1 = 2 * i * t, so ptr = base + j1 * 32 = base + i * t * 64
-                let ptr := add(base, shl(6, mul(i, t)))    // base + 2*i*t*32
-                let ptr_end := add(ptr, t_bytes)            // ptr + t*32
+                let ptr := add(base, shl(6, mul(i, t))) // base + 2*i*t*32
+                let ptr_end := add(ptr, t_bytes) // ptr + t*32
 
                 for {} lt(ptr, ptr_end) { ptr := add(ptr, 32) } {
                     let U := mload(ptr)
                     let ptr_t := add(ptr, t_bytes)
                     let V := mulmod(mload(ptr_t), S, q)
-                    mstore(ptr_t, addmod(U, sub(q, V), q))  // a[j+t] = U - V mod q
-                    mstore(ptr, addmod(U, V, q))             // a[j]   = U + V mod q
+                    mstore(ptr_t, addmod(U, sub(q, V), q)) // a[j+t] = U - V mod q
+                    mstore(ptr, addmod(U, V, q)) // a[j]   = U + V mod q
                 }
             }
             m := shl(1, m)
@@ -124,7 +124,7 @@ function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
 
         for {} gt(m, 1) {} {
             let h := shr(1, m)
-            let t_bytes := shl(5, t)    // t * 32 - pre-computed per layer
+            let t_bytes := shl(5, t) // t * 32 - pre-computed per layer
             let stride := shl(1, t_bytes) // 2 * t * 32 - distance between groups
 
             let group_ptr := base // start of first group
@@ -144,7 +144,7 @@ function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
                     let ptr_t := add(ptr, t_bytes)
                     let V := mload(ptr_t)
                     mstore(ptr_t, mulmod(addmod(U, sub(q, V), q), S, q)) // a[j+t] = (U-V)*S mod q
-                    mstore(ptr, addmod(U, V, q))                          // a[j]   = U+V mod q
+                    mstore(ptr, addmod(U, V, q)) // a[j]   = U+V mod q
                 }
 
                 group_ptr := add(group_ptr, stride) // advance to next group

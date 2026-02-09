@@ -16,11 +16,27 @@ import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
 
 contract ZKNOX_dilithium is ISigVerifier {
+    /**
+     * @notice Deploys a new PKContract containing the given public key.
+     * @dev Stores the public key on-chain using SSTORE2 via PKContract.
+     * @param pubkey The serialized Dilithium public key.
+     * @return The ABI-encoded address of the deployed PKContract.
+     */
     function setKey(bytes memory pubkey) external returns (bytes memory) {
         PKContract pkContract = new PKContract(pubkey);
         return abi.encodePacked(address(pkContract));
     }
 
+    /**
+     * @notice Verifies a Dilithium signature with context.
+     * @dev Compatible with context-aware Dilithium verification.
+     *      Extracts the public key contract address from `pk`.
+     * @param pk ABI-encoded address of the PKContract.
+     * @param m The message to verify.
+     * @param signature The Dilithium signature.
+     * @param ctx Optional context bytes (max length 255).
+     * @return True if the signature is valid, false otherwise.
+     */
     function verify(bytes memory pk, bytes memory m, bytes memory signature, bytes memory ctx)
         external
         view
@@ -43,6 +59,15 @@ contract ZKNOX_dilithium is ISigVerifier {
         return verifyInternal(publicKey, mPrime, sig);
     }
 
+    /**
+     * @notice Verifies a Dilithium signature (EIP-style interface).
+     * @dev Implements ISigVerifier interface.
+     *      Does not support custom context.
+     * @param pk Encoded PKContract address.
+     * @param m Message hash.
+     * @param signature Dilithium signature.
+     * @return Selector on success, 0xFFFFFFFF on failure.
+     */
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
         address pkContractAddress;
         assembly {
@@ -63,9 +88,13 @@ contract ZKNOX_dilithium is ISigVerifier {
     }
 
     /**
-     * OPTIMIZATION: Assembly z-norm check replaces double-nested Solidity loop.
-     * Eliminates array bounds checks on z[i][j] access.
-     * Estimated savings: ~5k-8k gas.
+     * @notice Performs the core Dilithium signature verification.
+     * @dev Implements the full NIST Dilithium verification algorithm.
+     *      Uses optimized assembly routines for gas efficiency.
+     * @param pk Expanded public key structure.
+     * @param mPrime Encoded message with context.
+     * @param signature Parsed Dilithium signature.
+     * @return True if the signature is valid, false otherwise.
      */
     function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal
@@ -90,7 +119,7 @@ contract ZKNOX_dilithium is ISigVerifier {
             assembly {
                 for { let i := 0 } lt(i, 4) { i := add(i, 1) } {
                     let zi_ptr := mload(add(add(z, 32), mul(i, 32))) // z[i] pointer
-                    let data_ptr := add(zi_ptr, 32)                   // skip length
+                    let data_ptr := add(zi_ptr, 32) // skip length
                     for { let j := 0 } lt(j, 256) { j := add(j, 1) } {
                         let zij := mload(add(data_ptr, mul(j, 32)))
                         // if zij > bound && (q - zij) > bound → fail

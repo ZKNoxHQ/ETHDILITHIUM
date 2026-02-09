@@ -35,10 +35,7 @@ function pack4x(uint64[25] memory s0, uint64[25] memory s1, uint64[25] memory s2
     }
 }
 
-function unpack4x_lane(uint256[25] memory packed, uint256 lane)
-    pure
-    returns (uint64[25] memory out)
-{
+function unpack4x_lane(uint256[25] memory packed, uint256 lane) pure returns (uint64[25] memory out) {
     uint256 shift = lane << 6;
     for (uint256 w = 0; w < 25; w++) {
         out[w] = uint64((packed[w] >> shift) & _LANE_MASK);
@@ -51,10 +48,8 @@ function unpack4x_lane(uint256[25] memory packed, uint256 lane)
 
 function f1600_4x(uint256[25] memory state) pure returns (uint256[25] memory) {
     // forgefmt: disable-next-line
-    uint256[24] memory _keccakPi = [uint256(10), 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20, 14, 22, 9, 6, 1];
-    // forgefmt: disable-next-line
-    uint64[24] memory _keccakRc = [uint64(0x0000000000000001), 0x0000000000008082,0x800000000000808a,0x8000000080008000,0x000000000000808b, 0x0000000080000001,0x8000000080008081, 0x8000000000008009,0x000000000000008a, 0x0000000000000088,0x0000000080008009, 0x000000008000000a,0x000000008000808b, 0x800000000000008b,0x8000000000008089, 0x8000000000008003,0x8000000000008002, 0x8000000000000080,0x000000000000800a, 0x800000008000000a,0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008];
-    // forgefmt: disable-next-line
+    uint256[24] memory _keccakPi = [uint256(10), 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20, 14, 22, 9, 6, 1];// forgefmt: disable-next-line
+    uint64[24] memory _keccakRc = [uint64(0x0000000000000001), 0x0000000000008082,0x800000000000808a,0x8000000080008000,0x000000000000808b, 0x0000000080000001,0x8000000080008081, 0x8000000000008009,0x000000000000008a, 0x0000000000000088,0x0000000080008009, 0x000000008000000a,0x000000008000808b, 0x800000000000008b,0x8000000000008089, 0x8000000000008003,0x8000000000008002, 0x8000000000000080,0x000000000000800a, 0x800000008000000a,0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008];// forgefmt: disable-next-line
     uint256[24] memory _keccakRho = [uint256(1), 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62, 18, 39, 61, 20, 44];
 
     uint256[5] memory bc;
@@ -233,10 +228,7 @@ function shake4xInit() pure returns (CtxShake4x memory ctx) {
 
 // Absorb 4 same-length inputs. Assembly inner loop to avoid stack-too-deep.
 // bytes[4] memory inputs: all must have the same length.
-function shake4xAbsorb(CtxShake4x memory ctx, bytes[4] memory inputs)
-    pure
-    returns (CtxShake4x memory)
-{
+function shake4xAbsorb(CtxShake4x memory ctx, bytes[4] memory inputs) pure returns (CtxShake4x memory) {
     uint256 todo = inputs[0].length;
     uint256 index = 0;
 
@@ -270,10 +262,7 @@ function shake4xAbsorb(CtxShake4x memory ctx, bytes[4] memory inputs)
                     let w := shr(3, pos)
                     let b := shl(3, and(pos, 7))
 
-                    let val := or(
-                        or(shl(b, b0), shl(add(b, 64), b1)),
-                        or(shl(add(b, 128), b2), shl(add(b, 192), b3))
-                    )
+                    let val := or(or(shl(b, b0), shl(add(b, 64), b1)), or(shl(add(b, 128), b2), shl(add(b, 192), b3)))
 
                     let bufAddr := add(bufPtr, shl(5, w))
                     mstore(bufAddr, xor(mload(bufAddr), val))
@@ -293,10 +282,7 @@ function shake4xAbsorb(CtxShake4x memory ctx, bytes[4] memory inputs)
     return ctx;
 }
 
-function shake4xUpdate(CtxShake4x memory ctx, bytes[4] memory inputs)
-    pure
-    returns (CtxShake4x memory)
-{
+function shake4xUpdate(CtxShake4x memory ctx, bytes[4] memory inputs) pure returns (CtxShake4x memory) {
     if (ctx.direction == _SPONGE4X_SQUEEZING) {
         (ctx.buf_packed, ctx.state) = shakePermute4x(ctx.buf_packed, ctx.state);
     }
@@ -309,18 +295,14 @@ function shake4xPad(CtxShake4x memory ctx) pure returns (CtxShake4x memory) {
     uint256 posI = ctx.i;
     uint256 wI = posI >> 3;
     uint256 bI = (posI & 7) << 3;
-    uint256 pad_start = (uint256(0x1f) << bI)
-        | (uint256(0x1f) << (bI + 64))
-        | (uint256(0x1f) << (bI + 128))
+    uint256 pad_start = (uint256(0x1f) << bI) | (uint256(0x1f) << (bI + 64)) | (uint256(0x1f) << (bI + 128))
         | (uint256(0x1f) << (bI + 192));
     ctx.buf_packed[wI] ^= pad_start;
 
     uint256 posEnd = _RATE4X - 1;
     uint256 wEnd = posEnd >> 3;
     uint256 bEnd = (posEnd & 7) << 3;
-    uint256 pad_end = (uint256(0x80) << bEnd)
-        | (uint256(0x80) << (bEnd + 64))
-        | (uint256(0x80) << (bEnd + 128))
+    uint256 pad_end = (uint256(0x80) << bEnd) | (uint256(0x80) << (bEnd + 64)) | (uint256(0x80) << (bEnd + 128))
         | (uint256(0x80) << (bEnd + 192));
     ctx.buf_packed[wEnd] ^= pad_end;
 
@@ -331,10 +313,7 @@ function shake4xPad(CtxShake4x memory ctx) pure returns (CtxShake4x memory) {
 
 // Squeeze n bytes from each of the 4 parallel instances.
 // Returns bytes[4] memory outputs.
-function shake4xSqueeze(CtxShake4x memory ctx, uint256 n)
-    pure
-    returns (CtxShake4x memory, bytes[4] memory)
-{
+function shake4xSqueeze(CtxShake4x memory ctx, uint256 n) pure returns (CtxShake4x memory, bytes[4] memory) {
     bytes[4] memory outs;
     outs[0] = new bytes(n);
     outs[1] = new bytes(n);
@@ -389,10 +368,7 @@ function shake4xSqueeze(CtxShake4x memory ctx, uint256 n)
 }
 
 // One-shot: absorb 4 same-length inputs, produce 4 outputs of size8 bytes.
-function shake4xDigest(bytes[4] memory inputs, uint256 size8)
-    pure
-    returns (bytes[4] memory)
-{
+function shake4xDigest(bytes[4] memory inputs, uint256 size8) pure returns (bytes[4] memory) {
     CtxShake4x memory ctx = shake4xInit();
     ctx = shake4xUpdate(ctx, inputs);
     ctx = shake4xPad(ctx);
