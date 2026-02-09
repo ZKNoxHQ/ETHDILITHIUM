@@ -1,3 +1,8 @@
+// Copyright (C) 2026 - ZKNOX
+// License: This software is licensed under MIT License
+// This Code may be reused including this header, license and copyright notice.
+// FILE: ZKNOX_dilithium_core.sol
+// Description: Core algorithm of Dilithium
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -32,7 +37,7 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
     unchecked {
         for (uint256 i = 0; i < k; i++) {
             h[i] = new uint256[](n);
-            // REMOVED: redundant zero-init loop — new uint256[](n) is already zeroed
+            // REMOVED: redundant zero-init loop - new uint256[](n) is already zeroed
 
             uint256 omegaVal = uint8(hBytes[OMEGA + i]);
 

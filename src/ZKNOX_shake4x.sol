@@ -1,7 +1,12 @@
+// Copyright (C) 2026 - ZKNOX
+// License: This software is licensed under MIT License
+// This Code may be reused including this header, license and copyright notice.
+// FILE: ZKNOX_shake4x.sol
+// Description:
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-// SHAKE4x — 4 parallel SHAKE128/256 instances via SWAR
+// SHAKE4x - 4 parallel SHAKE128/256 instances via SWAR
 // Each uint256 word packs 4 independent 64-bit Keccak lanes:
 //   bits [63:0]=lane0, [127:64]=lane1, [191:128]=lane2, [255:192]=lane3
 
@@ -41,7 +46,7 @@ function unpack4x_lane(uint256[25] memory packed, uint256 lane)
 }
 
 // ============================================================
-//                 f1600_4x — CORE SWAR PERMUTATION
+//                 f1600_4x - CORE SWAR PERMUTATION
 // ============================================================
 
 function f1600_4x(uint256[25] memory state) pure returns (uint256[25] memory) {

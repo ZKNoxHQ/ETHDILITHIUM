@@ -1,3 +1,8 @@
+// Copyright (C) 2026 - ZKNOX
+// License: This software is licensed under MIT License
+// This Code may be reused including this header, license and copyright notice.
+// FILE: ZKNOX_dilithium_utils.sol
+// Description:
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -151,7 +156,7 @@ function compact(uint256[] memory a) pure returns (uint256[] memory b) {
 }
 
 /**
- * OPTIMIZATION: Assembly vecMulMod — eliminates array bounds checks and indexed access overhead
+ * OPTIMIZATION: Assembly vecMulMod - eliminates array bounds checks and indexed access overhead
  * Estimated savings: ~3k-5k gas per call × 4 calls = ~12-20k gas
  */
 function vecMulMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory res) {
@@ -195,7 +200,7 @@ function vecAddMod(uint256[] memory a, uint256[] memory b) pure returns (uint256
 }
 
 /**
- * OPTIMIZATION: Assembly vecSubMod — same pattern
+ * OPTIMIZATION: Assembly vecSubMod - same pattern
  * Estimated savings: ~3k-5k gas per call × 4 calls
  */
 function vecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256[] memory res) {

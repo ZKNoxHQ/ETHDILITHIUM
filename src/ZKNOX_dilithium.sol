@@ -1,3 +1,8 @@
+// Copyright (C) 2026 - ZKNOX
+// License: This software is licensed under MIT License
+// This Code may be reused including this header, license and copyright notice.
+// FILE: ZKNOX_dilithium.sol
+// Description:
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -77,7 +82,7 @@ contract ZKNOX_dilithium is ISigVerifier {
             return false;
         }
 
-        // z-norm check in assembly — avoids bounds checks on 1024 accesses
+        // z-norm check in assembly - avoids bounds checks on 1024 accesses
         {
             uint256 _q = q;
             uint256 _bound = GAMMA_1_MINUS_BETA;
