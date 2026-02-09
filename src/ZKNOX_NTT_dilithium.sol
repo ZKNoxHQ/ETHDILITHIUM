@@ -1,54 +1,8 @@
-/**
- *
- */
-/*ZZZZZZZZZZZZZZZZZZZKKKKKKKKK    KKKKKKKNNNNNNNN        NNNNNNNN     OOOOOOOOO     XXXXXXX       XXXXXXX                         ..../&@&#.       .###%@@@#, ..
-/*Z:::::::::::::::::ZK:::::::K    K:::::KN:::::::N       N::::::N   OO:::::::::OO   X:::::X       X:::::X                      ...(@@* .... .           &#//%@@&,.
-/*Z:::::::::::::::::ZK:::::::K    K:::::KN::::::::N      N::::::N OO:::::::::::::OO X:::::X       X:::::X                    ..*@@.........              .@#%%(%&@&..
-/*Z:::ZZZZZZZZ:::::Z K:::::::K   K::::::KN:::::::::N     N::::::NO:::::::OOO:::::::OX::::::X     X::::::X                   .*@( ........ .  .&@@@@.      .@%%%%%#&@@.
-/*ZZZZZ     Z:::::Z  KK::::::K  K:::::KKKN::::::::::N    N::::::NO::::::O   O::::::OXXX:::::X   X::::::XX                ...&@ ......... .  &.     .@      /@%%%%%%&@@#
-/*        Z:::::Z      K:::::K K:::::K   N:::::::::::N   N::::::NO:::::O     O:::::O   X:::::X X:::::X                   ..@( .......... .  &.     ,&      /@%%%%&&&&@@@.
-/*       Z:::::Z       K::::::K:::::K    N:::::::N::::N  N::::::NO:::::O     O:::::O    X:::::X:::::X                   ..&% ...........     .@%(#@#      ,@%%%%&&&&&@@@%.
-/*      Z:::::Z        K:::::::::::K     N::::::N N::::N N::::::NO:::::O     O:::::O     X:::::::::X                   ..,@ ............                 *@%%%&%&&&&&&@@@.
-/*     Z:::::Z         K:::::::::::K     N::::::N  N::::N:::::::NO:::::O     O:::::O     X:::::::::X                  ..(@ .............             ,#@&&&&&&&&&&&&@@@@*
-/*    Z:::::Z          K::::::K:::::K    N::::::N   N:::::::::::NO:::::O     O:::::O    X:::::X:::::X                   .*@..............  . ..,(%&@@&&&&&&&&&&&&&&&&@@@@,
-/*   Z:::::Z           K:::::K K:::::K   N::::::N    N::::::::::NO:::::O     O:::::O   X:::::X X:::::X                 ...&#............. *@@&&&&&&&&&&&&&&&&&&&&@@&@@@@&
-/*ZZZ:::::Z     ZZZZZKK::::::K  K:::::KKKN::::::N     N:::::::::NO::::::O   O::::::OXXX:::::X   X::::::XX               ...@/.......... *@@@@. ,@@.  &@&&&&&&@@@@@@@@@@@.
-/*Z::::::ZZZZZZZZ:::ZK:::::::K   K::::::KN::::::N      N::::::::NO:::::::OOO:::::::OX::::::X     X::::::X               ....&#..........@@@, *@@&&&@% .@@@@@@@@@@@@@@@&
-/*Z:::::::::::::::::ZK:::::::K    K:::::KN::::::N       N:::::::N OO:::::::::::::OO X:::::X       X:::::X                ....*@.,......,@@@...@@@@@@&..%@@@@@@@@@@@@@/
-/*Z:::::::::::::::::ZK:::::::K    K:::::KN::::::N        N::::::N   OO:::::::::OO   X:::::X       X:::::X                   ...*@,,.....%@@@,.........%@@@@@@@@@@@@(
-/*ZZZZZZZZZZZZZZZZZZZKKKKKKKKK    KKKKKKKNNNNNNNN         NNNNNNN     OOOOOOOOO     XXXXXXX       XXXXXXX                      ...&@,....*@@@@@ ..,@@@@@@@@@@@@@&.
-/*                                                                                                                                   ....,(&@@&..,,,/@&#*. .
-/*                                                                                                                                    ......(&.,.,,/&@,.
-/*                                                                                                                                      .....,%*.,*@%
-/*                                                                                                                                    .#@@@&(&@*,,*@@%,..
-/*                                                                                                                                    .##,,,**$.,,*@@@@@%.
-/*                                                                                                                                     *(%%&&@(,,**@@@@@&
-/*                                                                                                                                      . .  .#@((@@(*,**
-/*                                                                                                                                             . (*. .
-/*                                                                                                                                              .*/
-///* Copyright (C) 2025 - Renaud Dubois, Simon Masson - This file is part of ZKNOX project
-///* License: This software is licensed under MIT License
-///* This Code may be reused including this header, license and copyright notice.
-///* See LICENSE file at the root folder of the project.
-///* FILE: ZKNOX_NTT.sol
-///* Description: Compute Negative Wrap Convolution NTT as specified in EIP-NTT
-/**
- * OPTIMIZATIONS vs previous version:
- *
- * 1. POINTER-BASED BUTTERFLY (both nttFw and nttInv):
- *    - Replaced index-based addressing (add(a, mul(add(j,1), 32))) with direct pointer walking
- *    - Eliminated redundant mul(t, 32) recomputation (pre-computed as t_bytes)
- *    - Eliminated address ping-pong (no more sub(a_aj, mul(t,32)) to go back)
- *    - Simplified loop condition: lt(ptr, ptr_end) vs gt(add(j2,1), j)
- *    → Saves 27 gas per butterfly × 1024 butterflies × 9 NTT calls = ~249k gas/verification
- *
- * 2. nttInv FINAL SCALING: use constant 256 instead of mload(a) in loop condition
- *    → Saves ~768 gas per nttInv × 4 calls = ~3k gas
- *
- * 3. nttFw OUTER LOOP: pre-compute base address once
- *
- * Estimated total NTT savings: ~250k gas per verification (~36% NTT cost reduction)
- */
+// Copyright (C) 2026 - ZKNOX
+// License: This software is licensed under MIT License
+// This Code may be reused including this header, license and copyright notice.
+// FILE: ZKNOX_NTT_dilithium.sol
+// Description: Dilithium field NTT arithmetic
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -94,14 +48,14 @@ function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
     uint256 m = 1;
 
     assembly ("memory-safe") {
-        let base := add(a, 32) // skip array length prefix — computed ONCE
+        let base := add(a, 32) // skip array length prefix - computed ONCE
 
         for {} gt(n, m) {} {
             t := shr(1, t)
-            let t_bytes := shl(5, t) // t * 32 — pre-computed per layer
+            let t_bytes := shl(5, t) // t * 32 - pre-computed per layer
 
             for { let i := 0 } gt(m, i) { i := add(i, 1) } {
-                // Twiddle factor extraction (unchanged — 1 per group)
+                // Twiddle factor extraction (unchanged - 1 per group)
                 let mi := add(m, i)
                 let S := mload(add(psirev, mul(32, shr(3, mi))))
                 S := and(shr(mul(32, and(mi, 0x7)), S), 0xffffffff)
@@ -109,15 +63,15 @@ function nttFw(uint256[] memory a) pure returns (uint256[] memory) {
                 // OPTIMIZATION: pointer-based butterfly loop
                 // ptr starts at &a[j1], ptr_end = ptr + t*32
                 // j1 = 2 * i * t, so ptr = base + j1 * 32 = base + i * t * 64
-                let ptr := add(base, shl(6, mul(i, t)))    // base + 2*i*t*32
-                let ptr_end := add(ptr, t_bytes)            // ptr + t*32
+                let ptr := add(base, shl(6, mul(i, t))) // base + 2*i*t*32
+                let ptr_end := add(ptr, t_bytes) // ptr + t*32
 
                 for {} lt(ptr, ptr_end) { ptr := add(ptr, 32) } {
                     let U := mload(ptr)
                     let ptr_t := add(ptr, t_bytes)
                     let V := mulmod(mload(ptr_t), S, q)
-                    mstore(ptr_t, addmod(U, sub(q, V), q))  // a[j+t] = U - V mod q
-                    mstore(ptr, addmod(U, V, q))             // a[j]   = U + V mod q
+                    mstore(ptr_t, addmod(U, sub(q, V), q)) // a[j+t] = U - V mod q
+                    mstore(ptr, addmod(U, V, q)) // a[j]   = U + V mod q
                 }
             }
             m := shl(1, m)
@@ -166,12 +120,12 @@ function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
     uint256 m = n;
 
     assembly ("memory-safe") {
-        let base := add(a, 32) // skip array length prefix — computed ONCE
+        let base := add(a, 32) // skip array length prefix - computed ONCE
 
         for {} gt(m, 1) {} {
             let h := shr(1, m)
-            let t_bytes := shl(5, t)    // t * 32 — pre-computed per layer
-            let stride := shl(1, t_bytes) // 2 * t * 32 — distance between groups
+            let t_bytes := shl(5, t) // t * 32 - pre-computed per layer
+            let stride := shl(1, t_bytes) // 2 * t * 32 - distance between groups
 
             let group_ptr := base // start of first group
 
@@ -190,7 +144,7 @@ function nttInv(uint256[] memory a) pure returns (uint256[] memory) {
                     let ptr_t := add(ptr, t_bytes)
                     let V := mload(ptr_t)
                     mstore(ptr_t, mulmod(addmod(U, sub(q, V), q), S, q)) // a[j+t] = (U-V)*S mod q
-                    mstore(ptr, addmod(U, V, q))                          // a[j]   = U+V mod q
+                    mstore(ptr, addmod(U, V, q)) // a[j]   = U+V mod q
                 }
 
                 group_ptr := add(group_ptr, stride) // advance to next group

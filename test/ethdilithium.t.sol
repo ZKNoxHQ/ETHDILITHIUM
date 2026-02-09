@@ -6,7 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSAETH_PK.s.sol";
 import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import {Constants} from "./ZKNOX_seed.sol";
+import {Constants} from "./seed.sol";
 import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract ETHDilithiumTest is Test {

@@ -14,21 +14,39 @@ contract ZKNOX_Shake4xTest is Test {
 
     // Deep-copy a uint64[25] to avoid aliasing
     function _copy64(uint64[25] memory src) internal pure returns (uint64[25] memory dst) {
-        for (uint256 w = 0; w < 25; w++) dst[w] = src[w];
+        for (uint256 w = 0; w < 25; w++) {
+            dst[w] = src[w];
+        }
     }
 
     // Known f1600(zeros) result — used as constant reference
     // forgefmt: disable-next-line
     function _f1600ZeroRef() internal pure returns (uint64[25] memory) {
         return [
-            uint64(0xF1258F7940E1DDE7), 0x84D5CCF933C0478A, 0xD598261EA65AA9EE,
-            0xBD1547306F80494D, 0x8B284E056253D057, 0xFF97A42D7F8E6FD4,
-            0x90FEE5A0A44647C4, 0x8C5BDA0CD6192E76, 0xAD30A6F71B19059C,
-            0x30935AB7D08FFC64, 0xEB5AA93F2317D635, 0xA9A6E6260D712103,
-            0x81A57C16DBCF555F, 0x43B831CD0347C826, 0x01F22F1A11A5569F,
-            0x05E5635A21D9AE61, 0x64BEFEF28CC970F2, 0x613670957BC46611,
-            0xB87C5A554FD00ECB, 0x8C3EE88A1CCF32C8, 0x940C7922AE3A2614,
-            0x1841F924A2C509E4, 0x16F53526E70465C2, 0x75F644E97F30A13B,
+            uint64(0xF1258F7940E1DDE7),
+            0x84D5CCF933C0478A,
+            0xD598261EA65AA9EE,
+            0xBD1547306F80494D,
+            0x8B284E056253D057,
+            0xFF97A42D7F8E6FD4,
+            0x90FEE5A0A44647C4,
+            0x8C5BDA0CD6192E76,
+            0xAD30A6F71B19059C,
+            0x30935AB7D08FFC64,
+            0xEB5AA93F2317D635,
+            0xA9A6E6260D712103,
+            0x81A57C16DBCF555F,
+            0x43B831CD0347C826,
+            0x01F22F1A11A5569F,
+            0x05E5635A21D9AE61,
+            0x64BEFEF28CC970F2,
+            0x613670957BC46611,
+            0xB87C5A554FD00ECB,
+            0x8C3EE88A1CCF32C8,
+            0x940C7922AE3A2614,
+            0x1841F924A2C509E4,
+            0x16F53526E70465C2,
+            0x75F644E97F30A13B,
             0xEAF1FF7B5CECA249
         ];
     }
@@ -57,14 +75,30 @@ contract ZKNOX_Shake4xTest is Test {
     function test_f1600_4x_vs_scalar() public pure {
         // forgefmt: disable-next-line
         uint64[25] memory orig = [
-            uint64(0xf2a3a3057654e665), 0xce044847fc85f48e, 0xec3bd70f31a2866a,
-            0x7bada64d3aa28d05, 0xdf2d6ae3aa215523, 0x18b3f802c1c29a3f,
-            0x6044c64141c18ca1, 0x867be8cca2f1a54,  0x73773b337ce4e5eb,
-            0x7b8b093e6cc376c6, 0x3ed5eb2ef9295a2a, 0xd6ab08c040f891d2,
-            0x329ec3f446ae8bc6, 0x21ce09a9142a7a7d, 0xc5d90ada910c2965,
-            0xefa939add08954f4, 0xdfd33eee70e98a5a, 0x69c21fbc22c1f12a,
-            0x99e8f946ed7c1708, 0xc47ef08b0c9f3f9f, 0x5a102b80ec0fb414,
-            0x52d66d1377cf6219, 0x3a79068ab1f1288,  0x17a59fb049fd9130,
+            uint64(0xf2a3a3057654e665),
+            0xce044847fc85f48e,
+            0xec3bd70f31a2866a,
+            0x7bada64d3aa28d05,
+            0xdf2d6ae3aa215523,
+            0x18b3f802c1c29a3f,
+            0x6044c64141c18ca1,
+            0x867be8cca2f1a54,
+            0x73773b337ce4e5eb,
+            0x7b8b093e6cc376c6,
+            0x3ed5eb2ef9295a2a,
+            0xd6ab08c040f891d2,
+            0x329ec3f446ae8bc6,
+            0x21ce09a9142a7a7d,
+            0xc5d90ada910c2965,
+            0xefa939add08954f4,
+            0xdfd33eee70e98a5a,
+            0x69c21fbc22c1f12a,
+            0x99e8f946ed7c1708,
+            0xc47ef08b0c9f3f9f,
+            0x5a102b80ec0fb414,
+            0x52d66d1377cf6219,
+            0x3a79068ab1f1288,
+            0x17a59fb049fd9130,
             0x9fccb95c262e9e76
         ];
 
@@ -222,28 +256,36 @@ contract ZKNOX_Shake4xTest is Test {
         bytes[4] memory inputs = _buildDilithiumInputs();
         bytes memory ref = _scalarDigest(inputs[0], 256);
         bytes[4] memory outs = shake4xDigest(inputs, 256);
-        for (uint256 i = 0; i < 256; i++) assertEq(outs[0][i], ref[i]);
+        for (uint256 i = 0; i < 256; i++) {
+            assertEq(outs[0][i], ref[i]);
+        }
     }
 
     function test_shake4xDigest_diff_lane1() public pure {
         bytes[4] memory inputs = _buildDilithiumInputs();
         bytes memory ref = _scalarDigest(inputs[1], 256);
         bytes[4] memory outs = shake4xDigest(inputs, 256);
-        for (uint256 i = 0; i < 256; i++) assertEq(outs[1][i], ref[i]);
+        for (uint256 i = 0; i < 256; i++) {
+            assertEq(outs[1][i], ref[i]);
+        }
     }
 
     function test_shake4xDigest_diff_lane2() public pure {
         bytes[4] memory inputs = _buildDilithiumInputs();
         bytes memory ref = _scalarDigest(inputs[2], 256);
         bytes[4] memory outs = shake4xDigest(inputs, 256);
-        for (uint256 i = 0; i < 256; i++) assertEq(outs[2][i], ref[i]);
+        for (uint256 i = 0; i < 256; i++) {
+            assertEq(outs[2][i], ref[i]);
+        }
     }
 
     function test_shake4xDigest_diff_lane3() public pure {
         bytes[4] memory inputs = _buildDilithiumInputs();
         bytes memory ref = _scalarDigest(inputs[3], 256);
         bytes[4] memory outs = shake4xDigest(inputs, 256);
-        for (uint256 i = 0; i < 256; i++) assertEq(outs[3][i], ref[i]);
+        for (uint256 i = 0; i < 256; i++) {
+            assertEq(outs[3][i], ref[i]);
+        }
     }
 
     // ================================================================

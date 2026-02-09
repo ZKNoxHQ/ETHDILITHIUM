@@ -1,3 +1,8 @@
+// Copyright (C) 2026 - ZKNOX
+// License: This software is licensed under MIT License
+// This Code may be reused including this header, license and copyright notice.
+// FILE: ZKNOX_dilithium_core.sol
+// Description: Core algorithm of Dilithium
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
@@ -19,9 +24,14 @@ import {
 import {useHintDilithium} from "./ZKNOX_hint.sol";
 
 /**
- * OPTIMIZATION 1: Removed redundant zero-initialization loop (h[i][j]=0)
- *   `new uint256[](n)` already zero-fills. Saves 4×256×~6 = ~6k gas.
- * OPTIMIZATION 2: unchecked arithmetic in loops where overflow is impossible.
+ * @notice Unpacks the hint vector h from its compressed byte representation
+ * @dev Parses the sparse representation of h according to Dilithium specification.
+ *      Each row is reconstructed using index offsets stored in hBytes.
+ *      Performs strict validity checks on ordering and bounds.
+ *      Uses unchecked arithmetic for gas optimization.
+ * @param hBytes Encoded hint vector bytes
+ * @return success True if decoding succeeded and format is valid
+ * @return h Decoded k×n binary hint matrix
  */
 function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= OMEGA + k, "Invalid h bytes length");
@@ -32,7 +42,7 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
     unchecked {
         for (uint256 i = 0; i < k; i++) {
             h[i] = new uint256[](n);
-            // REMOVED: redundant zero-init loop — new uint256[](n) is already zeroed
+            // REMOVED: redundant zero-init loop - new uint256[](n) is already zeroed
 
             uint256 omegaVal = uint8(hBytes[OMEGA + i]);
 
@@ -66,6 +76,14 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
     return (true, h);
 }
 
+/**
+ * @notice Unpacks the response vector z from bit-packed representation
+ * @dev Decodes l polynomials of length n from compressed input.
+ *      Bit-width depends on GAMMA_1 parameter (18 or 20 bits).
+ *      Reconstructs centered coefficients modulo q.
+ * @param inputBytes Bit-packed input containing z coefficients
+ * @return coefficients Decoded l×n polynomial vector
+ */
 function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
     uint256 coeffBits;
     uint256 requiredBytes;
@@ -112,9 +130,15 @@ function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coeff
 }
 
 /**
- * OPTIMIZATION: Assembly-based normH counting.
- * Walks memory directly instead of double-array dereference per element.
- * Saves ~5k-8k gas.
+ * @notice Performs first stage of Dilithium verification
+ * @dev Decodes hint vector h and response vector z from signature.
+ *      Computes the Hamming weight (norm) of h using optimized assembly.
+ *      Assembly avoids nested array dereferencing to reduce gas.
+ * @param signature Dilithium signature structure
+ * @return foo True if h decoding succeeded
+ * @return normH Number of non-zero entries in h
+ * @return h Decoded hint matrix
+ * @return z Decoded response vector
  */
 function dilithiumCore1(Signature memory signature)
     pure
@@ -128,7 +152,7 @@ function dilithiumCore1(Signature memory signature)
         for { let i := 0 } lt(i, 4) { i := add(i, 1) } {
             // h is at memory location: h_ptr -> [length][ptr0][ptr1][ptr2][ptr3]
             // h[i] is a pointer to a uint256[] of length 256
-            let hi_ptr := mload(add(add(h, 32), mul(i, 32)))  // h[i] pointer
+            let hi_ptr := mload(add(add(h, 32), mul(i, 32))) // h[i] pointer
             let data_ptr := add(hi_ptr, 32) // skip length prefix
             for { let j := 0 } lt(j, 256) { j := add(j, 1) } {
                 normH := add(normH, eq(mload(add(data_ptr, mul(j, 32))), 1))
@@ -139,6 +163,22 @@ function dilithiumCore1(Signature memory signature)
     z = unpackZ(signature.z);
 }
 
+/**
+ * @notice Performs second stage of Dilithium verification
+ * @dev Computes w' = A*z - c*t1 and applies hint correction.
+ *      Steps:
+ *      1. Applies forward NTT to z
+ *      2. Computes matrix-vector product A*z
+ *      3. Subtracts challenge-scaled public key component
+ *      4. Applies inverse NTT
+ *      5. Packs corrected result using hint vector
+ * @param pk Public key containing expanded matrix seed
+ * @param z Response vector in coefficient form
+ * @param cNtt Challenge polynomial in NTT domain
+ * @param h Hint matrix
+ * @param t1New Adjusted public key vector
+ * @return wPrimeBytes Packed w' bytes for challenge recomputation
+ */
 function dilithiumCore2(
     PubKey memory pk,
     uint256[][] memory z,
