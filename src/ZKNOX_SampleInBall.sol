@@ -2,7 +2,7 @@
 // License: This software is licensed under MIT License
 // This Code may be reused including this header, license and copyright notice.
 // FILE: ZKNOX_SampleInBall.sol
-// Description:
+// Description: SampleInBall function necessary in Dilithium
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
