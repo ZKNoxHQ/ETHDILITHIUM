@@ -32,26 +32,19 @@ The repo contains a solidity verifier and a python signer.
 
 |Signature verification | Gas cost|Status|
 |-|-|-|
-|Dilithium|13.5M|OK (NIST KAT pass)|
-|ETHDilithium|6.6M|OK|
+|Dilithium|9.3M| OK (NIST MLDSA KAT pass)|
+|ETHDilithium|6.1M| OK (MLDSAETH KAT pass)|
 
 Dilithium is an implementation of the NIST standardized signature scheme, where the public key is expanded in order to save computations.
-ETHDilithium is an alternative version with a cheaper hash function and precomputations in the public key and signer in order to accelerate the verification. 
+ETHDilithium is an alternative version with a cheaper hash function. Precomputations in the public key has been done in order to accelerate the verification. 
 
 ## EXAMPLE 
 An example of key generation, signature and verification in python is provided in the directory `pythonref/`.
 It is also possible to verify a signature on-chain on Sepolia Testnet. See [here](pythonref/README.md#example) for more details.
-Locally, a signature verification can also be verified in Solidity, as illustrated in [this file](test/ZKNOX_dilithiumKATS.t.sol) with a KAT vector from the NIST submission.
+Locally, a signature verification can also be verified in Solidity, as illustrated in [this file](test/ZKNOX_dilithiumKATS.t.sol) with a KAT vector from the NIST submission. Further examples will be available in Kohaku project (Ethereum Foundation).
 
 ## DEPLOYMENTS
-Current deployments addresses:
-|Function|Description|Address|Testnets|
-|-|-|-|-|
-|ML-DSA|NIST legacy implementation|0x9B26cBD1643ba392a9a040529c0035693a4f6806|[Ethereum (sepolia)](https://sepolia.etherscan.io/address/9B26cBD1643ba392a9a040529c0035693a4f6806)|
-|ML-DSA-ETH|EVM-friendly implementation|0x4e086d551a2fa9269193056616ac8bd63cf5be15|[Ethereum (sepolia)](https://sepolia.etherscan.io/address/0x4e086d551a2fa9269193056616ac8bd63cf5be15)|
-|ML-DSA|NIST legacy implementation|0xe894f23a95cb5c6198d0d5917877f594aeb255ef|[Arbitrum (sepolia)](https://sepolia.arbiscan.io/address/0xe894f23a95cb5c6198d0d5917877f594aeb255ef)|
-|ML-DSA-ETH|EVM-friendly implementation|0x0cbf65fa28418d5590db76220759cad4d5b9c4aa|[Arbitrum (sepolia)](https://sepolia.arbiscan.io/address/0x0cbf65fa28418d5590db76220759cad4d5b9c4aa)|
-
+The deployed contracts on Sepolia (L1 and Arbitrum) are provided [here](https://github.com/ethereum/kohaku/blob/master/packages/pq-account/deployments/deployments.json), for Kohaku project.
 
 ## CONCLUSION
 This repo provides an optimized version of DILITHIUM. Order of magnitudes were gained compared to other implementations. Despite those efforts, it is not feasible to reach the same cost as [Falcon](https://github.com/ZKNoxHQ/ETHFALCON) post-quantum signature. The implementation takes advantage of the NTT implementation of [this repository](https://github.com/ZKNoxHQ/NTT). The main reason for adopting Dilithium for Ethereum is the simplicity and efficiency of the signer algorithm for hardware wallet. 
