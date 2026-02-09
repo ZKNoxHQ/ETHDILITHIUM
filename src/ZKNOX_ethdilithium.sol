@@ -118,9 +118,6 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         pure
         returns (bool)
     {
-        uint256 i;
-        uint256 j;
-
         // FIRST CORE STEP
         (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z) = dilithiumCore1(signature);
 
@@ -132,16 +129,25 @@ contract ZKNOX_ethdilithium is ISigVerifier {
             return false;
         }
 
-        // z-norm check
-        for (i = 0; i < 4; i++) {
-            for (j = 0; j < 256; j++) {
-                uint256 zij = z[i][j];
-
-                // Check ||z||∞ ≤ GAMMA_1 - BETA
-                if (zij > GAMMA_1_MINUS_BETA && (q - zij) > GAMMA_1_MINUS_BETA) {
-                    return false;
+        // z-norm check in assembly - avoids bounds checks on 1024 accesses
+        {
+            uint256 _q = q;
+            uint256 _bound = GAMMA_1_MINUS_BETA;
+            bool failed = false;
+            assembly {
+                for { let i := 0 } lt(i, 4) { i := add(i, 1) } {
+                    let zi_ptr := mload(add(add(z, 32), mul(i, 32))) // z[i] pointer
+                    let data_ptr := add(zi_ptr, 32) // skip length
+                    for { let j := 0 } lt(j, 256) { j := add(j, 1) } {
+                        let zij := mload(add(data_ptr, mul(j, 32)))
+                        // if zij > bound && (q - zij) > bound → fail
+                        if and(gt(zij, _bound), gt(sub(_q, zij), _bound)) {
+                            failed := 1
+                        }
+                    }
                 }
             }
+            if (failed) return false;
         }
 
         // C_NTT: Sample challenge and apply NTT

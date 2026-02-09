@@ -134,6 +134,7 @@ contract ZKNOX_dilithium is ISigVerifier {
 
         // C_NTT
         uint256[] memory cNtt = sampleInBallNist(signature.cTilde, TAU, q);
+
         cNtt = nttFw(cNtt);
 
         // t1 is stored in the NTT domain, with a 1<<d shift
@@ -141,6 +142,7 @@ contract ZKNOX_dilithium is ISigVerifier {
 
         // SECOND CORE STEP
         bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
+
         // FINAL HASH
         CtxShake memory sctx;
         sctx = shakeUpdate(sctx, pk.tr);
