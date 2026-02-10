@@ -57,28 +57,6 @@ function useHint(uint256 h, uint256 r) pure returns (uint256) {
     return uint256(r1);
 }
 
-function useHintElt(uint256[] memory h, uint256[] memory r) pure returns (uint256[] memory hint) {
-    hint = new uint256[](h.length);
-    for (uint256 i = 0; i < h.length; i++) {
-        hint[i] = useHint(h[i], r[i]);
-    }
-}
-
-function useHintVec(uint256[][] memory h, uint256[][] memory r) pure returns (uint256[][] memory hint) {
-    hint = new uint256[][](h.length);
-    for (uint256 i = 0; i < h.length; i++) {
-        hint[i] = useHintElt(h[i], r[i]);
-    }
-}
-
-function useHintEthDilithium(uint256[][] memory h, uint256[][] memory r) pure returns (uint8[1024] memory hint) {
-    for (uint256 i = 0; i < 4; i++) {
-        for (uint256 j = 0; j < 256; j++) {
-            hint[i * 256 + j] = uint8(uint256(useHint(h[i][j], r[i][j])));
-        }
-    }
-}
-
 /**
  * @notice Assembly-optimized UseHint + Decompose with 6-bit packing for Dilithium
  * @dev Replaces 1024 Solidity-level function calls (useHint -> decompose -> reduceModPm)
