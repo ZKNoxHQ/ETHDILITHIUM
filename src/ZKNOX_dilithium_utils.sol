@@ -128,7 +128,7 @@ function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 s
    ============================================================= */
 
 /**
- * @notice Expands a compressed 4×4×32 matrix into 4×4×256 form
+ * @notice Expands a compressed 4Ã—4Ã—32 matrix into 4Ã—4Ã—256 form
  * @dev Applies expand() to each polynomial in the matrix
  * @param table Compressed input matrix
  * @return b Expanded matrix
@@ -292,6 +292,42 @@ function vecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256
 }
 
 /**
+ * @notice Computes (a - b * c) mod q element-wise in a single pass
+ * @dev Fused operation replacing vecSubMod(a, vecMulMod(b, c)), eliminating
+ *      one intermediate uint256[256] allocation (~8KB) and one full 256-iteration
+ *      loop per call. Called 4 times in dilithiumCore2, saving ~32KB of allocations
+ *      and ~1024 redundant loop iterations total.
+ *      Computes res[k] = addmod(a[k], q - mulmod(b[k], c[k], q), q).
+ * @param a Minuend vector
+ * @param b First factor of the subtrahend
+ * @param c Second factor of the subtrahend
+ * @return res Element-wise result of (a - b*c) mod q
+ */
+function vecSubMulMod(uint256[] memory a, uint256[] memory b, uint256[] memory c)
+    pure
+    returns (uint256[] memory res)
+{
+    uint256 len = a.length;
+    res = new uint256[](len);
+
+    assembly {
+        let a_ptr := add(a, 32)
+        let b_ptr := add(b, 32)
+        let c_ptr := add(c, 32)
+        let r_ptr := add(res, 32)
+        let end := add(a_ptr, shl(5, len))
+
+        for {} lt(a_ptr, end) {} {
+            mstore(r_ptr, addmod(mload(a_ptr), sub(q, mulmod(mload(b_ptr), mload(c_ptr), q)), q))
+            a_ptr := add(a_ptr, 32)
+            b_ptr := add(b_ptr, 32)
+            c_ptr := add(c_ptr, 32)
+            r_ptr := add(r_ptr, 32)
+        }
+    }
+}
+
+/**
  * @notice Computes scalar product of two polynomial vectors
  * @dev Performs element-wise multiplication and accumulation
  * @param a First polynomial vector
@@ -309,7 +345,7 @@ function scalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns 
 
 /**
  * @notice Multiplies matrix with vector of polynomials
- * @dev Computes M × v using scalar products
+ * @dev Computes M Ã— v using scalar products
  * @param M Polynomial matrix
  * @param v Polynomial vector
  * @return mTimesV Resulting vector
@@ -332,7 +368,7 @@ uint256 constant COL_COUNT = 4;
 
 /**
  * @notice Optimized Dilithium matrix-vector multiplication
- * @dev Specialized implementation for 4×4 matrices with assembly inner loops
+ * @dev Specialized implementation for 4Ã—4 matrices with assembly inner loops
  *      Reduces overhead by avoiding repeated function calls
  * @param M Expanded Dilithium matrix
  * @param v Polynomial vector
@@ -403,7 +439,7 @@ struct PubKey {
 
 /**
  * @notice Extracts a slice from a byte array
- * @dev Uses EVM mcopy instruction for fast memory copying (Solidity ≥0.8.25)
+ * @dev Uses EVM mcopy instruction for fast memory copying (Solidity â‰¥0.8.25)
  * @param data Source byte array
  * @param start Starting offset
  * @param len Length of slice

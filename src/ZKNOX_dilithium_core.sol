@@ -12,8 +12,7 @@ import {
     q,
     expandMat,
     matVecProductDilithium,
-    vecMulMod,
-    vecSubMod,
+    vecSubMulMod,
     bitUnpackAtOffset,
     OMEGA,
     k,
@@ -31,7 +30,7 @@ import {useHintDilithium} from "./ZKNOX_hint.sol";
  *      Uses unchecked arithmetic for gas optimization.
  * @param hBytes Encoded hint vector bytes
  * @return success True if decoding succeeded and format is valid
- * @return h Decoded k×n binary hint matrix
+ * @return h Decoded kÃ—n binary hint matrix
  */
 function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= OMEGA + k, "Invalid h bytes length");
@@ -82,7 +81,7 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
  *      Bit-width depends on GAMMA_1 parameter (18 or 20 bits).
  *      Reconstructs centered coefficients modulo q.
  * @param inputBytes Bit-packed input containing z coefficients
- * @return coefficients Decoded l×n polynomial vector
+ * @return coefficients Decoded lÃ—n polynomial vector
  */
 function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
     uint256 coeffBits;
@@ -195,9 +194,9 @@ function dilithiumCore2(
     uint256[][][] memory aHat = expandMat(pk.aHat);
     z = matVecProductDilithium(aHat, z);
 
-    // 2. A*z - c*t1
+    // 2. A*z - c*t1 (fused: eliminates intermediate array allocation per row)
     for (uint256 i = 0; i < 4; i++) {
-        z[i] = nttInv(vecSubMod(z[i], vecMulMod(t1New[i], cNtt)));
+        z[i] = nttInv(vecSubMulMod(z[i], t1New[i], cNtt));
     }
 
     // 3. w_prime packed

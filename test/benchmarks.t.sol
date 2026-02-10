@@ -31,7 +31,7 @@ contract BenchmarksTest is Test {
         console.log("Gas used: ", gasStart - gasleft());
     }
 
-    function testMLDSA() public  {
+    function testMLDSA() public {
         // Public key contract
         DeployPKContract deployPkContract = new DeployPKContract();
         address mldsaAddress = deployPkContract.run();
@@ -50,7 +50,6 @@ contract BenchmarksTest is Test {
         console.log("Gas used:", gasUsed);
         assertTrue(ver);
     }
-
 
     function testMLDSAETH() public {
         // Public key contract
