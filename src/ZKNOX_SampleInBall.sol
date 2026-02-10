@@ -19,7 +19,7 @@ function sampleInBallNist(bytes memory cTilde, uint256 tau, uint256 q) pure retu
         signInt |= uint256(uint8(signBytes[i])) << (8 * i);
     }
 
-    // Now set tau values of c to be Â±1
+    // Now set tau values of c to be ±1
     c = new uint256[](256);
     uint256 j;
     bytes memory bytesJ;

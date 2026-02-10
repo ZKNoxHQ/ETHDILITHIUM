@@ -36,7 +36,7 @@ make bench
 
 |Signature verification | Gas cost|Status|
 |-|-|-|
-|Dilithium|8.2M| :white_check_mark: (NIST MLDSA KAT pass)|
+|Dilithium|8.1M| :white_check_mark: (NIST MLDSA KAT pass)|
 |ETHDilithium|4.9M| :white_check_mark: (MLDSAETH KAT pass)|
 
 Dilithium is an implementation of the NIST standardized signature scheme, where the public key is expanded in order to save computations.

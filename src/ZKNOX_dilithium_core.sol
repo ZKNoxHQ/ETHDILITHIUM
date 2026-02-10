@@ -30,7 +30,7 @@ import {useHintDilithium} from "./ZKNOX_hint.sol";
  *      Uses unchecked arithmetic for gas optimization.
  * @param hBytes Encoded hint vector bytes
  * @return success True if decoding succeeded and format is valid
- * @return h Decoded kÃ—n binary hint matrix
+ * @return h Decoded k×n binary hint matrix
  */
 function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] memory h) {
     require(hBytes.length >= OMEGA + k, "Invalid h bytes length");
@@ -81,7 +81,7 @@ function unpackH(bytes memory hBytes) pure returns (bool success, uint256[][] me
  *      Bit-width depends on GAMMA_1 parameter (18 or 20 bits).
  *      Reconstructs centered coefficients modulo q.
  * @param inputBytes Bit-packed input containing z coefficients
- * @return coefficients Decoded lÃ—n polynomial vector
+ * @return coefficients Decoded l×n polynomial vector
  */
 function unpackZ(bytes memory inputBytes) pure returns (uint256[][] memory coefficients) {
     uint256 coeffBits;

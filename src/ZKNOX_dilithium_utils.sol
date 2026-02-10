@@ -128,7 +128,7 @@ function bitUnpackAtOffset(bytes memory inputBytes, uint256 coeffBits, uint256 s
    ============================================================= */
 
 /**
- * @notice Expands a compressed 4Ã—4Ã—32 matrix into 4Ã—4Ã—256 form
+ * @notice Expands a compressed 4×4×32 matrix into 4×4×256 form
  * @dev Applies expand() to each polynomial in the matrix
  * @param table Compressed input matrix
  * @return b Expanded matrix
@@ -345,7 +345,7 @@ function scalarProduct(uint256[][] memory a, uint256[][] memory b) pure returns 
 
 /**
  * @notice Multiplies matrix with vector of polynomials
- * @dev Computes M Ã— v using scalar products
+ * @dev Computes M × v using scalar products
  * @param M Polynomial matrix
  * @param v Polynomial vector
  * @return mTimesV Resulting vector
@@ -368,7 +368,7 @@ uint256 constant COL_COUNT = 4;
 
 /**
  * @notice Optimized Dilithium matrix-vector multiplication
- * @dev Specialized implementation for 4Ã—4 matrices with assembly inner loops
+ * @dev Specialized implementation for 4×4 matrices with assembly inner loops
  *      Reduces overhead by avoiding repeated function calls
  * @param M Expanded Dilithium matrix
  * @param v Polynomial vector
@@ -439,7 +439,7 @@ struct PubKey {
 
 /**
  * @notice Extracts a slice from a byte array
- * @dev Uses EVM mcopy instruction for fast memory copying (Solidity â‰¥0.8.25)
+ * @dev Uses EVM mcopy instruction for fast memory copying (Solidity ≥0.8.25)
  * @param data Source byte array
  * @param start Starting offset
  * @param len Length of slice

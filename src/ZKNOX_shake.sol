@@ -20,7 +20,7 @@ bool constant _SPONGE_SQUEEZING = true;
  * @notice SHAKE context structure for maintaining sponge state
  * @dev Represents the internal state of a SHAKE128/256 instance
  * @param state 25-element array of 64-bit words representing Keccak-f[1600] state
- * @param buff 200-byte buffer for input data (25 Ã— 8 bytes)
+ * @param buff 200-byte buffer for input data (25 × 8 bytes)
  * @param i Current position in buffer [0, _RATE)
  * @param direction Current sponge phase (absorbing or squeezing)
  */
@@ -47,11 +47,11 @@ function rol64(uint256 x, uint256 s) pure returns (uint64) {
  * @dev Implements the 24-round Keccak-f[1600] permutation with gas optimizations:
  *      1. RC (Round Constant) applied only ONCE to state[0] per round (not per y-row)
  *         Standard Keccak applies RC only to state[0,0], not to each row
- *         This optimization saves ~1,152 gas per call Ã— ~5 calls = ~5-7k gas total
+ *         This optimization saves ~1,152 gas per call × ~5 calls = ~5-7k gas total
  *      2. Theta step 2 fully unrolled to eliminate modular arithmetic overhead
  *      3. Chi step fully unrolled for all 5 y-rows to eliminate loop overhead
- * @dev The state is a 5Ã—5 array of 64-bit lanes, stored linearly in memory
- * @param state 25-element array representing the Keccak state (5Ã—5 lanes of 64 bits each)
+ * @dev The state is a 5×5 array of 64-bit lanes, stored linearly in memory
+ * @param state 25-element array representing the Keccak state (5×5 lanes of 64 bits each)
  * @return Updated state after 24 rounds of Keccak-f[1600] permutation
  */
 function f1600(uint64[25] memory state) pure returns (uint64[25] memory) {
@@ -146,14 +146,14 @@ function f1600(uint64[25] memory state) pure returns (uint64[25] memory) {
                 let c2 := mload(add(state, 64))
                 let c3 := mload(add(state, 96))
                 let c4 := mload(add(state, 128))
-                // FIX: Apply RC to state[0] inline with Chi for y=0 â€“ only once
+                // FIX: Apply RC to state[0] inline with Chi for y=0 – only once
                 mstore(state, and(xor(xor(c0, and(xor(c1, 0xffffffffffffffff), c2)), rc), 0xffffffffffffffff))
                 mstore(add(state, 32), xor(c1, and(xor(c2, 0xffffffffffffffff), c3)))
                 mstore(add(state, 64), xor(c2, and(xor(c3, 0xffffffffffffffff), c4)))
                 mstore(add(state, 96), xor(c3, and(xor(c4, 0xffffffffffffffff), c0)))
                 mstore(add(state, 128), xor(c4, and(xor(c0, 0xffffffffffffffff), c1)))
             }
-            // NO RC here â€“ already applied above
+            // NO RC here – already applied above
 
             // y=1, offset=160
             {
@@ -213,7 +213,7 @@ function f1600(uint64[25] memory state) pure returns (uint64[25] memory) {
                 mstore(add(state, 736), xor(c3, and(xor(c4, 0xffffffffffffffff), c0)))
                 mstore(add(state, 768), xor(c4, and(xor(c0, 0xffffffffffffffff), c1)))
             }
-            // NO RC here â€“ was the 5th redundant application
+            // NO RC here – was the 5th redundant application
         }
     }
     return state;
@@ -328,9 +328,9 @@ function shakeSqueeze(CtxShake memory ctx, uint256 n) pure returns (CtxShake mem
 
 /**
  * @notice Optimized permutation that XORs buffer into state and applies f1600
- * @dev OPTIMIZATION: Processes bufferâ†’state XOR in uint64 chunks (25 iterations vs 200)
+ * @dev OPTIMIZATION: Processes buffer→state XOR in uint64 chunks (25 iterations vs 200)
  *      Each iteration XORs 8 bytes at once by reconstructing uint64 from uint8 array
- *      Estimated savings: ~3k-5k gas per permutation Ã— ~5 calls = ~15-25k gas
+ *      Estimated savings: ~3k-5k gas per permutation × ~5 calls = ~15-25k gas
  * @param buf 200-byte buffer to XOR into state
  * @param state Current Keccak state
  * @return buffer Input buffer (returned for memory management)
@@ -341,7 +341,7 @@ function shakePermute(uint8[200] memory buf, uint64[25] memory state)
     returns (uint8[200] memory buffer, uint64[25] memory stateout)
 {
     assembly {
-        // Process 8 bytes at a time â€“ 25 uint64 words instead of 200 bytes
+        // Process 8 bytes at a time – 25 uint64 words instead of 200 bytes
         for { let w := 0 } lt(w, 25) { w := add(w, 1) } {
             let stateAddr := add(state, mul(w, 32))
             let bufBase := add(buf, mul(mul(w, 8), 32)) // buf is uint8[200], each element at 32-byte slot

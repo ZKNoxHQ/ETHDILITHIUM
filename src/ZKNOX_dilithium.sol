@@ -122,7 +122,7 @@ contract ZKNOX_dilithium is ISigVerifier {
                     let data_ptr := add(zi_ptr, 32) // skip length
                     for { let j := 0 } lt(j, 256) { j := add(j, 1) } {
                         let zij := mload(add(data_ptr, mul(j, 32)))
-                        // if zij > bound && (q - zij) > bound â†’ fail
+                        // if zij > bound && (q - zij) > bound → fail
                         if and(gt(zij, _bound), gt(sub(_q, zij), _bound)) {
                             failed := 1
                         }
