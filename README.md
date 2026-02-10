@@ -31,13 +31,13 @@ The repo contains a solidity verifier and a python signer.
 ## BENCHMARKS
 
 ```bash
-make test_verifier_slow  | grep 'Shorter' -A 4
+make bench
 ```
 
 |Signature verification | Gas cost|Status|
 |-|-|-|
-|Dilithium|9.3M| OK (NIST MLDSA KAT pass)|
-|ETHDilithium|6.1M| OK (MLDSAETH KAT pass)|
+|Dilithium|8.3M| :white_check_mark: (NIST MLDSA KAT pass)|
+|ETHDilithium|5.1M| :white_check_mark: (MLDSAETH KAT pass)|
 
 Dilithium is an implementation of the NIST standardized signature scheme, where the public key is expanded in order to save computations.
 ETHDilithium is an alternative version with a cheaper hash function. Precomputations in the public key has been done in order to accelerate the verification. 

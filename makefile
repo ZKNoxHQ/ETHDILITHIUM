@@ -34,3 +34,6 @@ test_verifier:
 
 test_verifier_slow:
 	forge test -j$(CORES) -vv
+
+bench:
+	forge test test/benchmarks.t.sol -j$(CORES) -vv | grep -E "^\[PASS\] test|Gas used:" | sed -E 'N;s/^\[PASS\] test([^()]*)\(\).*\n.*Gas used:[[:space:]]*([0-9]+)/\1 \2/'
