@@ -76,8 +76,7 @@ pk, sk = D.key_derive(seed, _xof=xof, _xof2=xof2)
 A_hat = D._expand_matrix_from_seed(ρ, _xof=xof2)
 tr = D._h(pk, 64, _xof=xof)
 
-if sys.argv[1] == 'ETH':
-    t1 = t1.scale(1 << D.d).to_ntt()
+t1 = t1.scale(1 << D.d).to_ntt()
 
 A_hat_compact = A_hat.compact_256(32)
 t1_compact_raw = t1.compact_256(32)
