@@ -30,6 +30,10 @@ The repo contains a solidity verifier and a python signer.
 
 ## BENCHMARKS
 
+```bash
+make test_verifier_slow  | grep 'Shorter' -A 4
+```
+
 |Signature verification | Gas cost|Status|
 |-|-|-|
 |Dilithium|9.3M| OK (NIST MLDSA KAT pass)|
