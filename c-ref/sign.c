@@ -33,12 +33,6 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk)
 
   /* Get randomness for rho, rhoprime and key */
   randombytes(seedbuf, SEEDBYTES);
-  printf("SEED:\n");
-  for (int i = 0; i < SEEDBYTES; i++)
-  {
-    printf("%02X", seedbuf[i]);
-  }
-  printf("\n");
   seedbuf[SEEDBYTES + 0] = K;
   seedbuf[SEEDBYTES + 1] = L;
 
