@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {SSTORE2} from "solady/utils/SSTORE2.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {PubKey} from "./ZKNOX_dilithium_utils.sol";
 
 /// @title PKContractV2 - Optimized ML-DSA Public Key Storage
