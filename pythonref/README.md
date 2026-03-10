@@ -1,4 +1,4 @@
-# Dilithium Python
+# Python implementation of MLDSA and MLDSA-ETH Python
 
 
 Implementation based on [this repository](https://github.com/GiacomoPope/dilithium-py/). We use the NTT implemented by ZKNOX [here](https://github.com/zkNoxHQ/ntt).
@@ -76,62 +76,6 @@ RETURN CODE: 0
     --rpc "wss://ethereum-sepolia-rpc.publicnode.com"
 ```
 This should output:
-```
-STDOUT: 0x0000000000000000000000000000000000000000000000000000000000000001
-
-STDERR: 
-RETURN CODE: 0
-```
-
-### With a ledger
-It is possible to use our Ledger apps in order to compute signatures.
-
-In order to install the apps (make sure the Ledger is connected and unlocked):
-```
-make install-ledger
-```
-This installs two apps: MLDSA and MLDSAETH.
-
-For signing with the ledger, (don't forget to open the corresponding app):
-```bash
-# generate a private key and sign a message (in hexadecimal)
-./sign_cli.py signledger \
-    --data "1234" 
-```
-Note that for now, the key generation use a fixed seed, and so every one would get the same keys ;-).
-
-This produces a `sig` file and a `public_key.pem` file. Verifying the signature is exactly the same as before:
-```bash
-# verify locally the signature
- ./sign_cli.py verify \
-    --data "1234" \
-    --pubkey public_key.pem \
-    --signature sig
-```
-This should produce:
-```
-Signature is valid.
-```
-Verifying on-chain is exactly the same as before:
-```bash
-./sign_cli.py verifyonchain \
---data "1234" \
---pubkey public_key.pem \
---signature sig \
---contractaddress 0xe894f23a95cb5c6198d0d5917877f594aeb255ef \
---rpc "https://api.zan.top/arb-sepolia"
-```
-Using MLDSA-ETH:
-```bash
-./sign_cli.py verifyonchain \
---data "1234" \
---pubkey public_key.pem \
---signature sig \
---contractaddress 0x0cbf65fa28418d5590db76220759cad4d5b9c4aa \
---rpc "https://api.zan.top/arb-sepolia"
-```
-
-and should produce:
 ```
 STDOUT: 0x0000000000000000000000000000000000000000000000000000000000000001
 

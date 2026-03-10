@@ -28,8 +28,3 @@ clean:
 	rm -rf scripts/*.sage.py
 	@echo "Clean done"
 
-install-ledger:
-	$(PIP) install ledgerblue
-	$(PYTHON) -m ledgerblue.runScript --scp --fileName ../ledger/dilithium/flex/app.apdu --elfFile ../ledger/dilithium/flex/app.elf
-	$(PYTHON) -m ledgerblue.runScript --scp --fileName ../ledger/ethdilithium/flex/app.apdu --elfFile ../ledger/ethdilithium/flex/app.elf
-	npm install @ledgerhq/hw-transport-node-hid --prefix ../ledger/
