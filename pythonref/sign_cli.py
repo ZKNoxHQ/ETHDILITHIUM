@@ -179,19 +179,21 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
         ρ, t1 = Dilithium2._unpack_pk(pk)
         A_hat = Dilithium2._expand_matrix_from_seed(ρ)
         tr = Dilithium2._h(pk, 64)
-
-        A_hat_compact = A_hat.compact_256(32)
-        t1_compact = t1.compact_256(32)
+        # t1 must be scaled and NTT-transformed for the contract
+        t1 = t1.scale(1 << Dilithium2.d)
+        t1 = t1.to_ntt()
 
     elif version == 'MLDSAETH':
         # parsing public key for ETHDILITHIUM contract format
+        # pk_for_eth already returns t1 scaled and in NTT form
         A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
-        A_hat_compact = A_hat.compact_256(32)
-        t1_compact = t1.compact_256(32)
 
     else:
         print("Version not implemented.")
         return False
+
+    A_hat_compact = A_hat.compact_256(32)
+    t1_compact = t1.compact_256(32)
 
     # parsing signature for contract format
     sig = sig[:]
@@ -200,27 +202,26 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
     h_bytes = sig[-(Dilithium2.k + Dilithium2.omega):]
     c_tilde, z, h = Dilithium2._unpack_sig(sig)
 
-    contract_call = "verify((uint256[][][],bytes,uint256[][]),bytes,(bytes,bytes,bytes),bytes)"
+    contract_call = "expose_verify_internal((uint256[][][],bytes,uint256[][]),bytes,(bytes,bytes,bytes))"
     input_pk = "({}, 0x{}, {})".format(
         A_hat_compact,
         tr.hex(),
         [elt[0] for elt in t1_compact]
     )
-    input_msg = msg
+    # mPrime = 0x00 || len(ctx) || ctx || m (with empty ctx)
+    input_m_prime = "0x0000" + data.hex()
     input_sig = "(0x{}, 0x{}, 0x{})".format(
         c_tilde.hex(),
         z_bytes.hex(),
         h_bytes.hex()
     )
-    input_ctx = "0x"
 
-    command = "cast call \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" --rpc-url \"{}\"".format(
+    command = "cast call \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" --rpc-url \"{}\"".format(
         contract_address,
         contract_call,
         input_pk,
-        input_msg,
+        input_m_prime,
         input_sig,
-        input_ctx,
         rpc)
 
     result = subprocess.run(
@@ -230,30 +231,31 @@ def verify_signature_on_chain(pk, data, sig, contract_address, rpc, version):
         text=True
     )
     print("STDOUT:", result.stdout)
-    # print("STDERR:", result.stderr)
-    # print("RETURN CODE:", result.returncode)
+    print("STDERR:", result.stderr)
+    print("RETURN CODE:", result.returncode)
 
 
 def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private_key, version):
 
-    msg = "0x" + data.hex()
     if version == 'MLDSA':
         ρ, t1 = Dilithium2._unpack_pk(pk)
         A_hat = Dilithium2._expand_matrix_from_seed(ρ)
         tr = Dilithium2._h(pk, 64)
 
-        A_hat_compact = A_hat.compact_256(32)
-        t1_compact = t1.compact_256(32)
-
     elif version == 'MLDSAETH':
         # parsing public key for ETHDILITHIUM contract format
         A_hat, tr, t1 = Dilithium2.pk_for_eth(pk)
-        A_hat_compact = A_hat.compact_256(32)
-        t1_compact = t1.compact_256(32)
 
     else:
         print("Version not implemented.")
         return False
+
+    # t1 must be scaled and NTT-transformed for the contract
+    t1 = t1.scale(1 << Dilithium2.d)
+    t1 = t1.to_ntt()
+
+    A_hat_compact = A_hat.compact_256(32)
+    t1_compact = t1.compact_256(32)
 
     # parsing signature for contract format
     sig = sig[:]
@@ -262,28 +264,27 @@ def verify_signature_on_chain_send(pk, data, sig, contract_address, rpc, private
     h_bytes = sig[-(Dilithium2.k + Dilithium2.omega):]
     c_tilde, z, h = Dilithium2._unpack_sig(sig)
 
-    contract_call = "verify((uint256[][][],bytes,uint256[][]),bytes,(bytes,bytes,bytes),bytes)"
+    contract_call = "expose_verify_internal((uint256[][][],bytes,uint256[][]),bytes,(bytes,bytes,bytes))"
     input_pk = "({}, 0x{}, {})".format(
         A_hat_compact,
         tr.hex(),
         [elt[0] for elt in t1_compact]
     )
-    input_msg = msg
+    # mPrime = 0x00 || len(ctx) || ctx || m (with empty ctx)
+    input_m_prime = "0x0000" + data.hex()
     input_sig = "(0x{}, 0x{}, 0x{})".format(
         c_tilde.hex(),
         z_bytes.hex(),
         h_bytes.hex()
     )
-    input_ctx = "0x"
 
-    command = "cast send --private-key {} \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" --rpc-url \"{}\"".format(
+    command = "cast send --private-key {} \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" --rpc-url \"{}\"".format(
         private_key,
         contract_address,
         contract_call,
         input_pk,
-        input_msg,
+        input_m_prime,
         input_sig,
-        input_ctx,
         rpc)
 
     result = subprocess.run(

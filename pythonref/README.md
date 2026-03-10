@@ -40,7 +40,7 @@ We provide an example of {keygen/signature/verification/verification on chain} f
     --data "deadbeef" \
     --pubkey public_key.pem \
     --signature sig \
-    --contractaddress 0x9B26cBD1643ba392a9a040529c0035693a4f6806 \
+    --contractaddress 0x96bb2c3f4953f01514000c9e028d7834f759af1a \
     --rpc "wss://ethereum-sepolia-rpc.publicnode.com"
 ```
 This should output:
@@ -72,7 +72,7 @@ RETURN CODE: 0
     --data "cafe" \
     --pubkey public_key.pem \
     --signature sig \
-    --contractaddress 0x4E086d551a2FA9269193056616ac8bd63cf5bE15 \
+    --contractaddress 0xfc52a71fef2279d25342606ab5257b4ee26b015e \
     --rpc "wss://ethereum-sepolia-rpc.publicnode.com"
 ```
 This should output:
