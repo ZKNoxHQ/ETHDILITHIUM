@@ -303,10 +303,7 @@ function vecSubMod(uint256[] memory a, uint256[] memory b) pure returns (uint256
  * @param c Second factor of the subtrahend
  * @return res Element-wise result of (a - b*c) mod q
  */
-function vecSubMulMod(uint256[] memory a, uint256[] memory b, uint256[] memory c)
-    pure
-    returns (uint256[] memory res)
-{
+function vecSubMulMod(uint256[] memory a, uint256[] memory b, uint256[] memory c) pure returns (uint256[] memory res) {
     uint256 len = a.length;
     res = new uint256[](len);
 
