@@ -17,7 +17,7 @@ t1_new_compact = t1_new.compact_256(32)
 
 XOF = Keccak256PRNG
 file = open(
-    "../test/ZKNOX_ethdilithium.t.sol", 'w')
+    "../test/ethdilithium.t.sol", 'w')
 file.write("""
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
@@ -26,8 +26,8 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSAETH_PK.s.sol";
-import {PKContract} from "../src/ZKNOX_PKContract.sol";
-import {Constants} from "./ZKNOX_seed.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
+import {Constants} from "./seed.sol";
 import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract ETHDilithiumTest is Test {
@@ -43,7 +43,7 @@ file.write("bytes memory tr = hex\"{}\";\n".format(tr.hex()))
 file.write(solidity_compact_vec(t1_new_compact, 't1'))
 
 file.write("\nbytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));\n")
-file.write("PKContract pubKeyContract = new PKContract(publicKeyData);\n")
+file.write("address pubKeyContract = SSTORE2.write(publicKeyData);\n")
 
 # SIG
 sig = D.sign(sk, msg, _xof=XOF, _xof2=XOF)

@@ -17,7 +17,7 @@ t1_compact = t1_new.compact_256(32)
 
 XOF = shake256
 file = open(
-    "../test/ZKNOX_dilithium.t.sol", 'w')
+    "../test/dilithium.t.sol", 'w')
 file.write("""
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
@@ -25,9 +25,9 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
-import {PKContract} from "../src/ZKNOX_PKContract.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
-import {Constants} from "./ZKNOX_seed.sol";
+import {Constants} from "./seed.sol";
 import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract DilithiumTest is Test {
@@ -46,7 +46,7 @@ file.write(solidity_compact_vec(t1_compact, 't1'))
 sig = D.sign(sk, msg, _xof=XOF)
 assert D.verify(pk, msg, sig, _xof=XOF)
 file.write("\nbytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));\n")
-file.write("PKContract pubKeyContract = new PKContract(publicKeyData);\n")
+file.write("address pubKeyContract = SSTORE2.write(publicKeyData);\n")
 file.write("bytes memory sig = hex\"{}\";\n".format(sig.hex()))
 file.write("""
 
