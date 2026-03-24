@@ -12,7 +12,7 @@ def solidity_poly(h, name):
 
 XOF = Keccak256PRNG
 file = open(
-    "../test/ZKNOX_SampleInBall.t.sol", 'w')
+    "../test/SampleInBall.t.sol", 'w')
 file.write("""
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
