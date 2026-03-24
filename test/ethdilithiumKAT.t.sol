@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
-import {PKContract} from "../src/ZKNOX_PKContract.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
 
 // hand made test for KAT number 15 (with KECCAKPRNG)
 contract ETHDilithiumTest is Test {
@@ -667,7 +667,7 @@ contract ETHDilithiumTest is Test {
         t1[3][31] = uint256(0x006824670011db7d006f638c003f4763000f3c75004fe271003d5bc200018b91);
 
         bytes memory publicKeyData = abi.encode(abi.encode(aHat), tr, abi.encode(t1));
-        PKContract pubKeyContract = new PKContract(publicKeyData);
+        address pubKeyContract = SSTORE2.write(publicKeyData);
 
         // Signature
         bytes memory sig =

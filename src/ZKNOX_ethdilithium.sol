@@ -6,14 +6,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "sstore2/SSTORE2.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
 import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
 import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
 import {KeccakPrng, initPrng, refill} from "./ZKNOX_keccak_prng.sol";
 import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
-import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
 
 /**
  * @title ZKNOX_ethdilithium
@@ -23,14 +22,13 @@ import {IPKContract, PKContract} from "./ZKNOX_PKContract.sol";
  */
 contract ZKNOX_ethdilithium is ISigVerifier {
     /**
-     * @notice Deploys a new PKContract containing the public key.
-     * @dev Stores the public key using SSTORE2 for gas efficiency.
+     * @notice Stores the public key on-chain using SSTORE2.
      * @param pubkey Serialized Dilithium public key.
-     * @return ABI-encoded address of the deployed PKContract.
+     * @return ABI-encoded address of the SSTORE2 pointer.
      */
     function setKey(bytes memory pubkey) external returns (bytes memory) {
-        PKContract pkContract = new PKContract(pubkey);
-        return abi.encodePacked(address(pkContract));
+        address pointer = SSTORE2.write(pubkey);
+        return abi.encodePacked(pointer);
     }
 
     /**
@@ -53,7 +51,7 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         assembly {
             pubKeyAddress := mload(add(pk, 20))
         }
-        PubKey memory publicKey = IPKContract(pubKeyAddress).getPublicKey();
+        PubKey memory publicKey = _readPubKey(pubKeyAddress);
 
         // Step 1: check ctx length
         if (ctx.length > 255) {
@@ -87,8 +85,8 @@ contract ZKNOX_ethdilithium is ISigVerifier {
             pkContractAddress := shr(96, calldataload(pk.offset))
         }
 
-        // Step 2: Get the public key directly from PKContract
-        PubKey memory publicKey = IPKContract(pkContractAddress).getPublicKey();
+        // Step 2: Get the public key from SSTORE2
+        PubKey memory publicKey = _readPubKey(pkContractAddress);
 
         // mPrime = 0x00 || 0x00 || m
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
@@ -176,6 +174,17 @@ contract ZKNOX_ethdilithium is ISigVerifier {
 
         // Compare challenge hashes
         return finalHash == bytes32(signature.cTilde);
+    }
+
+    /**
+     * @notice Reads a PubKey from an SSTORE2 pointer.
+     */
+    function _readPubKey(address pointer) internal view returns (PubKey memory) {
+        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) =
+            abi.decode(SSTORE2.read(pointer), (bytes, bytes, bytes));
+        uint256[][][] memory aHat = abi.decode(aHatEncoded, (uint256[][][]));
+        uint256[][] memory t1 = abi.decode(t1Encoded, (uint256[][]));
+        return PubKey({aHat: aHat, tr: tr, t1: t1});
     }
 }
 // end of contract

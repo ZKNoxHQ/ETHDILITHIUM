@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
-import "../src/ZKNOX_PKContract.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {BaseScript} from "./BaseScript.sol";
 
 contract DeployPKContract is BaseScript {
@@ -668,11 +668,11 @@ contract DeployPKContract is BaseScript {
         // Combine into single bytes parameter
         bytes memory publicKeyData = abi.encode(abi.encode(A_hat), tr, abi.encode(t1));
 
-        // Deploy with single parameter
-        PKContract pk = new PKContract(publicKeyData);
-        console.log("Deployed PKContract at:", address(pk));
+        // Store via SSTORE2
+        address pk = SSTORE2.write(publicKeyData);
+        console.log("Deployed PK at:", pk);
 
         vm.stopBroadcast();
-        return address(pk);
+        return pk;
     }
 }
