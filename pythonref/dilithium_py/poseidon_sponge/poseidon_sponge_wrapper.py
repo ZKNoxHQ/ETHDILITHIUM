@@ -9,7 +9,7 @@ from .poseidon_constants import (
     MDS_MATRIX, ROUND_CONSTANTS,
 )
 
-MAX_BUFFER_SIZE = 4096
+MAX_BUFFER_SIZE = 2624  # ML-DSA-87 tr (2592 B) + one rate block (32 B) of margin
 
 
 def _poseidon_permutation(state, p, alpha, t, half_full_rounds, partial_rounds, mds, rc):
