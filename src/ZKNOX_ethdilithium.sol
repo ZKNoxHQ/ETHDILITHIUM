@@ -46,6 +46,8 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         view
         returns (bool)
     {
+        require(signature.length == 2420, "invalid signature length");
+
         // Fetch the public key from the address `pk`
         address pubKeyAddress;
         assembly {
@@ -79,6 +81,10 @@ contract ZKNOX_ethdilithium is ISigVerifier {
      * @return Selector on success, 0xFFFFFFFF on failure.
      */
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
+        if (signature.length != 2420) {
+            return 0xFFFFFFFF;
+        }
+
         // Step 1: pk contains the PKContract address (returned by setKey)
         address pkContractAddress;
         assembly {

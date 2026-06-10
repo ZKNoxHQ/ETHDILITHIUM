@@ -40,6 +40,8 @@ contract ZKNOX_dilithium is ISigVerifier {
         view
         returns (bool)
     {
+        require(signature.length == 2420, "invalid signature length");
+
         address pubKeyAddress;
         assembly {
             pubKeyAddress := mload(add(pk, 20))
@@ -67,6 +69,10 @@ contract ZKNOX_dilithium is ISigVerifier {
      * @return Selector on success, 0xFFFFFFFF on failure.
      */
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
+        if (signature.length != 2420) {
+            return 0xFFFFFFFF;
+        }
+
         address pkContractAddress;
         assembly {
             pkContractAddress := shr(96, calldataload(pk.offset))
