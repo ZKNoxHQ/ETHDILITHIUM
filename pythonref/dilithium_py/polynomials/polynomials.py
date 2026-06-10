@@ -190,13 +190,15 @@ class PolynomialRingDilithium(PolynomialRing):
         mask = (1 << n_bits) - 1
         return [(r >> n_bits * i) & mask for i in range(self.n)]
 
-    def bit_unpack_t0(self, input_bytes):
-        altered_coeffs = self.__bit_unpack(input_bytes, 13)
-        coefficients = [(1 << 12) - c for c in altered_coeffs]
+    def bit_unpack_t0(self, input_bytes, d=13):
+        altered_coeffs = self.__bit_unpack(input_bytes, d)
+        coefficients = [(1 << (d - 1)) - c for c in altered_coeffs]
         return self(coefficients)
 
-    def bit_unpack_t1(self, input_bytes):
-        coefficients = self.__bit_unpack(input_bytes, 10)
+    def bit_unpack_t1(self, input_bytes, d=13):
+        # Mirror of bit_pack_t1: n_bits = bit_length((q-1) >> d).
+        n_bits = ((self.q - 1) >> d).bit_length()
+        coefficients = self.__bit_unpack(input_bytes, n_bits)
         return self(coefficients)
 
     def bit_unpack_s(self, input_bytes, eta):
@@ -229,15 +231,10 @@ class PolynomialRingDilithium(PolynomialRing):
         return self(coefficients, is_ntt=is_ntt)
 
     def bit_unpack_z(self, input_bytes, gamma_1):
-        # Level 2 parameter set
-        if gamma_1 == (1 << 17):
-            altered_coeffs = self.__bit_unpack(input_bytes, 18)
-        # Level 3 and 5 parameter set
-        else:
-            assert gamma_1 == (
-                1 << 19
-            ), f"Expected gamma_1 to be either 2^17 or 2^19, got {gamma_1=}"
-            altered_coeffs = self.__bit_unpack(input_bytes, 20)
+        # Mirror of bit_pack_z: n_bits = gamma_1.bit_length() for any power-of-2 gamma_1.
+        assert gamma_1 > 0 and (gamma_1 & (gamma_1 - 1)) == 0, \
+            f"Expected gamma_1 to be a power of 2, got {gamma_1=}"
+        altered_coeffs = self.__bit_unpack(input_bytes, gamma_1.bit_length())
         coefficients = [gamma_1 - c for c in altered_coeffs]
         return self(coefficients)
 
@@ -332,14 +329,15 @@ class PolynomialDilithium(Polynomial):
             r |= c
         return r.to_bytes(n_bytes, "little")
 
-    def bit_pack_t0(self):
-        # 416 = 256 * 13 // 8
-        altered_coeffs = [(1 << 12) - c for c in self.coeffs]
-        return self.__bit_pack(altered_coeffs, 13, 416)
+    def bit_pack_t0(self, d=13):
+        # n_bytes = 256 * d // 8 = 32 * d
+        altered_coeffs = [(1 << (d - 1)) - c for c in self.coeffs]
+        return self.__bit_pack(altered_coeffs, d, 32 * d)
 
-    def bit_pack_t1(self):
-        # 320 = 256 * 10 // 8
-        return self.__bit_pack(self.coeffs, 10, 320)
+    def bit_pack_t1(self, d=13):
+        # t1 coefficient max = (q - 1) >> d; n_bits matches that range.
+        n_bits = ((self.parent.q - 1) >> d).bit_length()
+        return self.__bit_pack(self.coeffs, n_bits, 32 * n_bits)
 
     def bit_pack_s(self, eta):
         altered_coeffs = [self._sub_mod_q(eta, c) for c in self.coeffs]
@@ -366,15 +364,14 @@ class PolynomialDilithium(Polynomial):
         return self.__bit_pack(self.coeffs, 4, 128)
 
     def bit_pack_z(self, gamma_1):
+        # gamma_1 must be a power of 2; coefficients live in [-gamma_1+1, gamma_1].
+        # altered = gamma_1 - c is in [0, 2*gamma_1 - 1], needing gamma_1.bit_length() bits.
+        assert gamma_1 > 0 and (gamma_1 & (gamma_1 - 1)) == 0, \
+            f"Expected gamma_1 to be a power of 2, got: {gamma_1=}"
+        n_bits = gamma_1.bit_length()           # 18, 20, 22 for 2^17, 2^19, 2^21
+        n_bytes = 32 * n_bits                   # 576, 640, 704
         altered_coeffs = [self._sub_mod_q(gamma_1, c) for c in self.coeffs]
-        # Level 2 parameter set
-        if gamma_1 == (1 << 17):
-            return self.__bit_pack(altered_coeffs, 18, 576)
-        # Level 3 and 5 parameter set
-        assert gamma_1 == (
-            1 << 19
-        ), f"Expected gamma_1 to be either 2^17 or 2^19, got: {gamma_1=}"
-        return self.__bit_pack(altered_coeffs, 20, 640)
+        return self.__bit_pack(altered_coeffs, n_bits, n_bytes)
 
     def bit_pack_32(self):
         return self.__bit_pack(self.coeffs, 32, 1024)

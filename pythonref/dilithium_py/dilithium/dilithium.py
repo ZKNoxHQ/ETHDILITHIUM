@@ -109,14 +109,13 @@ class Dilithium:
         ]
         return self.M.vector(elements)
 
-    @staticmethod
-    def _pack_pk(rho, t1):
-        return rho + t1.bit_pack_t1()
+    def _pack_pk(self, rho, t1):
+        return rho + t1.bit_pack_t1(self.d)
 
     def _pack_sk(self, rho, K, tr, s1, s2, t0):
         s1_bytes = s1.bit_pack_s(self.eta)
         s2_bytes = s2.bit_pack_s(self.eta)
-        t0_bytes = t0.bit_pack_t0()
+        t0_bytes = t0.bit_pack_t0(self.d)
         return rho + K + tr + s1_bytes + s2_bytes + t0_bytes
 
     def _pack_h(self, h):
@@ -139,13 +138,15 @@ class Dilithium:
         return c_tilde + z.bit_pack_z(self.gamma_1) + self._pack_h(h)
 
     def _pk_size(self) -> int:
-        return 32 + 32 * self.k * 10
+        # n_bits = bit_length((q-1) >> d); per-poly bytes = 32 * n_bits.
+        n_bits = ((self.R.q - 1) >> self.d).bit_length()
+        return 32 + self.k * 32 * n_bits
 
     def _unpack_pk(self, pk):
         if len(pk) != self._pk_size():
             raise ValueError("PK packed bytes is of the wrong length")
         rho, t1_bytes = pk[:32], pk[32:]
-        t1 = self.M.bit_unpack_t1(t1_bytes, self.k, 1)
+        t1 = self.M.bit_unpack_t1(t1_bytes, self.k, 1, self.d)
         return rho, t1
 
     def _sk_size(self) -> int:
@@ -155,7 +156,7 @@ class Dilithium:
             s_bytes = 128
         s1_len = s_bytes * self.l
         s2_len = s_bytes * self.k
-        t0_len = 416 * self.k
+        t0_len = 32 * self.d * self.k
         return 2 * 32 + 64 + s1_len + s2_len + t0_len
 
     def _unpack_sk(self, sk: bytes):
@@ -165,7 +166,7 @@ class Dilithium:
             s_bytes = 128
         s1_len = s_bytes * self.l
         s2_len = s_bytes * self.k
-        t0_len = 416 * self.k
+        t0_len = 32 * self.d * self.k
         if len(sk) != self._sk_size():
             raise ValueError("sk packed bytes is of the wrong length")
 
@@ -187,7 +188,7 @@ class Dilithium:
         # Unpack bytes to vectors
         s1 = self.M.bit_unpack_s(s1_bytes, self.l, 1, self.eta)
         s2 = self.M.bit_unpack_s(s2_bytes, self.k, 1, self.eta)
-        t0 = self.M.bit_unpack_t0(t0_bytes, self.k, 1)
+        t0 = self.M.bit_unpack_t0(t0_bytes, self.k, 1, self.d)
 
         return rho, k, tr, s1, s2, t0
 
@@ -344,6 +345,7 @@ class Dilithium:
             h = (-c_t0).make_hint(w - c_s2 + c_t0, alpha)
             if h.sum_hint() > self.omega:
                 continue
+            print("w1_bytes = {}".format(w1_bytes.hex()))
             return self._pack_sig(c_tilde, z, h)
 
     def _verify_internal(
@@ -385,7 +387,7 @@ class Dilithium:
 
         Az_minus_ct1 = (A_hat @ z) - t1.scale(c)
         Az_minus_ct1 = Az_minus_ct1.from_ntt()
-
+        print("Az_minus_ct1= {}".format(Az_minus_ct1))
         w_prime = h.use_hint(Az_minus_ct1, 2 * self.gamma_2)
         w_prime_bytes = w_prime.bit_pack_w(self.gamma_2)
 
@@ -499,7 +501,7 @@ class Dilithium:
         t1, _ = t.power_2_round(self.d)
 
         # The packed public key is made from rho || t1
-        pk = self._pack_pk(rho, t1, _xof=_xof)
+        pk = self._pack_pk(rho, t1)
 
         # Ensure the public key matches the hash within the secret key
         if tr != self._h(pk, 64, _xof=_xof):

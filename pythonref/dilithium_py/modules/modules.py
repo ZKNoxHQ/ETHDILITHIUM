@@ -17,15 +17,17 @@ class ModuleDilithium(Module):
         ]
         return self(matrix)
 
-    def bit_unpack_t0(self, input_bytes, m, n):
-        packed_len = 416
+    def bit_unpack_t0(self, input_bytes, m, n, d=13):
+        packed_len = 32 * d
         algorithm = self.ring.bit_unpack_t0
-        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
+        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, d)
 
-    def bit_unpack_t1(self, input_bytes, m, n):
-        packed_len = 320
+    def bit_unpack_t1(self, input_bytes, m, n, d=13):
+        # Per-poly bytes = 32 * bit_length((q-1) >> d).
+        n_bits = ((self.ring.q - 1) >> d).bit_length()
+        packed_len = 32 * n_bits
         algorithm = self.ring.bit_unpack_t1
-        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len)
+        return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, d)
 
     def bit_unpack_s(self, input_bytes, m, n, eta):
         # Level 2 and 5 parameter set
@@ -53,14 +55,10 @@ class ModuleDilithium(Module):
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_2)
 
     def bit_unpack_z(self, input_bytes, m, n, gamma_1):
-        # Level 2 parameter set
-        if gamma_1 == (1 << 17):
-            packed_len = 576
-        # Level 3 and 5 parameter set
-        elif gamma_1 == (1 << 19):
-            packed_len = 640
-        else:
-            raise ValueError("Expected gamma_1 to be either 2^17 or 2^19")
+        # gamma_1 must be a power of 2; per-poly bytes = 32 * gamma_1.bit_length().
+        if gamma_1 <= 0 or (gamma_1 & (gamma_1 - 1)) != 0:
+            raise ValueError(f"Expected gamma_1 to be a power of 2, got {gamma_1=}")
+        packed_len = 32 * gamma_1.bit_length()
         algorithm = self.ring.bit_unpack_z
         return self.__bit_unpack(input_bytes, m, n, algorithm, packed_len, gamma_1)
 
@@ -126,13 +124,13 @@ class MatrixDilithium(Matrix):
     def __bit_pack(self, algorithm, *args):
         return b"".join(algorithm(poly, *args) for row in self._data for poly in row)
 
-    def bit_pack_t1(self):
+    def bit_pack_t1(self, d=13):
         algorithm = self.parent.ring.element.bit_pack_t1
-        return self.__bit_pack(algorithm)
+        return self.__bit_pack(algorithm, d)
 
-    def bit_pack_t0(self):
+    def bit_pack_t0(self, d=13):
         algorithm = self.parent.ring.element.bit_pack_t0
-        return self.__bit_pack(algorithm)
+        return self.__bit_pack(algorithm, d)
 
     def bit_pack_s(self, eta):
         algorithm = self.parent.ring.element.bit_pack_s

@@ -42,9 +42,9 @@ DEFAULT_PARAMETERS = {
 
 ZK_PARAMETERS = {
     "dilithium2babybear": {
-        "d": 13,  # number of bits dropped from t
+        "d": 16,  # number of bits dropped from t
         "tau": 39,  # number of ±1 in c
-        "gamma_1": 131072,  # coefficient range of y: 2^17
+        "gamma_1": 2097152,  # coefficient range of y: 2^21
         "gamma_2": 983040,  # low order rounding range: (q-1)/2^11
         "k": 4,  # Dimensions of A = (k, l)
         "l": 5,  # Dimensions of A = (k, l)
@@ -54,9 +54,9 @@ ZK_PARAMETERS = {
         "oid": (2, 16, 840, 1, 101, 3, 4, 3, 17),
     },
     "dilithium2koalabear": {
-        "d": 13,  # number of bits dropped from t
+        "d": 16,  # number of bits dropped from t
         "tau": 39,  # number of ±1 in c
-        "gamma_1": 131072,  # coefficient range of y: 2^17
+        "gamma_1": 2097152,  # coefficient range of y: 2^21
         "gamma_2": 1040384,  # low order rounding range: (q-1)/2^11
         "k": 4,  # Dimensions of A = (k, l)
         "l": 5,  # Dimensions of A = (k, l)
