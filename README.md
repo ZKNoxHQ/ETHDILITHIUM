@@ -39,6 +39,27 @@ make bench
 |Dilithium|8.1M| :white_check_mark: (NIST MLDSA KAT pass)|
 |ETHDilithium|4.9M| :white_check_mark: (MLDSAETH KAT pass)|
 
+### Experimental: packed verifier (branch `exp/packed-verifier`)
+
+Same interface, same key blob and signature formats, same KATs, on a packed
+4x64-bit-lane layout end to end (Montgomery NTT, matrix-vector product on the
+stored key, SWAR decode and hints), the NIST variant hashing through an
+external Keccak-f[1600] helper contract bound by code hash. Measured with
+`make bench` on the branch (solc 0.8.30 via-IR, `optimizer_runs = 1000000`):
+
+|Signature verification | Gas cost|Status|
+|-|-|-|
+|Dilithium|1,196,707 (6.8x)| :white_check_mark: (NIST MLDSA KAT pass)|
+|ETHDilithium|847,709 (5.7x)| :white_check_mark: (MLDSAETH KAT pass)|
+|nttFw / nttInv (256 coefficients)|48,152 / 50,881 (was 181,666 / 215,127)| |
+
+For reference, fireblocks-labs/evm-ml-dsa-verifier measures 1,224,368 on
+ML-DSA-44 with the same helper. The NIST variant's constructor takes the
+helper address (deployed once per chain, `script/DeployF1600Helper.s.sol`);
+the ETH variant is unchanged in interface. See `VERSION.md` and
+`DECISIONS.md` on the branch for the measurements, the bounds and what was
+tried and rejected.
+
 Dilithium is an implementation of the NIST standardized signature scheme, where the public key is expanded in order to save computations.
 ETHDilithium is an alternative version with a cheaper hash function. Precomputations in the public key has been done in order to accelerate the verification. 
 
