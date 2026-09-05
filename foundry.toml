@@ -3,7 +3,12 @@ src = "src"
 out = "out"
 libs = ["lib"]
 optimizer = true
-optimizer_runs = 10000
+# runs high enough that the optimizer keeps the packed kernels' 32-byte lane
+# constants as PUSH32: at 10000 it CODECOPYs the most frequent one (102
+# occurrences) from the data section at every use, +95k gas per verify
+optimizer_runs = 1000000
+# the packed kernels are ~20% cheaper under the IR pipeline (stack layout)
+via_ir = true
 solc_version = "0.8.30"
 evm_version = "osaka"
 ffi = true

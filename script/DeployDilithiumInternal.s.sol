@@ -6,6 +6,7 @@ import "../test/dilithium_internal.sol";
 import "../src/ZKNOX_dilithium.sol";
 
 import {console} from "forge-std/Test.sol";
+import {SSTORE2} from "sstore2/SSTORE2.sol";
 
 contract Script_Deploy_Dilithium_Internal is BaseScript {
     // SPDX-License-Identifier: MIT
@@ -15,7 +16,10 @@ contract Script_Deploy_Dilithium_Internal is BaseScript {
 
         bytes32 salty = keccak256(abi.encodePacked("ZKNOX_v0.21"));
 
-        ZKNOX_Dilithium_internal DILITHIUM = new ZKNOX_Dilithium_internal{salt: salty}();
+        // Keccak-f[1600] helper, deployed once per chain (raw runtime test/f1600_170.hex);
+        // the verifier binds it by code hash
+        address helper = vm.envAddress("F1600_HELPER");
+        ZKNOX_Dilithium_internal DILITHIUM = new ZKNOX_Dilithium_internal{salt: salty}(helper);
 
         // Public key
         uint256[][][] memory aHat = new uint256[][][](4);
@@ -688,8 +692,12 @@ contract Script_Deploy_Dilithium_Internal is BaseScript {
         bytes memory msgs = "We are ZKNox.";
         bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(0), msgs);
 
-        // VERIFICATION
-        bool ver = DILITHIUM.expose_verify_internal(pk, m_prime, sig);
+        // VERIFICATION: the key goes through an SSTORE2 blob and the public
+        // verify (m_prime = 0x00 || len(ctx) || ctx || m is rebuilt inside)
+        address pkPointer = SSTORE2.write(abi.encode(abi.encode(pk.aHat), pk.tr, abi.encode(pk.t1)));
+        bool ver = DILITHIUM.verify(abi.encodePacked(pkPointer), msgs, sigbytes, "");
+        m_prime;
+        sig;
         console.log(ver);
 
         if (ver == false) revert("verification failure");

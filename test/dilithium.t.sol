@@ -4,13 +4,18 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
+import {F1600Helper} from "./F1600Helper.sol";
 import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Constants} from "./seed.sol";
 import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract DilithiumTest is Test {
-    ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
+    ZKNOX_dilithium dilithium;
+
+    function setUp() public {
+        dilithium = new ZKNOX_dilithium(F1600Helper.deploy(vm));
+    }
     PythonSigner pythonSigner = new PythonSigner();
 
     function testVerify() public {

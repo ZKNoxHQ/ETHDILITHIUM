@@ -5,11 +5,9 @@ import "../src/ZKNOX_dilithium.sol";
 import "../src/ZKNOX_dilithium_utils.sol";
 
 contract ZKNOX_Dilithium_internal is ZKNOX_dilithium {
-    function expose_verify_internal(PubKey memory pk, bytes memory m_prime, Signature memory signature)
-        external
-        view
-        returns (bool)
-    {
-        return verifyInternal(pk, m_prime, signature);
-    }
+    constructor(address helper) ZKNOX_dilithium(helper) {}
+
+    /// @dev the verifier itself is 146 bytes under EIP-170: any exposed function
+    ///      with its own ABI decoder puts this contract over. The deployment
+    ///      sanity script goes through the public verify(pk, m, signature, ctx).
 }

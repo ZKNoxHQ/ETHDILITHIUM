@@ -41,9 +41,14 @@ pragma solidity ^0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {nttFw, nttInv} from "../src/ZKNOX_NTT_dilithium.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
+import {F1600Helper} from "./F1600Helper.sol";
 
 contract NTT_DilithiumTest is Test {
-    ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
+    ZKNOX_dilithium dilithium;
+
+    function setUp() public {
+        dilithium = new ZKNOX_dilithium(F1600Helper.deploy(vm));
+    }
 
     function test_from_python() public pure {
         uint256[] memory p = new uint256[](256);

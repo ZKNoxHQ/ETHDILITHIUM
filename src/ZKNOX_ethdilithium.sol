@@ -7,11 +7,15 @@
 pragma solidity ^0.8.25;
 
 import {SSTORE2} from "sstore2/SSTORE2.sol";
-import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
-import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
+import {
+    dilithiumCore1Packed,
+    dilithiumCore2Packed,
+    readPubKeyPacked,
+    packPoly
+} from "./ZKNOX_dilithium_core_packed.sol";
 import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
 import {KeccakPrng, initPrng, refill} from "./ZKNOX_keccak_prng.sol";
-import {q, expandVec, OMEGA, GAMMA_1_MINUS_BETA, TAU, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
+import {q, TAU, PubKey, Signature, slice} from "./ZKNOX_dilithium_utils.sol";
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 
 /**
@@ -46,6 +50,8 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         view
         returns (bool)
     {
+        require(signature.length == 2420, "invalid signature length");
+
         // Fetch the public key from the address `pk`
         address pubKeyAddress;
         assembly {
@@ -79,6 +85,10 @@ contract ZKNOX_ethdilithium is ISigVerifier {
      * @return Selector on success, 0xFFFFFFFF on failure.
      */
     function verify(bytes calldata pk, bytes32 m, bytes calldata signature) external view returns (bytes4) {
+        if (signature.length != 2420) {
+            return 0xFFFFFFFF;
+        }
+
         // Step 1: pk contains the PKContract address (returned by setKey)
         address pkContractAddress;
         assembly {
@@ -116,48 +126,19 @@ contract ZKNOX_ethdilithium is ISigVerifier {
         pure
         returns (bool)
     {
-        // FIRST CORE STEP
-        (bool foo, uint256 normH, uint256[][] memory h, uint256[][] memory z) = dilithiumCore1(signature);
-
-        if (foo == false) {
+        // FIRST CORE STEP: hint encoding validated (weight <= omega), z decoded
+        // packed with its norm checked (ZKNOX_dilithium_core_packed.sol)
+        (bool ok, uint256[][] memory z, uint256[4] memory hintMasks) = dilithiumCore1Packed(signature);
+        if (!ok) {
             return false;
-        }
-
-        if (normH > OMEGA) {
-            return false;
-        }
-
-        // z-norm check in assembly - avoids bounds checks on 1024 accesses
-        {
-            uint256 _q = q;
-            uint256 _bound = GAMMA_1_MINUS_BETA;
-            bool failed = false;
-            assembly {
-                for { let i := 0 } lt(i, 4) { i := add(i, 1) } {
-                    let zi_ptr := mload(add(add(z, 32), mul(i, 32))) // z[i] pointer
-                    let data_ptr := add(zi_ptr, 32) // skip length
-                    for { let j := 0 } lt(j, 256) { j := add(j, 1) } {
-                        let zij := mload(add(data_ptr, mul(j, 32)))
-                        // if zij > bound && (q - zij) > bound → fail
-                        if and(gt(zij, _bound), gt(sub(_q, zij), _bound)) {
-                            failed := 1
-                        }
-                    }
-                }
-            }
-            if (failed) return false;
         }
 
         // C_NTT: Sample challenge and apply NTT
-        uint256[] memory cNtt = sampleInBallKeccakPrng(signature.cTilde, TAU, q);
+        uint256[] memory cNtt = packPoly(sampleInBallKeccakPrng(signature.cTilde, TAU, q));
 
-        cNtt = nttFw(cNtt);
-
-        // Expand t1 (stored in compressed form)
-        uint256[][] memory t1New = expandVec(pk.t1);
-
-        // SECOND CORE STEP
-        bytes memory wPrimeBytes = dilithiumCore2(pk, z, cNtt, h, t1New);
+        // SECOND CORE STEP: NTT(c), A.z - c.t1 on the packed layout, inverse
+        // NTT, hints, w1 encoding (ZKNOX_dilithium_core_packed.sol)
+        bytes memory wPrimeBytes = dilithiumCore2Packed(pk, z, cNtt, hintMasks);
 
         // FINAL HASH (Keccak-based PRNG)
         KeccakPrng memory prng = initPrng(abi.encodePacked(pk.tr, mPrime));
@@ -180,11 +161,8 @@ contract ZKNOX_ethdilithium is ISigVerifier {
      * @notice Reads a PubKey from an SSTORE2 pointer.
      */
     function _readPubKey(address pointer) internal view returns (PubKey memory) {
-        (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) =
-            abi.decode(SSTORE2.read(pointer), (bytes, bytes, bytes));
-        uint256[][][] memory aHat = abi.decode(aHatEncoded, (uint256[][][]));
-        uint256[][] memory t1 = abi.decode(t1Encoded, (uint256[][]));
-        return PubKey({aHat: aHat, tr: tr, t1: t1});
+        // zero-copy: the polynomials of the blob are used in place (ZKNOX_dilithium_core_packed.sol)
+        return readPubKeyPacked(pointer);
     }
 }
 // end of contract

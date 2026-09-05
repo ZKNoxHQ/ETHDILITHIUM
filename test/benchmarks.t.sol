@@ -5,15 +5,22 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {TAU, q} from "../src/ZKNOX_dilithium_utils.sol";
 import {sampleInBallKeccakPrng, sampleInBallNist} from "../src/ZKNOX_SampleInBall.sol";
+import {nttFw, nttInv} from "../src/ZKNOX_NTT_dilithium.sol";
+import {nttFwMont, nttInvMont} from "../src/ZKNOX_NTT_dilithium_mont.sol";
 import {DeployPKContract as DeployPKContractETH} from "../script/Deploy_MLDSAETH_PK.s.sol";
 import {DeployPKContract} from "../script/Deploy_MLDSA_PK.s.sol";
 import {Constants} from "./seed.sol";
 import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
+import {F1600Helper} from "./F1600Helper.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract BenchmarksTest is Test {
-    ZKNOX_dilithium dilithium = new ZKNOX_dilithium();
+    ZKNOX_dilithium dilithium;
+
+    function setUp() public {
+        dilithium = new ZKNOX_dilithium(F1600Helper.deploy(vm));
+    }
     ZKNOX_ethdilithium ethdilithium = new ZKNOX_ethdilithium();
     PythonSigner pythonSigner = new PythonSigner();
 
@@ -28,6 +35,43 @@ contract BenchmarksTest is Test {
         bytes memory cTilde = hex"cc501e9f471a004d2d3f60894d12aad3114e8abf62e413a800b7e7987ec5100b";
         uint256 gasStart = gasleft();
         uint256[] memory c = sampleInBallKeccakPrng(cTilde, TAU, q);
+        console.log("Gas used: ", gasStart - gasleft());
+    }
+
+    function _nttInput() internal pure returns (uint256[] memory p) {
+        p = new uint256[](256);
+        for (uint256 i = 0; i < 256; i++) {
+            p[i] = uint256(keccak256(abi.encodePacked(i))) % q;
+        }
+    }
+
+    // the four NTT kernels on the same input; measured inline, in the profile
+    // the verifiers ship with (legacy codegen, solc 0.8.30)
+    function testNTTFwScalar() public view {
+        uint256[] memory p = _nttInput();
+        uint256 gasStart = gasleft();
+        nttFw(p);
+        console.log("Gas used: ", gasStart - gasleft());
+    }
+
+    function testNTTFwMont() public view {
+        uint256[] memory p = _nttInput();
+        uint256 gasStart = gasleft();
+        nttFwMont(p);
+        console.log("Gas used: ", gasStart - gasleft());
+    }
+
+    function testNTTInvScalar() public view {
+        uint256[] memory p = _nttInput();
+        uint256 gasStart = gasleft();
+        nttInv(p);
+        console.log("Gas used: ", gasStart - gasleft());
+    }
+
+    function testNTTInvMont() public view {
+        uint256[] memory p = _nttInput();
+        uint256 gasStart = gasleft();
+        nttInvMont(p);
         console.log("Gas used: ", gasStart - gasleft());
     }
 

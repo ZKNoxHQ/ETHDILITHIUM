@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {nttFw, nttInv} from "./ZKNOX_NTT_dilithium.sol";
+import {nttFwMont as nttFw, nttInvMont as nttInv} from "./ZKNOX_NTT_dilithium_mont.sol";
 import {PubKey, Signature} from "./ZKNOX_dilithium_utils.sol";
 import {
     q,
