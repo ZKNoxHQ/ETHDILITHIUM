@@ -84,6 +84,12 @@ def table_literal(tbl):
     return ",\n".join("            " + ("uint256(" + hex(x) + ")" if i == 0 else hex(x)) for i, x in enumerate(words))
 
 
+def table_hex(tbl):
+    """the 32 packed words of a table (eight 32-bit fields each), as hex bytes"""
+    words = [sum(tbl[8 * w + j] << (32 * j) for j in range(8)) for w in range(32)]
+    return "".join(format(x, "064x") for x in words)
+
+
 def indent(lines, n):
     pad = " " * n
     return "\n".join(pad + l if l else l for l in lines)
@@ -490,6 +496,20 @@ function _invTableMont() pure returns (uint256 tb) {{
         tb := psirev
     }}
 }}
+
+/// @dev both tables in one constant: forward (32 words) then inverse (32 words),
+///      copied from code once per verify by _tablesMont(); the inverse table
+///      is the forward pointer plus 1,024
+bytes constant _TW_MONT = hex"{table_hex(FWT)}{table_hex(INVT)}";
+
+/// @notice One copy of the twiddle tables: (forward pointer, inverse pointer)
+function _tablesMont() pure returns (uint256 tb, uint256 ti) {{
+    bytes memory t = _TW_MONT;
+    assembly ("memory-safe") {{
+        tb := add(t, 32)
+        ti := add(tb, 1024)
+    }}
+}}
 """
 )
 
@@ -539,10 +559,12 @@ function _fwPassC(uint256[] memory A, uint256 tb, uint256[] memory a) pure {{
     assembly ("memory-safe") {{
         let p := add(A, 32)
         let dst := add(a, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for {{ let i8 := 0 }} lt(i8, 8) {{ i8 := add(i8, 1) }} {{
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
 {indent(sum((fw_inword(k) for k in range(8)), []), 12)}
             p := add(p, 0x100)
             dst := add(dst, 0x400)
@@ -557,10 +579,12 @@ function _fwPassCLazy(uint256[] memory A, uint256 tb, uint256[] memory a) pure {
     assembly ("memory-safe") {{
         let p := add(A, 32)
         let dst := add(a, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for {{ let i8 := 0 }} lt(i8, 8) {{ i8 := add(i8, 1) }} {{
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
 {indent(sum((fw_inword(k, lazy=True) for k in range(8)), []), 12)}
             p := add(p, 0x100)
             dst := add(dst, 0x400)
@@ -583,10 +607,12 @@ function nttFwMont(uint256[] memory a) pure returns (uint256[] memory) {{
 function _fwPassCPacked(uint256[] memory A, uint256 tb) pure {{
     assembly ("memory-safe") {{
         let p := add(A, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for {{ let i8 := 0 }} lt(i8, 8) {{ i8 := add(i8, 1) }} {{
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
 {indent(sum((fw_inword(k, lazy="packed") for k in range(8)), []), 12)}
             p := add(p, 0x100)
         }}
@@ -654,10 +680,12 @@ function _invPassC(uint256[] memory a, uint256 tb) pure returns (uint256[] memor
     assembly ("memory-safe") {{
         let p := add(a, 32)
         let dst := add(A, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for {{ let i8 := 0 }} lt(i8, 8) {{ i8 := add(i8, 1) }} {{
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
 {indent(sum((inv_inword(k) for k in range(8)), []), 12)}
             p := add(p, 0x400)
             dst := add(dst, 0x100)
@@ -703,10 +731,12 @@ function _invPassA(uint256[] memory A, uint256[] memory a) pure {{
 function _invPassCRaw(uint256[] memory A, uint256 tb) pure {{
     assembly ("memory-safe") {{
         let dst := add(A, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for {{ let i8 := 0 }} lt(i8, 8) {{ i8 := add(i8, 1) }} {{
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
 {indent(sum((inv_inword(k, raw=True) for k in range(8)), []), 12)}
             dst := add(dst, 0x100)
         }}
@@ -749,6 +779,39 @@ function nttInvMont(uint256[] memory a) pure returns (uint256[] memory) {{
 """
 )
 
+
+# running twiddle pointers of the in-word passes: advance them at the end of
+# every octet loop that reads them (the radix-8 passes do not)
+def _advance_tw(text):
+    """insert the pointer advances just before the closing brace of the octet loop
+    that contains each `mstore(0, mload(tw0))` (brace-matched from the loop body)"""
+    marker = "mstore(0, mload(tw0))"
+    pos = 0
+    while True:
+        i = text.find(marker, pos)
+        if i < 0:
+            return text
+        # walk forward to the closing brace of the enclosing loop body: depth 0 = the
+        # loop body level, so the first "}" that brings the depth to -1 closes the loop
+        d = 0
+        k = i
+        while True:
+            c = text[k]
+            if c == "{":
+                d += 1
+            elif c == "}":
+                if d == 0:
+                    break
+                d -= 1
+            k += 1
+        # k points at the loop's closing brace; its line starts after the previous newline
+        line_start = text.rfind("\n", 0, k) + 1
+        ins = "            tw0 := add(tw0, 32)\n            tw1 := add(tw1, 64)\n"
+        text = text[:line_start] + ins + text[line_start:]
+        pos = k + len(ins) + 1
+
+
+out = [_advance_tw(t) for t in out]
 
 # ---------------------------------------------------------------------------
 # Merged transforms for the verifier: the three passes in ONE assembly block.
@@ -806,6 +869,29 @@ function nttFwMontPackedFused(uint256[] memory A) pure returns (uint256[] memory
 /// @notice nttInvMontPackedRaw with the three passes in one assembly block.
 function nttInvMontPackedRawFused(uint256[] memory A) pure returns (uint256[] memory) {{
     uint256 tb = _invTableMont();
+    assembly ("memory-safe") {{
+        {{{INV_MERGED}
+        }}
+    }}
+    return A;
+}}
+"""
+)
+
+out.append(
+    f"""
+/// @notice nttFwMontPackedFused with the forward table pointer supplied
+///         (one table copy per verify, see _tablesMont)
+function nttFwMontPackedFusedTb(uint256[] memory A, uint256 tb) pure returns (uint256[] memory) {{
+    assembly ("memory-safe") {{
+        {{{FW_MERGED}
+        }}
+    }}
+    return A;
+}}
+
+/// @notice nttInvMontPackedRawFused with the inverse table pointer supplied
+function nttInvMontPackedRawFusedTb(uint256[] memory A, uint256 tb) pure returns (uint256[] memory) {{
     assembly ("memory-safe") {{
         {{{INV_MERGED}
         }}

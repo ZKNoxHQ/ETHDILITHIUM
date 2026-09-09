@@ -34,10 +34,7 @@
 pragma solidity ^0.8.25;
 
 import {q, PubKey, Signature} from "./ZKNOX_dilithium_utils.sol";
-import {
-    nttFwMontPackedFused as nttFwMontPackedInPlace,
-    nttInvMontPackedRawFused as nttInvMontPackedRaw
-} from "./ZKNOX_NTT_dilithium_mont.sol";
+import {nttFwMontPackedFusedTb, nttInvMontPackedRawFusedTb, _tablesMont} from "./ZKNOX_NTT_dilithium_mont.sol";
 
 error BadPubKeyBlob();
 error BadLength();
@@ -560,14 +557,16 @@ function dilithiumCore2Packed(PubKey memory pk, uint256[][] memory zp, uint256[]
     pure
     returns (bytes memory wPrimeBytes)
 {
+    // the twiddle tables are copied from code once for the nine transforms
+    (uint256 tb, uint256 ti) = _tablesMont();
     uint256[][] memory zHat = zp;
     for (uint256 j = 0; j < 4; j++) {
-        nttFwMontPackedInPlace(zp[j]);
+        nttFwMontPackedFusedTb(zp[j], tb);
     }
-    uint256[] memory cHat = nttFwMontPackedInPlace(c);
+    uint256[] memory cHat = nttFwMontPackedFusedTb(c, tb);
     uint256[][] memory w = new uint256[][](4);
     for (uint256 i = 0; i < 4; i++) {
-        w[i] = nttInvMontPackedRaw(_matvecRowPacked(pk.aHat[i], zHat, cHat, pk.t1[i]));
+        w[i] = nttInvMontPackedRawFusedTb(_matvecRowPacked(pk.aHat[i], zHat, cHat, pk.t1[i]), ti);
     }
     wPrimeBytes = useHintPacked(hintMasks, w);
 }

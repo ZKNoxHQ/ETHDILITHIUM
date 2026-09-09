@@ -192,6 +192,10 @@ problème revient.
 - Règle pour la suite : tout noyau qui répète une constante de 32 octets se
   mesure dans le contrat final, pas isolément ; un `grep codecopy` dans
   `forge inspect <contrat> asm` détecte la matérialisation.
+- Règle d'écriture (ETHFALCON, ADR-005) : une boucle avance ses pointeurs
+  de la taille de son pas et ne recalcule pas une adresse depuis un
+  compteur ; les tables constantes se copient une fois par vérification,
+  pas une fois par transformée.
 
 **Mesuré et refusé**
 Lecture de clé en flux (+600), matvec sur lanes séparées (+26 k), passes

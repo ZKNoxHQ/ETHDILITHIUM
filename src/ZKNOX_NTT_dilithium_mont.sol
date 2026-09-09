@@ -135,6 +135,21 @@ function _invTableMont() pure returns (uint256 tb) {
     }
 }
 
+/// @dev both tables in one constant: forward (32 words) then inverse (32 words),
+///      copied from code once per verify by _tablesMont(); the inverse table
+///      is the forward pointer plus 1,024
+bytes constant _TW_MONT =
+    hex"00071e24007281290074011900039e440077f50400581103000064f7000000010028e527002f7a490053db0a002f9a75005ff480007a64ae0023e92b001bde2b005fb37c0027f968006ecaa100777d910036b788006f65a5000fa07000299658000445c5003d3201007f9423001ad035004ddc99006a84f80044fae8005f8dd7003bbeaf005927d50049102d006685040035dec5002ef4cd0001762000294a670077a55e0023d69c007b4a4e0036040000541e4200368a9600516e7d0044f5860038738c0067745d005f36180035843f00458f5a00357e1e0066cad70065f23e00552f2e001f9d540058dc31003b8534003b3853000e8f7600081b9a000c63a8007bb17500503ee1004eb2ea003fd54c003ac6ef0057a93000137eb9002ee3f1003f7288006ef1f50052589c002ae59b0045a6d4001d90a2001ef256002648b4004cff12002592ec000296d800773e9e0052aca9001187ba00075d59001751020031b859004e48170003978f001a7e79004f16c1001e54e6004aa58200404ce8005bd532006c09d100400c7e0035225e005d787a005b63d0001b4827005884cc00337caa002ca4f8006d285c003b882000097a6c002e534c00258ecb006bc4d30078de660075e82600234a86004af6700055795d0028f186005585360014b2a0001a9e7b005dbecb00628b3400459b7e005bf3da000f6e17007adf590005528c002a4e78007ef8f50064b5fe002898380069a8ef00574b3c006257c5000006d9004728af004dc04e005cd5b400437ff800435e870009b7ff000154a800120a230046829800437f3100185d960061ab98005a6d80000f66d5000c8d0d007f735d005a68b0007c0db30009b4340049b0e300465d8d0028de06004bd57900662960004f5859007bc7590048c39b00246e39006585910021762a0064d3d500409ba9007faf800013232e002854240030c31c00454df20012eb670023092300392db2005e061e006be1cc00095b76006b33750026587a007e832c00022a0b002dbfcb005ea06c007361b8006330bb001f1d68004ae53c003da60400628c370078e00d0056038e00080e6d006de0240008f2010060d772005ba4ff00201fc600671ac70063e1e30074d0bd006dbfd40007c017006a9dfa002603bd001e6d3e0069568800427e23000b7009003f4cf50058018c002decd4002867ba007ab60d00519573004c76c80011c14e001ef20600196926001a4b5d0067395700273333003cbd3700741e780008526000034760003352d6002e1669006af66c007fb19a003cf42f0068c559000223d400345824000d1ff000776d0b0007c0f1006f0a11002f63160079e1fe002ca5e60065adb30051e0ed005e69420023fc65002faa32005e88850074b6d70010170e0073f1ce001cfe1400464ade00433aac0035e1dd007b4064007c41bd000bdee8000d5ed80078c1dd0027cefe0007eafd007f7b0a00000001006401d6005bf6d600057b53001feb810050458c002c04f7005065b80056fada0020522a003ae51900155b090032036800650fcc00004bde0042ae00007b9a3c005649a900703f9100107a5c0049287900086270001115600057e69900202c8500737c590077c4670071508b0044a7ae00445acd002703d0006042ad002ab0d30019edc30019152a004a61e3003a50a7004a5bc20020a9e900186ba400476c75003aea7b002e71840049556b002bc1bf0049dc01000495b3005c096500083aa30056959a007e69e10050eb34004a013c00195afd0036cfd40026b82c00442152007a8d75000500a8007071ea0023ec27003a4483001d54cd0022213600654186006b2d61002a5acb0056ee7b002a66a40034e991005c957b0009f7db0007019b00141b2e005a513600518cb500766595004457e10012b7a500533b09004c635700275b35006497da00247c3100226787004abda3003fd3830013d63000240acf003f931900353a7f00618b1b0030c94000656188007c4872003197ea004e27a800688eff007882a8006e5847002d33580008a163007d4929005a4d150032e0ef0059974d0060edab00624f5f003a392d0054fa66002d87650010ee0c00406d790050fc10006c6148002836d10045191200400ab500312d17002fa12000042e8c00049f9d0049fe24003ca555003995230062e1ed000bee33006fc8f3000b292a0021577c005035cf005be39c002176bf002dff14001a324e00533a1b0005fe0300507ceb0010d5f000781f10000872f60072c011004b87dd007dbc2d00171aa80042ebd200002e670014e9950051c998004c8d2b007c98a100778da1000bc189004322ca0058acce0018a6aa006594a4006676db0060edfb006e1eb300336939002e4a8e000529f4005778470051f32d0027de750040930c00746ff8003d61de00168979006172c30059dc440015420700781fea0012202d000b0f44001bfe1e0018c53a005fc03b00243b02001f088f0076ee000011ffdd0077d1940029dc730006fff4001d53ca004239fd0034fac50060c299001caf46000c7e4900213f9500522036007db5f600015cd5005987870014ac8c0076848b0013fe350021d9e30046b24f005cd6de006cf49a003a920f004f1ce500578bdd006cbcd300003081003f4458001b0c2c005e69d7001a5a70005b71c800371c66000418a8003087a80019b6a100340a88005701fb0039827400362f1e00762bcd0003d24e0025775100006ca4007352f40070792c00257281001e34690067826b003c60d000395d69006dd5de007e8b5900762802003c817a003c600900230a4d00321fb30038b752007fd928001d883c002894c500163712005747c9001b2a030000e70c00559189";
+
+/// @notice One copy of the twiddle tables: (forward pointer, inverse pointer)
+function _tablesMont() pure returns (uint256 tb, uint256 ti) {
+    bytes memory t = _TW_MONT;
+    assembly ("memory-safe") {
+        tb := add(t, 32)
+        ti := add(tb, 1024)
+    }
+}
+
 /// @dev Forward pass A: t = 128, 64, 32 on the octets (i, i+8, ..., i+56),
 ///      read from the expanded array `a` (coefficient 4w+j at word 4w+j) and
 ///      packed on the fly; twiddles psirev[1..7] as literals. Returns the
@@ -365,10 +380,12 @@ function _fwPassC(uint256[] memory A, uint256 tb, uint256[] memory a) pure {
     assembly ("memory-safe") {
         let p := add(A, 32)
         let dst := add(a, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
             {
                 let W := mload(p)
                 let l0 := and(W, _L64)
@@ -531,6 +548,8 @@ function _fwPassC(uint256[] memory A, uint256 tb, uint256[] memory a) pure {
             }
             p := add(p, 0x100)
             dst := add(dst, 0x400)
+            tw0 := add(tw0, 32)
+            tw1 := add(tw1, 64)
         }
     }
 }
@@ -542,10 +561,12 @@ function _fwPassCLazy(uint256[] memory A, uint256 tb, uint256[] memory a) pure {
     assembly ("memory-safe") {
         let p := add(A, 32)
         let dst := add(a, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
             {
                 let W := mload(p)
                 let l0 := and(W, _L64)
@@ -708,6 +729,8 @@ function _fwPassCLazy(uint256[] memory A, uint256 tb, uint256[] memory a) pure {
             }
             p := add(p, 0x100)
             dst := add(dst, 0x400)
+            tw0 := add(tw0, 32)
+            tw1 := add(tw1, 64)
         }
     }
 }
@@ -727,10 +750,12 @@ function nttFwMont(uint256[] memory a) pure returns (uint256[] memory) {
 function _fwPassCPacked(uint256[] memory A, uint256 tb) pure {
     assembly ("memory-safe") {
         let p := add(A, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
             {
                 let W := mload(p)
                 let l0 := and(W, _L64)
@@ -876,6 +901,8 @@ function _fwPassCPacked(uint256[] memory A, uint256 tb) pure {
                 mstore(add(p, 0xe0), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
             }
             p := add(p, 0x100)
+            tw0 := add(tw0, 32)
+            tw1 := add(tw1, 64)
         }
     }
 }
@@ -1004,10 +1031,12 @@ function _invPassC(uint256[] memory a, uint256 tb) pure returns (uint256[] memor
     assembly ("memory-safe") {
         let p := add(a, 32)
         let dst := add(A, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
             {
                 let l0 := mload(p)
                 let l1 := mload(add(p, 0x20))
@@ -1178,6 +1207,8 @@ function _invPassC(uint256[] memory a, uint256 tb) pure returns (uint256[] memor
             }
             p := add(p, 0x400)
             dst := add(dst, 0x100)
+            tw0 := add(tw0, 32)
+            tw1 := add(tw1, 64)
         }
     }
 }
@@ -1408,10 +1439,12 @@ function _invPassA(uint256[] memory A, uint256[] memory a) pure {
 function _invPassCRaw(uint256[] memory A, uint256 tb) pure {
     assembly ("memory-safe") {
         let dst := add(A, 32)
+        let tw0 := add(tb, 256)
+        let tw1 := add(tb, 512)
         for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-            mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-            let w1a := mload(add(tb, add(512, shl(6, i8))))
-            let w1b := mload(add(tb, add(544, shl(6, i8))))
+            mstore(0, mload(tw0))
+            let w1a := mload(tw1)
+            let w1b := mload(add(tw1, 32))
             {
                 let l3 := mload(dst)
                 let l0 := and(l3, _L64)
@@ -1589,6 +1622,8 @@ function _invPassCRaw(uint256[] memory A, uint256 tb) pure {
                 )
             }
             dst := add(dst, 0x100)
+            tw0 := add(tw0, 32)
+            tw1 := add(tw1, 64)
         }
     }
 }
@@ -1890,10 +1925,12 @@ function nttFwMontPackedFused(uint256[] memory A) pure returns (uint256[] memory
         }
         {
             let p := add(A, 32)
+            let tw0 := add(tb, 256)
+            let tw1 := add(tb, 512)
             for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-                mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-                let w1a := mload(add(tb, add(512, shl(6, i8))))
-                let w1b := mload(add(tb, add(544, shl(6, i8))))
+                mstore(0, mload(tw0))
+                let w1a := mload(tw1)
+                let w1b := mload(add(tw1, 32))
                 {
                     let W := mload(p)
                     let l0 := and(W, _L64)
@@ -2039,6 +2076,8 @@ function nttFwMontPackedFused(uint256[] memory A) pure returns (uint256[] memory
                     mstore(add(p, 0xe0), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
                 }
                 p := add(p, 0x100)
+                tw0 := add(tw0, 32)
+                tw1 := add(tw1, 64)
             }
         }
     }
@@ -2051,10 +2090,12 @@ function nttInvMontPackedRawFused(uint256[] memory A) pure returns (uint256[] me
     assembly ("memory-safe") {
         {
             let dst := add(A, 32)
+            let tw0 := add(tb, 256)
+            let tw1 := add(tb, 512)
             for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
-                mstore(0, mload(add(tb, add(256, shl(5, i8)))))
-                let w1a := mload(add(tb, add(512, shl(6, i8))))
-                let w1b := mload(add(tb, add(544, shl(6, i8))))
+                mstore(0, mload(tw0))
+                let w1a := mload(tw1)
+                let w1b := mload(add(tw1, 32))
                 {
                     let l3 := mload(dst)
                     let l0 := and(l3, _L64)
@@ -2232,6 +2273,721 @@ function nttInvMontPackedRawFused(uint256[] memory A) pure returns (uint256[] me
                     )
                 }
                 dst := add(dst, 0x100)
+                tw0 := add(tw0, 32)
+                tw1 := add(tw1, 64)
+            }
+        }
+        {
+            let p := add(A, 32)
+            let m32 := _M32
+            for { let b := 0 } lt(b, 8) { b := add(b, 1) } {
+                mstore(
+                    0,
+                    or(
+                        or(
+                            and(shr(shl(5, b), mload(add(tb, 32))), 0xffffffff),
+                            shl(
+                                32,
+                                and(
+                                    shr(shl(6, and(b, 3)), mload(add(tb, add(64, shl(5, shr(2, b)))))),
+                                    0xffffffffffffffff
+                                )
+                            )
+                        ),
+                        shl(96, shr(shl(7, and(b, 1)), mload(add(tb, add(128, shl(5, shr(1, b)))))))
+                    )
+                )
+                let b0, b1, b2, b3
+                {
+                    let u := mload(p)
+                    let v := mload(add(p, 0x20))
+                    let t := mul(sub(add(u, _Q4_1), v), and(shr(96, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    u := add(u, v)
+                    v := mload(add(p, 0x40))
+                    let w := mload(add(p, 0x60))
+                    let s := mul(sub(add(v, _Q4_1), w), and(shr(128, mload(0)), 0xffffffff))
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    v := add(v, w)
+                    w := mul(sub(add(u, _Q4_2), v), and(shr(32, mload(0)), 0xffffffff))
+                    w := add(w, mul(and(mul(and(w, m32), _QINV), m32), 8380417))
+                    w := shr(32, w)
+                    b0 := add(u, v)
+                    b2 := w
+                    w := mul(sub(add(t, _Q4_2), s), and(shr(32, mload(0)), 0xffffffff))
+                    w := add(w, mul(and(mul(and(w, m32), _QINV), m32), 8380417))
+                    w := shr(32, w)
+                    b1 := add(t, s)
+                    b3 := w
+                }
+                {
+                    let u := mload(add(p, 0x80))
+                    let v := mload(add(p, 0xa0))
+                    let t := mul(sub(add(u, _Q4_1), v), and(shr(160, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    u := add(u, v)
+                    v := mload(add(p, 0xc0))
+                    let w := mload(add(p, 0xe0))
+                    let s := mul(sub(add(v, _Q4_1), w), and(shr(192, mload(0)), 0xffffffff))
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    v := add(v, w)
+                    w := mul(sub(add(u, _Q4_2), v), and(shr(64, mload(0)), 0xffffffff))
+                    w := add(w, mul(and(mul(and(w, m32), _QINV), m32), 8380417))
+                    w := shr(32, w)
+                    u := add(u, v)
+                    v := mul(sub(add(t, _Q4_2), s), and(shr(64, mload(0)), 0xffffffff))
+                    v := add(v, mul(and(mul(and(v, m32), _QINV), m32), 8380417))
+                    v := shr(32, v)
+                    t := add(t, s)
+                    s := mul(sub(add(b0, _Q4_4), u), and(mload(0), 0xffffffff))
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    mstore(add(p, 0x80), s)
+                    mstore(p, add(b0, u))
+                    s := mul(sub(add(b1, _Q4_4), t), and(mload(0), 0xffffffff))
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    mstore(add(p, 0xa0), s)
+                    mstore(add(p, 0x20), add(b1, t))
+                    s := mul(sub(add(b2, _Q4_4), w), and(mload(0), 0xffffffff))
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    mstore(add(p, 0xc0), s)
+                    mstore(add(p, 0x40), add(b2, w))
+                    s := mul(sub(add(b3, _Q4_4), v), and(mload(0), 0xffffffff))
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    mstore(add(p, 0xe0), s)
+                    mstore(add(p, 0x60), add(b3, v))
+                }
+                p := add(p, 0x100)
+            }
+        }
+        {
+            let p := add(A, 32)
+            let m32 := _M32
+            for { let i := 0 } lt(i, 8) { i := add(i, 1) } {
+                let b0, b1, b2, b3
+                {
+                    let u := mload(p)
+                    let v := mload(add(p, 0x100))
+                    let t := mul(sub(add(u, _Q4_8), v), 0x78c1dd)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    u := add(u, v)
+                    v := mload(add(p, 0x200))
+                    let w := mload(add(p, 0x300))
+                    let s := mul(sub(add(v, _Q4_8), w), 0xd5ed8)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    v := add(v, w)
+                    w := mul(sub(add(u, _Q4_16), v), 0x7eafd)
+                    w := add(w, mul(and(mul(and(w, m32), _QINV), m32), 8380417))
+                    w := shr(32, w)
+                    b0 := add(u, v)
+                    b2 := w
+                    w := mul(sub(add(t, _Q4_16), s), 0x7eafd)
+                    w := add(w, mul(and(mul(and(w, m32), _QINV), m32), 8380417))
+                    w := shr(32, w)
+                    b1 := add(t, s)
+                    b3 := w
+                }
+                {
+                    let u := mload(add(p, 0x400))
+                    let v := mload(add(p, 0x500))
+                    let t := mul(sub(add(u, _Q4_8), v), 0xbdee8)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    u := add(u, v)
+                    v := mload(add(p, 0x600))
+                    let w := mload(add(p, 0x700))
+                    let s := mul(sub(add(v, _Q4_8), w), 0x7c41bd)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    v := add(v, w)
+                    w := mul(sub(add(u, _Q4_16), v), 0x27cefe)
+                    w := add(w, mul(and(mul(and(w, m32), _QINV), m32), 8380417))
+                    w := shr(32, w)
+                    u := add(u, v)
+                    v := mul(sub(add(t, _Q4_16), s), 0x27cefe)
+                    v := add(v, mul(and(mul(and(v, m32), _QINV), m32), 8380417))
+                    v := shr(32, v)
+                    t := add(t, s)
+                    s := mul(sub(add(b0, _Q4_32), u), 0x7b60bc)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x400), s)
+                    s := mul(add(b0, u), 0x3ffe)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(p, s)
+                    s := mul(sub(add(b1, _Q4_32), t), 0x7b60bc)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x500), s)
+                    s := mul(add(b1, t), 0x3ffe)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x100), s)
+                    s := mul(sub(add(b2, _Q4_32), w), 0x7b60bc)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x600), s)
+                    s := mul(add(b2, w), 0x3ffe)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x200), s)
+                    s := mul(sub(add(b3, _Q4_32), v), 0x7b60bc)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x700), s)
+                    s := mul(add(b3, v), 0x3ffe)
+                    s := add(s, mul(and(mul(and(s, m32), _QINV), m32), 8380417))
+                    s := shr(32, s)
+                    s := sub(s, mul(shr(23, and(add(s, _C23), _H23)), 8380417))
+                    mstore(add(p, 0x300), s)
+                }
+                p := add(p, 0x20)
+            }
+        }
+    }
+    return A;
+}
+
+/// @notice nttFwMontPackedFused with the forward table pointer supplied
+///         (one table copy per verify, see _tablesMont)
+function nttFwMontPackedFusedTb(uint256[] memory A, uint256 tb) pure returns (uint256[] memory) {
+    assembly ("memory-safe") {
+        {
+            let p := add(A, 32)
+            let m32 := _M32
+            for { let i := 0 } lt(i, 8) { i := add(i, 1) } {
+                let c0, c2, c4, c6
+                {
+                    let u0 := mload(p)
+                    let t := mul(mload(add(p, 0x400)), 0x64f7)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a0 := add(u0, t)
+                    u0 := sub(add(u0, _Q4_2), t)
+                    let u2 := mload(add(p, 0x200))
+                    t := mul(mload(add(p, 0x600)), 0x64f7)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a2 := add(u2, t)
+                    u2 := sub(add(u2, _Q4_2), t)
+                    t := mul(a2, 0x581103)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    c0 := add(a0, t)
+                    c2 := sub(add(a0, _Q4_2), t)
+                    t := mul(u2, 0x77f504)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    c4 := add(u0, t)
+                    c6 := sub(add(u0, _Q4_2), t)
+                }
+                {
+                    let u1 := mload(add(p, 0x100))
+                    let t := mul(mload(add(p, 0x500)), 0x64f7)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a1 := add(u1, t)
+                    let b1 := sub(add(u1, _Q4_2), t)
+                    u1 := mload(add(p, 0x300))
+                    t := mul(mload(add(p, 0x700)), 0x64f7)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a3 := add(u1, t)
+                    u1 := sub(add(u1, _Q4_2), t)
+                    t := mul(a3, 0x581103)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    a3 := sub(add(a1, _Q4_2), t)
+                    a1 := add(a1, t)
+                    t := mul(u1, 0x77f504)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    u1 := sub(add(b1, _Q4_2), t)
+                    b1 := add(b1, t)
+                    t := mul(a1, 0x39e44)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(p, add(c0, t))
+                    mstore(add(p, 0x100), sub(add(c0, _Q4_2), t))
+                    t := mul(a3, 0x740119)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(add(p, 0x200), add(c2, t))
+                    mstore(add(p, 0x300), sub(add(c2, _Q4_2), t))
+                    t := mul(b1, 0x728129)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(add(p, 0x400), add(c4, t))
+                    mstore(add(p, 0x500), sub(add(c4, _Q4_2), t))
+                    t := mul(u1, 0x71e24)
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(add(p, 0x600), add(c6, t))
+                    mstore(add(p, 0x700), sub(add(c6, _Q4_2), t))
+                }
+                p := add(p, 0x20)
+            }
+        }
+        {
+            let p := add(A, 32)
+            let m32 := _M32
+            for { let b := 0 } lt(b, 8) { b := add(b, 1) } {
+                mstore(
+                    0,
+                    or(
+                        or(
+                            and(shr(shl(5, b), mload(add(tb, 32))), 0xffffffff),
+                            shl(
+                                32,
+                                and(
+                                    shr(shl(6, and(b, 3)), mload(add(tb, add(64, shl(5, shr(2, b)))))),
+                                    0xffffffffffffffff
+                                )
+                            )
+                        ),
+                        shl(96, shr(shl(7, and(b, 1)), mload(add(tb, add(128, shl(5, shr(1, b)))))))
+                    )
+                )
+                let c0, c2, c4, c6
+                {
+                    let u0 := mload(p)
+                    let t := mul(mload(add(p, 0x80)), and(mload(0), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a0 := add(u0, t)
+                    u0 := sub(add(u0, _Q4_2), t)
+                    let u2 := mload(add(p, 0x40))
+                    t := mul(mload(add(p, 0xc0)), and(mload(0), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a2 := add(u2, t)
+                    u2 := sub(add(u2, _Q4_2), t)
+                    t := mul(a2, and(shr(32, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    c0 := add(a0, t)
+                    c2 := sub(add(a0, _Q4_2), t)
+                    t := mul(u2, and(shr(64, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    c4 := add(u0, t)
+                    c6 := sub(add(u0, _Q4_2), t)
+                }
+                {
+                    let u1 := mload(add(p, 0x20))
+                    let t := mul(mload(add(p, 0xa0)), and(mload(0), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a1 := add(u1, t)
+                    let b1 := sub(add(u1, _Q4_2), t)
+                    u1 := mload(add(p, 0x60))
+                    t := mul(mload(add(p, 0xe0)), and(mload(0), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    let a3 := add(u1, t)
+                    u1 := sub(add(u1, _Q4_2), t)
+                    t := mul(a3, and(shr(32, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    a3 := sub(add(a1, _Q4_2), t)
+                    a1 := add(a1, t)
+                    t := mul(u1, and(shr(64, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    u1 := sub(add(b1, _Q4_2), t)
+                    b1 := add(b1, t)
+                    t := mul(a1, and(shr(96, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(p, add(c0, t))
+                    mstore(add(p, 0x20), sub(add(c0, _Q4_2), t))
+                    t := mul(a3, and(shr(128, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(add(p, 0x40), add(c2, t))
+                    mstore(add(p, 0x60), sub(add(c2, _Q4_2), t))
+                    t := mul(b1, and(shr(160, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(add(p, 0x80), add(c4, t))
+                    mstore(add(p, 0xa0), sub(add(c4, _Q4_2), t))
+                    t := mul(u1, and(shr(192, mload(0)), 0xffffffff))
+                    t := add(t, mul(and(mul(and(t, m32), _QINV), m32), 8380417))
+                    t := shr(32, t)
+                    mstore(add(p, 0xc0), add(c6, t))
+                    mstore(add(p, 0xe0), sub(add(c6, _Q4_2), t))
+                }
+                p := add(p, 0x100)
+            }
+        }
+        {
+            let p := add(A, 32)
+            let tw0 := add(tb, 256)
+            let tw1 := add(tb, 512)
+            for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
+                mstore(0, mload(tw0))
+                let w1a := mload(tw1)
+                let w1b := mload(add(tw1, 32))
+                {
+                    let W := mload(p)
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(mload(0), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(w1a, 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(32, w1a), 0xffffffff), 8380417)
+                    mstore(p, or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0x20))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(32, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(shr(64, w1a), 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(96, w1a), 0xffffffff), 8380417)
+                    mstore(add(p, 0x20), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0x40))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(64, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(shr(128, w1a), 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(160, w1a), 0xffffffff), 8380417)
+                    mstore(add(p, 0x40), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0x60))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(96, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(shr(192, w1a), 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(224, w1a), 0xffffffff), 8380417)
+                    mstore(add(p, 0x60), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0x80))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(128, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(w1b, 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(32, w1b), 0xffffffff), 8380417)
+                    mstore(add(p, 0x80), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0xa0))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(160, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(shr(64, w1b), 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(96, w1b), 0xffffffff), 8380417)
+                    mstore(add(p, 0xa0), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0xc0))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(192, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(shr(128, w1b), 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(160, w1b), 0xffffffff), 8380417)
+                    mstore(add(p, 0xc0), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                {
+                    let W := mload(add(p, 0xe0))
+                    let l0 := and(W, _L64)
+                    let l1 := and(shr(64, W), _L64)
+                    let l2 := and(shr(128, W), _L64)
+                    let l3 := shr(192, W)
+                    W := and(shr(224, mload(0)), 0xffffffff)
+                    let v := mulmod(l2, W, 8380417)
+                    l2 := sub(add(l0, 8380417), v)
+                    l0 := add(l0, v)
+                    v := mulmod(l3, W, 8380417)
+                    l3 := sub(add(l1, 8380417), v)
+                    l1 := add(l1, v)
+                    v := mulmod(l1, and(shr(192, w1b), 0xffffffff), 8380417)
+                    l1 := or(add(l0, v), shl(64, sub(add(l0, 16760834), v)))
+                    v := mulmod(l3, and(shr(224, w1b), 0xffffffff), 8380417)
+                    mstore(add(p, 0xe0), or(l1, or(shl(128, add(l2, v)), shl(192, sub(add(l2, 16760834), v)))))
+                }
+                p := add(p, 0x100)
+                tw0 := add(tw0, 32)
+                tw1 := add(tw1, 64)
+            }
+        }
+    }
+    return A;
+}
+
+/// @notice nttInvMontPackedRawFused with the inverse table pointer supplied
+function nttInvMontPackedRawFusedTb(uint256[] memory A, uint256 tb) pure returns (uint256[] memory) {
+    assembly ("memory-safe") {
+        {
+            let dst := add(A, 32)
+            let tw0 := add(tb, 256)
+            let tw1 := add(tb, 512)
+            for { let i8 := 0 } lt(i8, 8) { i8 := add(i8, 1) } {
+                mstore(0, mload(tw0))
+                let w1a := mload(tw1)
+                let w1b := mload(add(tw1, 32))
+                {
+                    let l3 := mload(dst)
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(w1a, 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(32, w1a), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(mload(0), 0xffffffff)
+                    mstore(
+                        dst,
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0x20))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(shr(64, w1a), 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(96, w1a), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(32, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0x20),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0x40))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(shr(128, w1a), 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(160, w1a), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(64, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0x40),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0x60))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(shr(192, w1a), 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(224, w1a), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(96, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0x60),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0x80))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(w1b, 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(32, w1b), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(128, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0x80),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0xa0))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(shr(64, w1b), 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(96, w1b), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(160, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0xa0),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0xc0))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(shr(128, w1b), 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(160, w1b), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(192, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0xc0),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                {
+                    let l3 := mload(add(dst, 0xe0))
+                    let l0 := and(l3, _L64)
+                    let l1 := and(shr(64, l3), _L64)
+                    let d0 := mulmod(sub(add(l0, 8998404235460608), l1), and(shr(192, w1b), 0xffffffff), 8380417)
+                    l0 := addmod(l0, l1, 8380417)
+                    l1 := and(shr(128, l3), _L64)
+                    l3 := shr(192, l3)
+                    let d1 := mulmod(sub(add(l1, 8998404235460608), l3), and(shr(224, w1b), 0xffffffff), 8380417)
+                    l1 := addmod(l1, l3, 8380417)
+                    l3 := and(shr(224, mload(0)), 0xffffffff)
+                    mstore(
+                        add(dst, 0xe0),
+                        or(
+                            or(addmod(l0, l1, 8380417), shl(64, addmod(d0, d1, 8380417))),
+                            or(
+                                shl(128, mulmod(sub(add(l0, 8380417), l1), l3, 8380417)),
+                                shl(192, mulmod(sub(add(d0, 8380417), d1), l3, 8380417))
+                            )
+                        )
+                    )
+                }
+                dst := add(dst, 0x100)
+                tw0 := add(tw0, 32)
+                tw1 := add(tw1, 64)
             }
         }
         {

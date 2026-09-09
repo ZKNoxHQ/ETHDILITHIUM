@@ -36,11 +36,11 @@ make bench
 
 |Signature verification | Gas cost|Status|
 |-|-|-|
-|Dilithium|1.20M (was 8.1M)| :white_check_mark: (NIST MLDSA KAT pass)|
-|ETHDilithium|0.85M (was 4.9M)| :white_check_mark: (MLDSAETH KAT pass)|
+|Dilithium|1.19M (was 8.1M)| :white_check_mark: (NIST MLDSA KAT pass)|
+|ETHDilithium|0.84M (was 4.9M)| :white_check_mark: (MLDSAETH KAT pass)|
 
 Exact figures (`make bench`, solc 0.8.30 via-IR, `optimizer_runs = 1000000`,
-see DECISIONS.md ADR-004): 1,196,707 and 847,709.
+see DECISIONS.md ADR-004): 1,189,532 and 840,309.
 
 |NTT kernel (256 coefficients) | Gas cost|
 |-|-|

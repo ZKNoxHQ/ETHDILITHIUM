@@ -1,5 +1,42 @@
 # VERSION.md — changelog
 
+## [unreleased] — 2026-09-09 — retours des sessions Falcon : tables copiées une fois, pointeurs courants
+
+### Measured (`make bench`, via-IR, `optimizer_runs = 1000000`)
+| Mesure | Avant | **Après** |
+|---|---:|---:|
+| `ZKNOX_dilithium.verify` (NIST) | 1 196 707 | **1 189 532** |
+| `ZKNOX_ethdilithium.verify` (ETH) | 847 709 | **840 309** |
+
+6,81x et 5,75x depuis l'origine. Tailles : 24 383 (marge EIP-170 **193**) et
+20 278. 70/70 tests, profils default et lite.
+
+### Changed (générateur `pythonref/ntt_mont/gen_ntt_mont.py`)
+- Les tables de twiddles (aller puis inverse, 32 mots chacune) sont un seul
+  `bytes constant`, copié depuis le code une fois par vérification
+  (`_tablesMont()`), et les transformées prennent le pointeur
+  (`nttFwMontPackedFusedTb`, `nttInvMontPackedRawFusedTb`). Avant, chacune
+  des neuf transformées reconstruisait sa table de 32 mots à l'entrée. Les
+  entrées autonomes restent pour les tests.
+- Les passes intra-mot avancent leurs pointeurs de twiddles avec l'octet
+  (32 et 64 octets) au lieu de recalculer `shl(5, i8)` / `shl(6, i8)` : plus
+  aucune adresse dérivée d'un compteur dans les transformées, la règle du
+  premier code d'ETHFALCON.
+
+### Ce qui ne transfère pas de Falcon
+- Huit lanes de 32 bits : q = 23 bits, un produit lane × twiddle fait 46
+  bits, quatre lanes de 64 bits sont le maximum.
+- Lanes SHAKE résidentes : les trois hashs du NIST passent déjà par l'entrée
+  groupée du helper (une permutation résidente à l'intérieur d'un seul
+  appel) ; seuls le repli de SampleInBall (2⁻⁴⁰) et la longueur 800 appellent
+  la permutation seule.
+- Norme repliée dans le sampler, lots de quatre candidats : pas de
+  hash-to-point dans ML-DSA.
+- Noyau fusionné transformées intra-mot + produit + inverse intra-mot par mot
+  : ~−8 k estimés, mais neuf corps intra-mot dans une fonction dépassent
+  EIP-170 (marge 193 octets), et une version bouclée demande de garder les
+  cinq mots transformés sous la main ; non fait.
+
 ## [unreleased] — 2026-09-05 (2) — réglages : SampleInBall en Yul, matvec en une passe, hints en un balayage, clé copiée une fois
 
 ### Measured (`make bench`, via-IR, `optimizer_runs = 1000000`)
