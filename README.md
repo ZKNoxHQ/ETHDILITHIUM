@@ -52,6 +52,7 @@ external Keccak-f[1600] helper contract bound by code hash. Measured with
 |Dilithium|1,196,707 (6.8x)| :white_check_mark: (NIST MLDSA KAT pass)|
 |ETHDilithium|847,709 (5.7x)| :white_check_mark: (MLDSAETH KAT pass)|
 |nttFw / nttInv (256 coefficients)|48,152 / 50,881 (was 181,666 / 215,127)| |
+|Dilithium65 (ML-DSA-65)|1.54M| :white_check_mark: (NIST ML-DSA-65 KAT and ACVP sigVer vectors pass)|
 
 For reference, fireblocks-labs/evm-ml-dsa-verifier measures 1,224,368 on
 ML-DSA-44 with the same helper. The NIST variant's constructor takes the
