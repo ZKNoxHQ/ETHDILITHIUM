@@ -298,3 +298,90 @@ function sampleInBallFast(bytes memory cTilde, address helper) view returns (uin
         }
     }
 }
+
+/// @notice SampleInBall (FIPS 204 Alg. 29) for any tau over the helper-backed
+///         SHAKE256, output PACKED (64 words of four 64-bit lanes, coefficient
+///         4w + j in lane j of word w): exactly tau coefficients in {1, q - 1},
+///         the rest 0. Same polynomial as sampleInBallNist(cTilde, tau, q) and
+///         the same byte stream as sampleInBallFast: the first 8 squeezed bytes
+///         are the signs (little-endian), then one byte per draw, rejected
+///         while > i. ML-DSA-65 uses tau = 49 on a 48-byte c~ (expected
+///         8 + 56 bytes of the first block); the second block is squeezed only
+///         if the first is exhausted. tau <= 64 (the sign word has 64 bits).
+function sampleInBallFastTau(bytes memory cTilde, uint256 tau, address helper) view returns (uint256[] memory c) {
+    if (tau > 64) revert BatchUnsupported();
+    // the first 136 squeezed bytes in one batched call (c~ is 32..64 bytes, never 800)
+    bytes memory blk = shake256Batch(cTilde, 136, helper);
+    c = new uint256[](64);
+    uint256 i;
+    uint256 pos;
+    uint256 signs;
+    assembly ("memory-safe") {
+        let blkPtr := add(blk, 32)
+        // sign bits: the first 8 bytes, little-endian
+        for { let b := 0 } lt(b, 8) { b := add(b, 1) } {
+            signs := or(signs, shl(shl(3, b), byte(0, mload(add(blkPtr, b)))))
+        }
+        pos := 8
+        let base := add(c, 32)
+        for { i := sub(256, tau) } lt(i, 256) { i := add(i, 1) } {
+            // draw bytes until one is <= i; leave to the fallback if the block runs out
+            let j := 256
+            for {} and(gt(j, i), lt(pos, 136)) {} {
+                j := byte(0, mload(add(blkPtr, pos)))
+                pos := add(pos, 1)
+            }
+            if gt(j, i) { break }
+            // lane j -> lane i, then lane j := +-1
+            let pj := add(base, shl(5, shr(2, j)))
+            let shj := shl(6, and(j, 3))
+            let vj := and(shr(shj, mload(pj)), 0xffffffffffffffff)
+            let pi := add(base, shl(5, shr(2, i)))
+            let shi := shl(6, and(i, 3))
+            mstore(pi, or(and(mload(pi), not(shl(shi, 0xffffffffffffffff))), shl(shi, vj)))
+            let v := 1
+            if and(signs, 1) { v := 8380416 }
+            mstore(pj, or(and(mload(pj), not(shl(shj, 0xffffffffffffffff))), shl(shj, v)))
+            signs := shr(1, signs)
+        }
+    }
+    if (i < 256) {
+        // first block exhausted (probability ~2^-40 for tau = 39, ~2^-30 for
+        // tau = 49): rebuild the sponge state incrementally and continue with
+        // the next blocks
+        uint256[25] memory st;
+        _absorbFast170(st, cTilde, helper);
+        uint256 blkPtr;
+        assembly ("memory-safe") {
+            blkPtr := add(blk, 32)
+        }
+        for (; i < 256; i++) {
+            uint256 j;
+            while (true) {
+                if (pos == 136) {
+                    f1600Fast170(st, helper);
+                    _squeezeBlockFast170(st, blkPtr);
+                    pos = 0;
+                }
+                assembly ("memory-safe") {
+                    j := byte(0, mload(add(blkPtr, pos)))
+                }
+                pos++;
+                if (j <= i) break;
+            }
+            assembly ("memory-safe") {
+                let base := add(c, 32)
+                let pj := add(base, shl(5, shr(2, j)))
+                let shj := shl(6, and(j, 3))
+                let vj := and(shr(shj, mload(pj)), 0xffffffffffffffff)
+                let pi := add(base, shl(5, shr(2, i)))
+                let shi := shl(6, and(i, 3))
+                mstore(pi, or(and(mload(pi), not(shl(shi, 0xffffffffffffffff))), shl(shi, vj)))
+                let v := 1
+                if and(signs, 1) { v := 8380416 }
+                mstore(pj, or(and(mload(pj), not(shl(shj, 0xffffffffffffffff))), shl(shj, v)))
+                signs := shr(1, signs)
+            }
+        }
+    }
+}

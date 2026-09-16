@@ -12,6 +12,8 @@ via_ir = true
 solc_version = "0.8.30"
 evm_version = "osaka"
 ffi = true
+# test/KAT: NIST vectors read by test/dilithium65_vectors.t.sol
+fs_permissions = [{ access = "read", path = "./test/KAT" }]
 
 [profile.lite]
 optimizer = false

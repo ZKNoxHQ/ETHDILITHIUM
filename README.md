@@ -7,6 +7,8 @@ ETHDILITHIUM gathers experiments around DILITHIUM adaptations for the ETHEREUM e
 The repo implements two version of DILITHIUM: one follows the NIST released implementation, and another is tunned for Ethereum Virtual Machine constraints. 
 TODO write specifications (help with #Issue7).
 
+Two NIST parameter sets are provided: ML-DSA-44 (`src/ZKNOX_dilithium.sol`, security category 2) and ML-DSA-65 (`src/ZKNOX_dilithium65.sol`, category 3), see [ML-DSA-65](#ml-dsa-65) below.
+
 ## INSTALLATION
 **This is an experimental work, not audited: DO NOT USE IN PRODUCTION, LOSS OF FUND WILL OCCUR**
 
@@ -36,11 +38,13 @@ make bench
 
 |Signature verification | Gas cost|Status|
 |-|-|-|
-|Dilithium|1.19M (was 8.1M)| :white_check_mark: (NIST MLDSA KAT pass)|
+|Dilithium (ML-DSA-44)|1.19M (was 8.1M)| :white_check_mark: (NIST MLDSA KAT pass)|
 |ETHDilithium|0.84M (was 4.9M)| :white_check_mark: (MLDSAETH KAT pass)|
+|Dilithium65 (ML-DSA-65)|1.54M| :white_check_mark: (NIST ML-DSA-65 KAT and ACVP sigVer vectors pass)|
 
 Exact figures (`make bench`, solc 0.8.30 via-IR, `optimizer_runs = 1000000`,
-see DECISIONS.md ADR-004): 1,189,532 and 840,309.
+see DECISIONS.md ADR-004): 1,189,532, 840,309 and 1,536,544 (1,544,360 in
+`test/dilithium65KATS.t.sol`, where the key pointers are cold).
 
 |NTT kernel (256 coefficients) | Gas cost|
 |-|-|
@@ -61,6 +65,39 @@ verifier's constructor. See `VERSION.md` and `DECISIONS.md`.
 
 Dilithium is an implementation of the NIST standardized signature scheme, where the public key is expanded in order to save computations.
 ETHDilithium is an alternative version with a cheaper hash function. Precomputations in the public key has been done in order to accelerate the verification. 
+
+## ML-DSA-65
+`src/ZKNOX_dilithium65.sol` verifies ML-DSA-65 (FIPS 204, k = 6, l = 5, tau = 49,
+gamma1 = 2^19, gamma2 = (q-1)/32, omega = 55, 3309-byte signatures) with the
+same machinery as the ML-DSA-44 verifier: the same NTT kernels and packed
+4x64-bit-lane layout, the same SHAKE256 helper binding, the same key blob
+format read in place. What is specific to the parameter set is in
+`src/ZKNOX_dilithium65_core_packed.sol` (20-bit z decode, five-column matvec,
+61-byte hints, 4-bit w1 with the gamma2 = (q-1)/32 Decompose) and
+`src/ZKNOX_shake_fast.sol` (`sampleInBallFastTau`); the scalar references the
+kernels are tested against are in `src/ZKNOX_dilithium65_core.sol`.
+
+* **Key**: the expanded key (A_hat = ExpandA(rho), t1 = NTT(t1 * 2^13), tr) is
+  above the EIP-170 size of one SSTORE2 contract, so `setKey(half0 || half1)`
+  writes two halves (rows 0..2 / 3..5 of A with t1[0..2] / t1[3..5], 20,160
+  bytes each) and returns the two pointer addresses (40 bytes) as `pk`.
+  `js/mldsa65.js` produces the halves from a FIPS 204 public key.
+* **Signer**: JavaScript only, `js/mldsa65.js` / `node js/sign65.js` on
+  `@noble/post-quantum` (see [js/README.md](js/README.md)); the NIST vectors
+  of `test/KAT/` are replayed by `make test_signer65`.
+* **KATs** (`test/KAT/`, as given by NIST): `PQCsignKAT_Dilithium3.rsp`
+  (100 vectors of the reference implementation's `PQCgenKAT_sign`, pq-crystals/dilithium
+  d35ba3f, FIPS 204 ML-DSA-65; count 0 is `test/dilithium65KATS.t.sol`, the
+  first 10 counts go through `test/dilithium65_vectors.t.sol`) and the ACVP
+  `ML-DSA-65` groups of `ML-DSA-{keyGen,sigGen,sigVer}-FIPS204/internalProjection.json`
+  (usnistgov/ACVP-Server 975de31); the 15 sigVer vectors of the external /
+  pure interface (contexts of 0..255 bytes, corrupted z, hints, commitment,
+  modified messages) are checked on-chain with NIST's expected verdicts.
+* **Tests**: `make test_verifier65` (kernel differential and fuzz tests, KAT,
+  NIST vectors), `make bench` includes `MLDSA65`.
+* **Deployment**: `script/deploy_dilithium65.sh` / `DeployDilithium65.s.sol`
+  (needs `F1600_HELPER`, the same Keccak-f[1600] helper as ML-DSA-44; checks
+  the NIST KAT on the deployed verifier). Runtime size 24,272 bytes.
 
 ## EXAMPLE 
 An example of key generation, signature and verification in python is provided in the directory `pythonref/`.

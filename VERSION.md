@@ -1,5 +1,125 @@
 # VERSION.md — changelog
 
+## [unreleased] — 2026-09-16 — ML-DSA-65 (FIPS 204 category 3): verifier, js signer, NIST KATs
+
+### Measured (`make bench`, via-IR, `optimizer_runs = 1000000`, solc 0.8.30)
+| Mesure | ML-DSA-44 | **ML-DSA-65** |
+|---|---:|---:|
+| `verify` (NIST KAT, 33-byte message, empty ctx) | 1 189 532 | **1 536 544** |
+| runtime size (EIP-170 margin) | 24 383 (193) | **24 272 (304)** |
+| `setKey` (two SSTORE2 halves of 20 160 bytes) | — | 8 710 129 |
+| transforms per verify | 9 | 12 |
+
+1.29x the ML-DSA-44 cost (1 544 360 in `test/dilithium65KATS.t.sol`, key
+pointers cold) for 1.88x the matrix (30 polynomials against 16),
+12 transforms against 9, the same three hashes (w1 is 768 bytes in both sets:
+4 bits x 6 polynomials against 6 bits x 4). ML-DSA-44 and ETH figures and
+bytecode unchanged.
+
+### Added
+- `src/ZKNOX_dilithium65.sol` — the verifier. Same shape as `ZKNOX_dilithium`:
+  helper bound by code hash, `setKey`, `verify(pk, m, sig, ctx)` and the
+  `ISigVerifier` `verify(pk, bytes32, sig)`; signature 3309 bytes
+  (c~ 48 || z 3200 || h 61), final hash of 48 bytes (lambda = 192) compared by
+  keccak. Custom errors (`InvalidSignatureLength`, `ContextTooLong`,
+  `BadKeyLength`) instead of the revert strings, calldata parameters (ABI
+  unchanged): the EIP-170 room. **The expanded key does not fit in one
+  SSTORE2 contract** (36 864 bytes of words, 39 937 with the ABI framing,
+  against 24 576; even at 23 bits per coefficient it would be 26 496): the
+  key is two halves of the same shape (rows 0..2 / 3..5 of A, t1[0..2] /
+  t1[3..5], tr in both, 20 160 bytes each), `setKey(half0 || half1)` writes
+  both and `pk` is the two pointers (40 bytes). Found by forge's size check on
+  the broadcast of the deployment script, not by the tests (forge does not
+  enforce EIP-170 on CREATE in tests). +1.4 k on the verify (second
+  `extcodecopy` and header).
+- `src/ZKNOX_dilithium65_core_packed.sol` — the parameter-specific kernels on
+  the packed layout of `ZKNOX_dilithium_core_packed.sol`:
+  - `unpackZPacked65`: 20-bit fields (gamma1 = 2^19), one 10-byte group per
+    packed word, two groups per 20-byte read reversed once; lanes split by two
+    multiplies (masks of fields {0, 2} and {1, 3}, multipliers 1 + 2^88 and
+    2^44 + 2^132); strict bound f in [197, 1 048 379], i.e.
+    ||z||inf < gamma1 - beta = 524 092; z = q + gamma1 - f then canonicalised.
+    Checked in Python for every 20-bit field.
+  - `_matvecRowPacked65`: five columns, one pass, thirteen pointers. Lane
+    bound with 5 columns: 80 q^2 + q 2^28 < 7.87e15 < q 2^30, the offset the
+    inverse transform's folded reduction applies (the lazy forward lanes are
+    < 16q: A/B passes +2q per layer, C +2q then +2q); asserted on the saturated
+    input (every lane 16q - 1, every field q - 1). No shape checks in the row
+    function (EIP-170 room): the reader validates every polynomial of the
+    blobs, `unpackZPacked65` allocates the 5 x 64 words.
+  - `_parseHintBytes65`: 61 bytes, omega = 55, six masks (Alg. 21).
+  - `useHintPacked65`: gamma2 = (q-1)/32, m = 16, so
+    a1 = ((((r + 127) >> 7) 1025 + 2^21) >> 22) & 15 (the & 15 folds 16 -> 0),
+    four 4-bit values per word (two bytes), 6 x 128 bytes. The hinted lanes
+    (<= 55 of 1 536) are adjusted one at a time as scalars: D = r + 2 gamma2 -
+    a1 2 gamma2, a0 > 0 <=> 2 gamma2 < D <= 2 gamma2 + (q-1)/2, +1 or +15 mod
+    16; the lane-parallel branch of ML-DSA-44 (nine 32-byte constants) cost
+    ~280 bytes of code for a path taken on 55 words. Formulation checked
+    exhaustively in Python against Alg. 36 / 40 for every r in [0, q) and both
+    hint values.
+  - `readPubKeyPacked65(pointer0, pointer1)`: the two halves in one loop body,
+    polynomials pointed into the blobs as before.
+- `src/ZKNOX_shake_fast.sol`: `sampleInBallFastTau(cTilde, tau, helper)`,
+  SampleInBall for any tau <= 64 on the batched sponge (tau = 49, 48-byte c~,
+  8 + ~56 bytes of the first block; fallback at ~2^-30). `sampleInBallFast`
+  untouched (the ML-DSA-44 bytecode does not move).
+- `src/ZKNOX_dilithium65_core.sol` — scalar references (unpackH65, unpackZ65,
+  Decompose/UseHint/w1Encode for gamma2 = (q-1)/32, scalar second stage),
+  tests only. `src/ZKNOX_dilithium65_utils.sol` — the parameter set.
+- **js signer** (no python): `js/mldsa65.js` on `@noble/post-quantum`
+  (`ml_dsa65`), `js/ntt_mldsa.js` (FIPS 204 Alg. 41/42, validated by
+  reproducing the ML-DSA-44 KAT's on-chain t1 words), `js/sign65.js` (CLI),
+  `js/kat_rsp.js`, `js/test_mldsa65.js`, `js/gen_test_vectors65.js`.
+  `node js/test_mldsa65.js` replays every NIST vector: ACVP keyGen 25/25,
+  sigGen external/pure 30/30 (deterministic and hedged with NIST's rnd),
+  sigVer external/pure 15/15, the 100 signatures of the .rsp.
+- **KATs, as given by NIST** (`test/KAT/`): `PQCsignKAT_Dilithium3.rsp`
+  (reference implementation pq-crystals/dilithium d35ba3f, `PQCgenKAT_sign`
+  with the NIST AES-256-CTR DRBG, the file the ML-DSA-44 KAT of
+  `test/dilithiumKATS.t.sol` came from — count 0 of `PQCsignKAT_Dilithium2.rsp`,
+  checked byte for byte) and the ML-DSA-65 groups of the ACVP
+  `ML-DSA-{keyGen,sigGen,sigVer}-FIPS204/internalProjection.json`
+  (usnistgov/ACVP-Server 975de31). `test/dilithium65KATS.t.sol` is count 0
+  in the literal form of the ML-DSA-44 test (generated); `test/KAT/
+  mldsa65_vectors.json` holds the 15 ACVP sigVer vectors (contexts 0..255
+  bytes, messages up to 8 KB, 12 corruptions: z, hints, commitment, message),
+  counts 0..9 of the .rsp and three js-signer vectors, each with its on-chain
+  key; `test/dilithium65_vectors.t.sol` runs them (28/28 NIST verdicts) and
+  the bytes32 interface.
+- `test/dilithium65_core_packed.t.sol` (18): z decode against the scalar form
+  on the KAT, random bytes, random in-norm fields, the four boundary values
+  196 / 197 / 1 048 379 / 1 048 380 in every lane, a sweep of 3 840 field
+  values; hint parser on the KAT, six corruptions, random valid encodings of
+  every weight; matvec row fuzz against the scalar path with the lane bound
+  and through the inverse transform, saturated worst case; useHint fuzz at
+  eight hint densities, 24 boundary values of Decompose in every lane, the a1
+  steps against a FIPS transcription; SampleInBall tau = 49 on the KAT and
+  fuzzed 48-byte inputs against `sampleInBallNist`; full second stage packed
+  against scalar on the KAT; key halves of ten wrong shapes rejected.
+- `script/DeployDilithium65.s.sol`, `script/deploy_dilithium65.sh`: deploys
+  the verifier bound to `F1600_HELPER` and verifies the NIST KAT on it (the
+  key through `setKey`). Run against anvil: 5 253 391 gas for the verifier,
+  8 710 129 for the key, KAT true.
+- `test/benchmarks.t.sol`: `testMLDSA65` (KAT key and signature from
+  `test/KAT/mldsa65_kat0.json`, no python). `foundry.toml`: read permission
+  on `test/KAT`. `makefile`: `gen_test_vectors65`, `test_signer65`,
+  `test_verifier65`.
+
+### Tried and discarded, measured
+- Lane masks of the matvec in Yul variables (`let m0 := _LN0`, DUP instead of
+  PUSH32): identical size, +1.4 k gas — via-IR rematerialises the literals
+  (as noted for `_M32` on 2026-09-05).
+- z decode as a two-iteration inner loop over the groups of a pair: −273
+  bytes but +34 k gas (stack layout of the nested loop); as a flat loop over
+  the 320 groups with a 16-byte reversal (four stages, PUSH16 masks): −459
+  bytes, +21 k. Kept the unrolled pair (0 gas) and took the room from the
+  hint branch, the matvec shape checks and the revert strings instead.
+- Single-blob key: 39 937 bytes, refused by the broadcast (see above).
+
+### Tests
+`forge test`: 108/115 in both profiles; the 7 failures are the pre-existing
+python-signer FFI tests (`pythonref/` absent from this checkout).
+
 ## [unreleased] — 2026-09-09 — retours des sessions Falcon : tables copiées une fois, pointeurs courants
 
 ### Measured (`make bench`, via-IR, `optimizer_runs = 1000000`)
