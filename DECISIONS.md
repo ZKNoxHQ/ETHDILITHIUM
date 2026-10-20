@@ -202,3 +202,209 @@ Lecture de clé en flux (+600), matvec sur lanes séparées (+26 k), passes
 non `memory-safe` (identique), passes fusionnées en un bloc (identique,
 gardées). Ce qui reste au-dessus de fireblocks (~20 k) est dispersé sur
 matvec, hints, décodage et SampleInBall, chacun à ~10 % de leur noyau.
+
+## ADR-005 — Clé ML-DSA-65 en quatre blobs de neuf polynômes, dépôt transaction par transaction
+
+**Contexte**
+
+La clé étendue ML-DSA-65 ne tient dans aucun contrat EIP-170. Le premier
+découpage (ADR du 2026-09-16, cf. VERSION.md) prenait deux moitiés de
+20 160 octets, alignées sur les lignes de Â (0..2 et 3..5), chacune encodée
+comme `abi.encode(bytes aHatRows, bytes tr, bytes t1Polys)`.
+
+Deux règles rendent ce découpage inutilisable à court terme :
+
+- EIP-7825, actif depuis Fusaka, plafonne une transaction à 2²⁴ = 16 777 216
+  gas ;
+- EIP-8037, dans Glamsterdam, porte le dépôt de code de 200 à 1 530 gas par
+  octet.
+
+Une moitié de 20 160 octets coûterait alors 20 160 × (1 530 + 16) + base
+≈ 31,2 M : au-dessus du plafond par transaction, et la clé entière ≈ 60 M,
+au-dessus d'un bloc. La clé deviendrait indéployable sur Sepolia dès le fork,
+puis sur mainnet.
+
+**Décision**
+
+Quatre blobs de neuf polynômes, 9 504 octets chacun et 9 600 pour le dernier,
+qui porte aussi `tr`. Le découpage est par compte, pas par ligne : le blob b
+contient les indices plats 9b..9b+8, où f < 30 vaut A[f / 5][f % 5] et f ≥ 30
+vaut t1[f − 30]. Le `pk` est les quatre adresses (80 octets).
+
+Neuf est le plus grand compte qui laisse de la marge sous le plafond : le plus
+gros blob revient à 14 911 998 gas après EIP-8037, soit 89 % du plafond. Dix
+polynômes par blob tiendraient encore en trois blobs plus un, mais à 98 % du
+plafond, sans marge pour un changement de tarif ou un surcoût d'appel.
+
+Les blobs perdent leur encadrement ABI : un blob est la suite brute de ses
+polynômes, chacun précédé de son mot de longueur 32, puisqu'ils sont utilisés
+sur place comme `uint256[32]`. Le lecteur parcourt le blob par arithmétique au
+lieu de suivre des offsets, et la seule forme acceptée est une taille de code
+exacte avec un mot de longueur 32 devant chaque polynôme et 64 devant `tr`.
+
+Côté API, `setKey(clé entière)` est conservée pour les chaînes qui tarifent
+encore le dépôt à 200, et deux fonctions sont ajoutées pour le dépôt réparti :
+`storeBlob(blob)` par transaction, puis `packKey(adresses)` pour le `pk`.
+
+**Alternatives écartées**
+
+- *Garder les deux moitiés et attendre.* La clé cesserait d'être déployable au
+  fork, sans chemin de migration pour les clés déjà en place.
+- *Six blobs d'une ligne de Â plus un pour t1.* Sept pointeurs, 140 octets de
+  `pk`, trois `extcodecopy` de plus et trois accès de compte froids, pour une
+  marge dont on n'a pas besoin.
+- *Rempaqueter les coefficients sur 23 bits* (−28 % d'octets). Dépaquetage de
+  30 polynômes à chaque vérification : à chiffrer séparément, et orthogonal au
+  plafond par transaction, qui porte sur le dépôt.
+
+**Conséquences**
+
+- `verify` passe de 1 536 544 à 1 535 454 : le lecteur plat rend plus que ne
+  coûtent les deux `extcodecopy` et les deux accès froids supplémentaires.
+- Taille du vérifieur 24 385 (marge EIP-170 191, contre 304 avant) : le coût
+  de `storeBlob` et `packKey`. Toute addition ultérieure se mesure.
+- Dépôt d'un blob : 2 143 998 gas aujourd'hui, 14 911 998 après EIP-8037,
+  mesuré dans `test/dilithium65_deploy.t.sol`, qui échoue si une évolution
+  repasse au-dessus du plafond.
+- Le format des blobs est produit par `js/mldsa65.js` `encodePublicKeyBlob65`
+  et vérifié contre un décodage indépendant dans
+  `test/dilithium65_core_packed.t.sol`.
+- Un blob de la bonne taille placé au mauvais rang est accepté s'il n'est pas
+  le dernier, puisque seul le dernier porte `tr` : le `pk` est une permutation
+  signifiante, pas un ensemble. Un rang faux donne une autre clé, qui ne
+  vérifie pas.
+
+## ADR-006 — Clé en calldata : contrat séparé plutôt qu'un second chemin dans ZKNOX_dilithium65
+
+**Contexte**
+
+Après ADR-005, installer une clé ML-DSA-65 coûte 8,5 M de gas aujourd'hui et
+59,2 M une fois EIP-8037 en place. Pour un compte qui signe quelques fois par
+an, ce dépôt écrase tout le reste : il faut une centaine de vérifications pour
+l'amortir. La variante retenue sur ML-DSA-44 le 2026-10-16 passe la clé dans le
+calldata et ne garde rien on-chain.
+
+Deux formes étaient possibles pour le 65 : ajouter les entrées calldata à
+`ZKNOX_dilithium65`, ou un contrat séparé.
+
+**Décision**
+
+Un contrat séparé, `ZKNOX_dilithium65_calldata`, qui partage les noyaux et la
+forme de clé mais ne connaît ni SSTORE2 ni stockage.
+
+`ZKNOX_dilithium65` est à 191 octets de la limite EIP-170. Une seconde entrée
+de clé, son lecteur et les contrôles associés n'y tiennent pas, et on ne veut
+pas financer cette place en retirant le chemin pointeurs, qui reste le moins
+cher au-delà du seuil. Séparés, les deux contrats font 24 385 et 23 712, avec
+191 et 864 octets de marge.
+
+Le vérifieur calldata ne tient aucun état. `setKey` contrôle la longueur et
+rend son argument : l'appelant garde ces octets comme `pk` et les engage par
+keccak256, exactement comme il engage aujourd'hui un handle de pointeurs. Le
+lien entre une clé et un compte reste donc dans le compte, et `ZKNOX_PQAccount7702`
+fonctionne sans modification, son `postQKeyHash` portant simplement sur
+38 112 octets au lieu de 20.
+
+Aucun registre on-chain `keys[msg.sender]` n'est ajouté : il ne servirait
+qu'aux appelants qui n'ont pas déjà un engagement, et il introduirait un SLOAD
+froid plus un état par compte pour une garantie que l'appelant possède déjà.
+
+**Alternatives écartées**
+
+- *Entrées calldata dans `ZKNOX_dilithium65`.* Ne tient pas sous EIP-170 sans
+  retirer le chemin pointeurs.
+- *Registre `keys[msg.sender] = keccak256(clé)` et `verifyRegistered`.* +9 276
+  par vérification (keccak sur 38 112 octets plus un SLOAD froid) pour
+  reproduire un contrôle que l'appelant fait déjà.
+- *Rempaqueter les coefficients sur 23 bits avant de les envoyer* (−28 % de
+  calldata, soit environ −150 k). Dépaquetage de 36 polynômes à chaque
+  vérification : à chiffrer, et orthogonal à cette décision puisque le gain
+  vaut aussi pour les blobs.
+
+**Conséquences**
+
+- Mêmes octets de clé des deux côtés : la concaténation des quatre blobs est
+  déjà la suite plate que lit `readPubKeyCalldata65`. Une clé passe d'un
+  vérifieur à l'autre sans réencodage, et `js/mldsa65.js` ne change pas.
+- Les deux vérifieurs s'exécutent pour presque le même gas, 1 546 030 contre
+  1 543 311 : atteindre quatre contrats froids et copier leur code vaut à peu
+  près la copie des mêmes octets depuis le calldata. Toute la différence est le
+  calldata, 538 132 contre 55 744.
+- Seuil de bascule : 17 vérifications par clé aujourd'hui, 122 après EIP-8037.
+  `test/dilithium65_calldata.t.sol` recalcule ces seuils à chaque exécution.
+- Deux contrats à déployer et à vérifier sur chaque chaîne, et un choix à
+  documenter pour les intégrateurs.
+- Règle de mesure : un chronométrage forge autour d'un appel externe compte
+  aussi l'appelant qui construit l'argument, soit environ 16 k pour une clé de
+  38 Ko, que la transaction paie en calldata et non en exécution. Les deux
+  chemins se mesurent contre un appelé qui ne fait rien, et la différence est
+  le coût du vérifieur.
+
+
+## ADR-007 — ML-DSA-65 : clé en calldata seule, chemin SSTORE2 retiré
+
+**Contexte**
+
+ADR-005 a coupé la clé étendue en quatre blobs pour qu'un dépôt tienne sous le
+plafond par transaction d'EIP-7825 après EIP-8037. ADR-006 a ajouté, à côté, un
+vérifieur qui prend la clé dans le calldata et ne garde rien on-chain.
+
+Les deux chemins coûtent presque la même chose à exécuter. La différence est
+ailleurs :
+
+| | pointeurs | calldata |
+|---|---:|---:|
+| par vérification | ~1 620 000 | 2 107 680 |
+| installation d'une clé, aujourd'hui | 8 513 784 | 0 |
+| installation d'une clé, après EIP-8037 | 59 202 744 | 0 |
+
+Le seuil de bascule est de 17 vérifications par clé aujourd'hui et de 122 après
+EIP-8037. Au-delà, les pointeurs gagnent.
+
+**Décision**
+
+Retirer le chemin SSTORE2. `ZKNOX_dilithium65` est désormais le vérifieur à clé
+en calldata, et c'est le seul.
+
+Les cas visés sont le vault d'un particulier, son satellite et un signataire de
+Safe. Aucun ne signe plus de 122 fois avec la même clé, et surtout aucun
+détenteur n'acceptera de payer 59,2 M de gas d'avance, répartis en quatre
+transactions, pour installer une clé. Le chemin pointeurs n'aurait servi qu'à un
+vérifieur partagé très sollicité, un pont ou un oracle, qui n'est pas au
+programme.
+
+Ce qui disparaît : `storeBlob`, `packKey`, `readPubKeyPacked65`, les constantes
+de blob, les quatre contrats SSTORE2, `test/dilithium65_deploy.t.sol` et le
+second script de déploiement.
+
+Ce qui reste d'ADR-005 : **le format plat**. La clé est une suite de 36
+polynômes `[32][32 mots]` suivie de `tr`, soit 38 112 octets, parcourue par
+arithmétique. C'est lui qui a permis à ADR-006 de lire la même clé depuis le
+calldata sans réencodage, et il reste le format du vérifieur.
+
+**Alternatives écartées**
+
+- *Garder les deux et laisser l'intégrateur choisir.* Deux contrats à déployer,
+  à vérifier et à auditer par chaîne, pour un chemin dont aucun cas connu n'a
+  besoin.
+- *Un registre `keys[msg.sender] = keccak256(clé)` et `verifyRegistered`.*
+  +9 276 par vérification, keccak sur 38 112 octets plus un SLOAD froid, pour
+  reproduire un contrôle que l'appelant fait déjà : `ZKNOX_PQAccount7702`
+  compare `keccak256(postQKey)` à son `postQKeyHash` à chaque signature.
+
+**Conséquences**
+
+- Un seul contrat à déployer par chaîne, 23 712 octets, marge EIP-170 de 864
+  contre 191 pour la variante à pointeurs. La place récupérée absorbera une
+  évolution future du noyau.
+- Plus rien à installer par clé, donc EIP-8037 cesse de concerner le 65.
+- Une vérification coûte 2 107 680 gas, dont 538 132 de calldata pour 41 760
+  octets. Le plancher EIP-7623 est à 1 366 170, sans effet.
+- `setKey` contrôle la longueur et rend son argument. L'appelant garde ces
+  octets comme `pk` et les engage par keccak256, ce que le compte fait déjà.
+- Le `signature` d'un UserOperation ERC-4337 atteint environ 41 824 octets, ce
+  qui heurtera les politiques de bundler bien avant la limite de 128 Ko du
+  mempool. Les chemins relayés, `executeWithHybridSig` et `execTransaction` du
+  Safe, ne sont pas concernés.
+- Revenir en arrière est possible : ADR-005 et ADR-006 restent dans l'historique
+  git, et le format de clé est inchangé.

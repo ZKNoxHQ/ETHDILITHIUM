@@ -18,7 +18,7 @@
 //          (the 32-byte hash is the message, empty context)
 //   node js/sign65.js verify <publicKeyHex> <messageHex> <signatureHex> [ctxHex]
 //       -> {"valid": true|false} (off-chain, FIPS 204 Alg. 3)
-import { keygen, sign, verify, hexToBytes, bytesToHex, expandPublicKey65, encodePublicKeyBlob65 } from './mldsa65.js';
+import { keygen, sign, verify, hexToBytes, bytesToHex, expandPublicKey65, encodePublicKey65 } from './mldsa65.js';
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
 
 function out(o) {
@@ -39,8 +39,7 @@ switch (cmd) {
     break;
   }
   case 'setkey': {
-    const { halves, setKeyData } = encodePublicKeyBlob65(expandPublicKey65(hexToBytes(args[0])));
-    out({ setKeyData, half0: halves[0], half1: halves[1] });
+    out({ setKeyData: encodePublicKey65(expandPublicKey65(hexToBytes(args[0]))) });
     break;
   }
   case 'sign': {

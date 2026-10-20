@@ -12,7 +12,10 @@ import {
     _hintMasks65,
     _hintMasksFromBytes65,
     _checkHintBytes65,
-    readPubKeyPacked65
+    readPubKeyCalldata65,
+    POLY_BYTES65,
+    KEY_POLYS65,
+    KEY_BYTES65
 } from "../src/ZKNOX_dilithium65_core_packed.sol";
 import {BadPubKeyBlob, packPoly} from "../src/ZKNOX_dilithium_core_packed.sol";
 import {
@@ -31,10 +34,10 @@ import {sampleInBallFastTau} from "../src/ZKNOX_shake_fast.sol";
 import {F1600Helper} from "./F1600Helper.sol";
 import {SSTORE2} from "sstore2/SSTORE2.sol";
 
-/// external wrapper so that vm.expectRevert can observe readPubKeyPacked65's revert
+/// external wrapper so that vm.expectRevert can observe readPubKeyCalldata65's revert
 contract PkReader65 {
-    function read(address p0, address p1) external view returns (PubKey memory) {
-        return readPubKeyPacked65(p0, p1);
+    function read(bytes calldata key) external pure returns (PubKey memory) {
+        return readPubKeyCalldata65(key);
     }
 }
 
@@ -48,44 +51,61 @@ contract Dilithium65CorePackedTest is Test {
         return vm.readFile("test/KAT/mldsa65_kat0.json");
     }
 
-    /// the two halves of the KAT key written to SSTORE2, and the key decoded
-    /// through abi.decode as the reference
-    function _katKey() internal returns (address[2] memory ptr, PubKey memory ref) {
-        string memory kat = _kat0();
-        bytes[2] memory halves = [vm.parseJsonBytes(kat, ".half0"), vm.parseJsonBytes(kat, ".half1")];
+    /// the KAT key as the verifier takes it, and the key decoded independently
+    /// of readPubKeyCalldata65 as the reference
+    function _katKey() internal view returns (bytes memory key, PubKey memory ref) {
+        key = vm.parseJsonBytes(_kat0(), ".blob");
+        assertEq(key.length, KEY_BYTES65);
         ref.aHat = new uint256[][][](6);
         ref.t1 = new uint256[][](6);
-        for (uint256 h = 0; h < 2; h++) {
-            assertEq(halves[h].length, 20160);
-            ptr[h] = SSTORE2.write(halves[h]);
-            (bytes memory aHatEncoded, bytes memory tr, bytes memory t1Encoded) =
-                abi.decode(halves[h], (bytes, bytes, bytes));
-            uint256[][][] memory rows = abi.decode(aHatEncoded, (uint256[][][]));
-            uint256[][] memory t1Half = abi.decode(t1Encoded, (uint256[][]));
-            for (uint256 i = 0; i < 3; i++) {
-                ref.aHat[3 * h + i] = rows[i];
-                ref.t1[3 * h + i] = t1Half[i];
-            }
-            if (h == 0) ref.tr = tr;
-            else assertEq(keccak256(tr), keccak256(ref.tr));
+        for (uint256 i = 0; i < 6; i++) {
+            ref.aHat[i] = new uint256[][](5);
         }
-        // the halves concatenated are the setKey argument
-        bytes memory blob = vm.parseJsonBytes(kat, ".blob");
-        assertEq(keccak256(blob), keccak256(abi.encodePacked(halves[0], halves[1])));
+        // flat index f: f < 30 is A[f / 5][f % 5], f >= 30 is t1[f - 30]
+        for (uint256 f = 0; f < KEY_POLYS65; f++) {
+            uint256[] memory poly = _readPolyAt(key, f * POLY_BYTES65);
+            if (f < 30) ref.aHat[f / 5][f % 5] = poly;
+            else ref.t1[f - 30] = poly;
+        }
+        ref.tr = slice(key, KEY_POLYS65 * POLY_BYTES65 + 32, 64);
+        assertEq(keccak256(ref.tr), keccak256(vm.parseJsonBytes(_kat0(), ".tr")));
     }
 
-    function _half(uint256[][][] memory aHat, bytes memory tr, uint256[][] memory t1, uint256 h)
+    /// one [32][32 words] polynomial of the key, read as the verifier reads it
+    function _readPolyAt(bytes memory blob, uint256 offset) internal pure returns (uint256[] memory poly) {
+        uint256 len;
+        assembly {
+            len := mload(add(add(blob, 32), offset))
+        }
+        assertEqUint(len, 32);
+        poly = new uint256[](32);
+        for (uint256 w = 0; w < 32; w++) {
+            uint256 v;
+            assembly {
+                v := mload(add(add(add(blob, 64), offset), mul(w, 32)))
+            }
+            poly[w] = v;
+        }
+    }
+
+    /// `n` polynomials taken from `polys` starting at `from`, tr appended when given
+    function _run(uint256[][] memory polys, uint256 from, uint256 n, bytes memory trailer)
         internal
         pure
-        returns (bytes memory)
+        returns (bytes memory out)
     {
-        uint256[][][] memory rows = new uint256[][][](3);
-        uint256[][] memory t1Half = new uint256[][](3);
-        for (uint256 i = 0; i < 3; i++) {
-            rows[i] = aHat[3 * h + i];
-            t1Half[i] = t1[3 * h + i];
+        for (uint256 i = 0; i < n; i++) {
+            out = abi.encodePacked(out, uint256(32), polys[from + i]);
         }
-        return abi.encode(abi.encode(rows), tr, abi.encode(t1Half));
+        if (trailer.length > 0) out = abi.encodePacked(out, uint256(trailer.length), trailer);
+    }
+
+    /// the 36 polynomials of a key in reading order
+    function _flatPolys(PubKey memory pk) internal pure returns (uint256[][] memory polys) {
+        polys = new uint256[][](36);
+        for (uint256 f = 0; f < 36; f++) {
+            polys[f] = f < 30 ? pk.aHat[f / 5][f % 5] : pk.t1[f - 30];
+        }
     }
 
     function _katSignature() internal view returns (Signature memory sig) {
@@ -125,10 +145,13 @@ contract Dilithium65CorePackedTest is Test {
 
     /* ------------------------------------------------------------ key blob */
 
-    /// zero-copy key read: same polynomials and tr as the abi.decode path, malformed halves rejected
-    function test_readPubKeyPacked65() public {
-        (address[2] memory ptr, PubKey memory ref) = _katKey();
-        PubKey memory got = readPubKeyPacked65(ptr[0], ptr[1]);
+    /// zero-copy key read: same polynomials and tr as the independent decode,
+    /// malformed keys rejected. The key is never stored, so its whole shape
+    /// check is its length plus the length word in front of each polynomial.
+    function test_readPubKeyCalldata65() public {
+        (bytes memory key, PubKey memory ref) = _katKey();
+        PkReader65 reader = new PkReader65();
+        PubKey memory got = reader.read(key);
         assertEq(keccak256(got.tr), keccak256(ref.tr));
         assertEq(got.aHat.length, 6);
         assertEq(got.t1.length, 6);
@@ -139,86 +162,47 @@ contract Dilithium65CorePackedTest is Test {
                 assertEq(keccak256(abi.encodePacked(got.aHat[i][j])), keccak256(abi.encodePacked(ref.aHat[i][j])));
             }
         }
-        // the halves rebuilt from the reference are the stored ones
-        assertEq(keccak256(SSTORE2.read(ptr[0])), keccak256(_half(ref.aHat, ref.tr, ref.t1, 0)));
-        assertEq(keccak256(SSTORE2.read(ptr[1])), keccak256(_half(ref.aHat, ref.tr, ref.t1, 1)));
+        // the key rebuilt from the reference is the one read
+        uint256[][] memory polys = _flatPolys(ref);
+        assertEq(keccak256(_run(polys, 0, KEY_POLYS65, ref.tr)), keccak256(key));
 
-        PkReader65 reader = new PkReader65();
-        // the two halves swapped: same shape, so accepted, but another key (rows swapped)
-        PubKey memory swapped = readPubKeyPacked65(ptr[1], ptr[0]);
-        assertEq(keccak256(abi.encodePacked(swapped.aHat[0][0])), keccak256(abi.encodePacked(ref.aHat[3][0])));
-        // the whole 6 x 5 key in one blob (the single-blob shape): rejected
-        address bad = SSTORE2.write(abi.encode(abi.encode(ref.aHat), ref.tr, abi.encode(ref.t1)));
+        // one polynomial short, one too many, empty
         vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
+        reader.read(_run(polys, 0, KEY_POLYS65 - 1, ref.tr));
         vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(ptr[0], bad);
-        // a half with rows of 4 polynomials
-        uint256[][][] memory a34 = new uint256[][][](3);
-        for (uint256 i = 0; i < 3; i++) {
-            a34[i] = new uint256[][](4);
-            for (uint256 j = 0; j < 4; j++) {
-                a34[i][j] = new uint256[](32);
+        reader.read(abi.encodePacked(key, _run(polys, 0, 1, bytes(""))));
+        vm.expectRevert(BadPubKeyBlob.selector);
+        reader.read("");
+        // the right length, one byte off
+        vm.expectRevert(BadPubKeyBlob.selector);
+        reader.read(slice(key, 0, KEY_BYTES65 - 1));
+        // no tr, and a tr of 32 bytes
+        vm.expectRevert(BadPubKeyBlob.selector);
+        reader.read(_run(polys, 0, KEY_POLYS65, bytes("")));
+        vm.expectRevert(BadPubKeyBlob.selector);
+        reader.read(_run(polys, 0, KEY_POLYS65, new bytes(32)));
+        // tr of the right size behind a length word of 32: right total length, rejected
+        bytes memory bad = abi.encodePacked(_run(polys, 0, KEY_POLYS65, bytes("")), uint256(32), ref.tr);
+        assertEq(bad.length, KEY_BYTES65);
+        vm.expectRevert(BadPubKeyBlob.selector);
+        reader.read(bad);
+        // a polynomial announcing 31 words: right total length, rejected on the length word
+        for (uint256 f = 0; f < KEY_POLYS65; f += 7) {
+            bad = bytes.concat(key);
+            uint256 at = 32 + f * POLY_BYTES65;
+            assembly {
+                mstore(add(bad, at), 31)
             }
+            vm.expectRevert(BadPubKeyBlob.selector);
+            reader.read(bad);
         }
-        uint256[][] memory t3 = new uint256[][](3);
-        for (uint256 i = 0; i < 3; i++) {
-            t3[i] = ref.t1[i];
+        // two polynomials swapped: well formed, another key
+        bad = bytes.concat(key);
+        for (uint256 i = 0; i < POLY_BYTES65; i++) {
+            (bad[i], bad[POLY_BYTES65 + i]) = (key[POLY_BYTES65 + i], key[i]);
         }
-        bad = SSTORE2.write(abi.encode(abi.encode(a34), ref.tr, abi.encode(t3)));
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
-        // a half with 2 rows
-        uint256[][][] memory a25 = new uint256[][][](2);
-        for (uint256 i = 0; i < 2; i++) {
-            a25[i] = ref.aHat[i];
-        }
-        bad = SSTORE2.write(abi.encode(abi.encode(a25), ref.tr, abi.encode(t3)));
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
-        // t1 of 2 polynomials
-        uint256[][] memory t2 = new uint256[][](2);
-        for (uint256 i = 0; i < 2; i++) {
-            t2[i] = ref.t1[i];
-        }
-        uint256[][][] memory a35 = new uint256[][][](3);
-        for (uint256 i = 0; i < 3; i++) {
-            a35[i] = ref.aHat[i];
-        }
-        bad = SSTORE2.write(abi.encode(abi.encode(a35), ref.tr, abi.encode(t2)));
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
-        // tr of 32 bytes
-        bad = SSTORE2.write(abi.encode(abi.encode(a35), new bytes(32), abi.encode(t3)));
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
-        // a polynomial of 31 words
-        uint256[][][] memory a31 = new uint256[][][](3);
-        for (uint256 i = 0; i < 3; i++) {
-            a31[i] = new uint256[][](5);
-            for (uint256 j = 0; j < 5; j++) {
-                a31[i][j] = ref.aHat[i][j];
-            }
-        }
-        a31[2][4] = new uint256[](31);
-        bad = SSTORE2.write(abi.encode(abi.encode(a31), ref.tr, abi.encode(t3)));
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
-        // a truncated half
-        bytes memory full = SSTORE2.read(ptr[1]);
-        bytes memory cut = new bytes(full.length - 40);
-        for (uint256 i = 0; i < cut.length; i++) {
-            cut[i] = full[i];
-        }
-        bad = SSTORE2.write(cut);
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(ptr[0], bad);
-        // an empty pointer, and an address without code
-        bad = SSTORE2.write("");
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(bad, ptr[1]);
-        vm.expectRevert(BadPubKeyBlob.selector);
-        reader.read(ptr[0], address(0xdead));
+        PubKey memory swapped = reader.read(bad);
+        assertEq(keccak256(abi.encodePacked(swapped.aHat[0][0])), keccak256(abi.encodePacked(ref.aHat[0][1])));
     }
 
     /* ------------------------------------------------------------ z decode */
@@ -672,8 +656,8 @@ contract Dilithium65CorePackedTest is Test {
     /// the KAT's key and signature: the packed second stage gives the same w1
     /// bytes as the scalar one, and the first stage accepts
     function test_core2_packed65_matches_scalar_real_signature() public {
-        (address[2] memory ptr,) = _katKey();
-        PubKey memory pk = readPubKeyPacked65(ptr[0], ptr[1]);
+        (bytes memory key,) = _katKey();
+        PubKey memory pk = new PkReader65().read(key);
         Signature memory sig = _katSignature();
         address helper = F1600Helper.deploy(vm);
 

@@ -133,37 +133,47 @@ export function expandPublicKey65(publicKey) {
   return { aHat, t1Hat, tr };
 }
 
-export const HALF_BYTES = 20160;
+/** Flat key layout read by readPubKeyCalldata65 (ZKNOX_dilithium65_core_packed.sol). */
+export const POLY_BYTES65 = 1056; // [32][32 words], used in place as a uint256[32]
+export const KEY_POLYS65 = 36; // 30 of A plus 6 of t1
+export const KEY_BYTES65 = KEY_POLYS65 * POLY_BYTES65 + 96; // 38,112, tr included
 
-/**
- * One half of the on-chain key (readPubKeyPacked65 / _readHalfPacked65):
- *   abi.encode(bytes abi.encode(uint256[3][5][32] rows), bytes tr, bytes abi.encode(uint256[3][32] t1Polys)).
- * @returns hex string of HALF_BYTES bytes
- */
-export function encodeKeyHalf65(aHatRows, tr, t1Polys) {
-  if (aHatRows.length !== 3 || t1Polys.length !== 3) throw new Error('a half holds 3 rows of A and 3 polynomials of t1');
-  if (tr.length !== 64) throw new Error('tr must be 64 bytes');
-  const abi = ethers.AbiCoder.defaultAbiCoder();
-  const aHatEncoded = abi.encode(['uint256[][][]'], [aHatRows.map((r) => r.map((c) => c.map((v) => v.toString())))]);
-  const t1Encoded = abi.encode(['uint256[][]'], [t1Polys.map((r) => r.map((v) => v.toString()))]);
-  const half = abi.encode(['bytes', 'bytes', 'bytes'], [aHatEncoded, tr, t1Encoded]);
-  if ((half.length - 2) / 2 !== HALF_BYTES) throw new Error(`half is ${(half.length - 2) / 2} bytes, expected ${HALF_BYTES}`);
-  return half;
+const word = (v) => BigInt(v).toString(16).padStart(64, '0');
+
+/** One polynomial as the verifier reads it: a length word of 32, then its 32 words. */
+function encodePoly65(poly) {
+  if (poly.length !== 32) throw new Error(`a polynomial is 32 words, got ${poly.length}`);
+  return word(32) + poly.map(word).join('');
 }
 
 /**
- * The two halves and the setKey argument (their concatenation).
- * @returns { halves: [hex, hex], setKeyData: hex }
+ * The 36 polynomials of the expanded key in reading order: flat index f < 30 is
+ * aHat[f / 5][f % 5], f >= 30 is t1[f - 30].
  */
-export function encodePublicKeyBlob65(expanded) {
-  const { aHat, t1Hat, tr } = expanded;
-  const halves = [0, 1].map((h) => encodeKeyHalf65(aHat.slice(3 * h, 3 * h + 3), tr, t1Hat.slice(3 * h, 3 * h + 3)));
-  return { halves, setKeyData: halves[0] + halves[1].slice(2) };
+export function flattenKeyPolys65(expanded) {
+  const { aHat, t1Hat } = expanded;
+  if (aHat.length !== 6 || t1Hat.length !== 6) throw new Error('ML-DSA-65 expands to 6 rows of A and 6 t1 polynomials');
+  return [...aHat.flat(), ...t1Hat];
 }
 
-/** publicKey (1952 bytes) -> setKey argument (half0 || half1) as hex, in one call. */
+/**
+ * The expanded public key as the verifier takes it: the 36 polynomials in
+ * reading order, then tr. Nothing is deployed on chain; this is the `pk`
+ * argument of every verification.
+ * @returns hex string of KEY_BYTES65 bytes
+ */
+export function encodePublicKey65(expanded) {
+  const polys = flattenKeyPolys65(expanded);
+  if (polys.length !== KEY_POLYS65) throw new Error(`expected 36 polynomials, got ${polys.length}`);
+  if (expanded.tr.length !== 64) throw new Error('tr must be 64 bytes');
+  const body = polys.map(encodePoly65).join('') + word(64) + ethers.hexlify(expanded.tr).slice(2);
+  if (body.length / 2 !== KEY_BYTES65) throw new Error(`key is ${body.length / 2} bytes, expected ${KEY_BYTES65}`);
+  return '0x' + body;
+}
+
+/** publicKey (1952 bytes) -> the verifier's `pk` argument, in one call. */
 export function publicKeyToBlob65(publicKey) {
-  return encodePublicKeyBlob65(expandPublicKey65(publicKey)).setKeyData;
+  return encodePublicKey65(expandPublicKey65(publicKey));
 }
 
 /**

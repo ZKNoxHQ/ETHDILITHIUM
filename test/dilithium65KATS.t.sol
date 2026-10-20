@@ -8,8 +8,6 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium65} from "../src/ZKNOX_dilithium65.sol";
 import {F1600Helper} from "./F1600Helper.sol";
-import {SSTORE2} from "sstore2/SSTORE2.sol";
-
 contract KATDilithium65Test is Test {
     ZKNOX_dilithium65 dilithium;
 
@@ -1186,20 +1184,13 @@ contract KATDilithium65Test is Test {
         t1[5][30] = uint256(0x006c9961006013520061bf9e0056243100534c3400741129007cca34005ad432);
         t1[5][31] = uint256(0x00436a43007a55e9005cf5ba001cadbe005364d30074234100574c06005a0204);
 
-        // two SSTORE2 halves (rows 0..2 / 3..5 of A, t1[0..2] / t1[3..5], tr in both)
-        pk = new bytes(40);
-        for (uint256 h = 0; h < 2; h++) {
-            uint256[][][] memory rows = new uint256[][][](3);
-            uint256[][] memory t1Half = new uint256[][](3);
-            for (uint256 i = 0; i < 3; i++) {
-                rows[i] = aHat[3 * h + i];
-                t1Half[i] = t1[3 * h + i];
-            }
-            address pointer = SSTORE2.write(abi.encode(abi.encode(rows), tr, abi.encode(t1Half)));
-            assembly {
-                mstore(add(add(pk, 32), mul(h, 20)), shl(96, pointer))
-            }
+        // the expanded key as the verifier takes it: the 36 polynomials in
+        // reading order (flat index f < 30 is A[f / 5][f % 5], f >= 30 is t1[f - 30]), then tr
+        pk = "";
+        for (uint256 f = 0; f < 36; f++) {
+            pk = abi.encodePacked(pk, uint256(32), f < 30 ? aHat[f / 5][f % 5] : t1[f - 30]);
         }
+        pk = abi.encodePacked(pk, uint256(64), tr);
     }
 
     function _signature() internal pure returns (bytes memory) {

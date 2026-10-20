@@ -62,81 +62,55 @@ uint256 constant _ZHI65 = 0x00000000010fff3b00000000010fff3b00000000010fff3b0000
 uint256 constant _ZQG1_65 = 0x000000000087e001000000000087e001000000000087e001000000000087e001;
 uint256 constant _ZCAN = 0x0000000000801fff0000000000801fff0000000000801fff0000000000801fff;
 
-/// @notice Zero-copy read of the public key from its two SSTORE2 blobs. The
-///         expanded ML-DSA-65 key (30 + 6 polynomials, 36,864 bytes of words)
-///         does not fit in one EIP-170 contract (24,576 bytes), so it is split
-///         in two halves of the same shape, each
-///           abi.encode(bytes abi.encode(uint256[3][5][32] aHatRows), bytes tr,
-///                      bytes abi.encode(uint256[3][32] t1Polys))
-///         (20,160 bytes): pointer 0 holds rows 0..2 of A and t1[0..2],
-///         pointer 1 rows 3..5 and t1[3..5]; tr (64 bytes) is in both, the
-///         first one is used. Same in-place use of the [32][32 words]
-///         polynomials as readPubKeyPacked (ZKNOX_dilithium_core_packed.sol);
-///         a half of another shape or a truncated one reverts.
-function readPubKeyPacked65(address pointer0, address pointer1) view returns (PubKey memory pk) {
+// One polynomial of the expanded key as it is laid out: a length word of 32,
+// then its 32 words, used in place as a uint256[32]
+// (ZKNOX_dilithium_core_packed.sol). Literals, so that inline assembly can use
+// them; test/dilithium65_key.t.sol checks they agree.
+uint256 constant POLY_BYTES65 = 1056;
+uint256 constant KEY_POLYS65 = 36; // 30 of A plus 6 of t1
+uint256 constant KEY_BYTES65 = 38112; // KEY_POLYS65 * POLY_BYTES65 + 96, tr included
+
+/// @notice Read of the expanded public key from the calldata. Nothing is stored
+///         on chain: the caller passes the key on every verification and binds
+///         it to an account with keccak256 (DECISIONS.md ADR-007).
+///
+///         The key is one flat run of 38,112 bytes: polynomial f at offset
+///         f * POLY_BYTES65, f < 30 being A[f / 5][f % 5] and f >= 30
+///         t1[f - 30], then tr as [64][64 bytes]. It is copied once into memory
+///         and used in place from there, so the verifier pays 3 gas per word of
+///         copy and nothing else. The only shape accepted is that exact length
+///         with a length word of 32 before every polynomial and 64 before tr;
+///         the bytes are never trusted beyond that.
+function readPubKeyCalldata65(bytes calldata key) pure returns (PubKey memory pk) {
     uint256[][][] memory aHat = new uint256[][][](6);
     for (uint256 i = 0; i < 6; i++) {
         aHat[i] = new uint256[][](5);
     }
     uint256[][] memory t1 = new uint256[][](6);
     bytes memory tr;
-    bool ok = true;
-    // one loop body for the two halves (h = 0: rows 0..2, h = 1: rows 3..5)
-    for (uint256 h = 0; h < 2; h++) {
-        address pointer = h == 0 ? pointer0 : pointer1;
-        // the blob is the pointer's code minus its STOP prefix, copied once
-        bytes memory blob;
+    bool ok = key.length == KEY_BYTES65;
+    if (ok) {
         assembly ("memory-safe") {
-            let size := extcodesize(pointer)
-            if iszero(size) { size := 1 }
-            blob := mload(0x40)
-            let len := sub(size, 1)
-            mstore(blob, len)
-            extcodecopy(pointer, add(blob, 32), 1, len)
-            mstore(0x40, add(add(blob, 32), and(add(len, 31), not(31))))
-        }
-        bytes memory trh;
-        assembly ("memory-safe") {
-            let base := add(blob, 32)
-            let end := add(base, mload(blob))
-            // a pointer p is a valid [32][32 words] polynomial iff it lies in the blob
-            function poly(p, e) -> r {
-                r := and(and(lt(p, e), iszero(gt(add(p, 1056), e))), eq(mload(p), 32))
-            }
-            // outer tuple: three offsets
-            let aEnc := add(base, mload(base))
-            let trEnc := add(base, mload(add(base, 32)))
-            let t1Enc := add(base, mload(add(base, 64)))
-            ok := and(ok, and(lt(aEnc, end), and(lt(trEnc, end), lt(t1Enc, end))))
-            if ok {
-                let rowBase := mul(h, 3)
-                // aHat rows: [len][0x20][3][off_i x3][rows...], each row [5][off_j x5][polys]
-                let arr := add(add(aEnc, 32), mload(add(aEnc, 32)))
-                ok := and(ok, and(lt(arr, end), eq(mload(arr), 3)))
-                for { let i := 0 } and(ok, lt(i, 3)) { i := add(i, 1) } {
-                    let row := add(add(arr, 32), mload(add(arr, add(32, shl(5, i)))))
-                    ok := and(ok, and(lt(row, end), eq(mload(row), 5)))
-                    let rowArr := mload(add(aHat, add(32, shl(5, add(rowBase, i)))))
-                    for { let j := 0 } and(ok, lt(j, 5)) { j := add(j, 1) } {
-                        let p := add(add(row, 32), mload(add(row, add(32, shl(5, j)))))
-                        ok := and(ok, poly(p, end))
-                        mstore(add(rowArr, add(32, shl(5, j))), p)
-                    }
+            let base := mload(0x40)
+            calldatacopy(base, key.offset, KEY_BYTES65)
+            mstore(0x40, add(base, KEY_BYTES65)) // KEY_BYTES65 is a multiple of 32
+            for { let f := 0 } lt(f, KEY_POLYS65) { f := add(f, 1) } {
+                let p := add(base, mul(f, POLY_BYTES65))
+                ok := and(ok, eq(mload(p), 32))
+                switch lt(f, 30)
+                // A[f / 5][f % 5]
+                case 1 {
+                    let row := mload(add(aHat, add(32, shl(5, div(f, 5)))))
+                    mstore(add(row, add(32, shl(5, mod(f, 5)))), p)
                 }
-                // t1 polys: [len][0x20][3][off_i x3][polys]
-                let tarr := add(add(t1Enc, 32), mload(add(t1Enc, 32)))
-                ok := and(ok, and(lt(tarr, end), eq(mload(tarr), 3)))
-                for { let i := 0 } and(ok, lt(i, 3)) { i := add(i, 1) } {
-                    let p := add(add(tarr, 32), mload(add(tarr, add(32, shl(5, i)))))
-                    ok := and(ok, poly(p, end))
-                    mstore(add(t1, add(32, shl(5, add(rowBase, i)))), p)
-                }
-                // tr: [64][64 bytes], used as a bytes memory object in place
-                ok := and(ok, and(eq(mload(trEnc), 64), iszero(lt(end, add(trEnc, 96)))))
-                trh := trEnc
+                // t1[f - 30]
+                default { mstore(add(t1, add(32, shl(5, sub(f, 30)))), p) }
             }
+            // tr: [64][64 bytes], used as a bytes memory object in place
+            let t := add(base, mul(KEY_POLYS65, POLY_BYTES65))
+            ok := and(ok, eq(mload(t), 64))
+            tr := t
         }
-        if (h == 0) tr = trh;
     }
     if (!ok) revert BadPubKeyBlob();
     pk = PubKey({aHat: aHat, tr: tr, t1: t1});
@@ -276,7 +250,7 @@ function dilithiumCore1Packed65(Signature memory signature)
 ///      one pass: every z word is loaded once per row and each accumulator
 ///      word is written once (thirteen pointers, the IR pipeline handles them).
 ///      Shapes are NOT checked here (EIP-170 room): the callers guarantee five
-///      32-word key polynomials (readPubKeyPacked65 validates every polynomial
+///      32-word key polynomials (readPubKeyCalldata65 validates every polynomial
 ///      of the blobs), five 64-word packed z (unpackZPacked65), a 32-word t1
 ///      and a 64-word packed c; the reads below never leave those.
 function _matvecRowPacked65(

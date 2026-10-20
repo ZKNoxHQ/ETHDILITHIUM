@@ -41,6 +41,15 @@ test_signer65:
 test_verifier65:
 	FOUNDRY_PROFILE=lite forge test -j$(CORES) -vv --match-path "test/dilithium65*"
 
+# ML-DSA-65 verifier against all 100 vectors of PQCsignKAT_Dilithium3.rsp
+# (the committed vectors file holds 10; this regenerates it at 100, runs, and
+# restores the committed one). About 25 s and a 10.7 MB temporary file.
+test_kat100:
+	node js/gen_test_vectors65.js 100
+	FOUNDRY_PROFILE=kat100 forge test -vv --match-path "test/dilithium65_vectors.t.sol" \
+		|| ( node js/gen_test_vectors65.js 10 ; exit 1 )
+	node js/gen_test_vectors65.js 10
+
 test_verifier:
 	FOUNDRY_PROFILE=lite forge test -j$(CORES) -vv
 

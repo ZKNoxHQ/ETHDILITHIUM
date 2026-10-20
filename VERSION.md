@@ -1,6 +1,152 @@
 # VERSION.md — changelog
 
-## [unreleased] — 2026-09-16 — ML-DSA-65 (FIPS 204 category 3): verifier, js signer, NIST KATs
+## [unreleased] — 2026-10-20 (3) — ML-DSA-65 : clé en calldata seule, chemin SSTORE2 retiré
+
+### Measured
+| | avant (pointeurs) | **après (calldata)** |
+|---|---:|---:|
+| `verify`, transaction complète | ~1 620 000 | **2 107 680** |
+| dont calldata (41 760 octets) | 55 744 | **538 132** |
+| dont exécution | 1 543 311 | **1 548 548** |
+| installation d'une clé, aujourd'hui | 8 513 784 | **0** |
+| installation d'une clé, après EIP-8037 | 59 202 744 | **0** |
+| runtime size (marge EIP-170) | 24 385 (191) | **23 712 (864)** |
+| contrats à déployer par chaîne | 2 | **1** |
+
+Seuil de bascule des deux chemins : 17 vérifications par clé aujourd'hui, 122
+après EIP-8037. Aucun cas visé (vault, satellite, signataire de Safe) n'en
+approche, et aucun détenteur ne paiera 59,2 M d'avance pour installer une clé.
+DECISIONS.md ADR-007. Le plancher EIP-7623 (1 366 170) reste sous le coût
+standard. ML-DSA-44 et ETH inchangés.
+
+### Removed
+- Le chemin SSTORE2 du 65 : `storeBlob`, `packKey`, `readPubKeyPacked65`, les
+  constantes de blob, `test/dilithium65_deploy.t.sol`, le second script de
+  déploiement. L'ancien `ZKNOX_dilithium65.sol` à pointeurs est supprimé.
+
+### Changed
+- `ZKNOX_dilithium65` est le vérifieur à clé en calldata (ex
+  `ZKNOX_dilithium65_calldata`), et le seul. `setKey` contrôle la longueur et
+  rend son argument ; rien n'est écrit on-chain.
+- `readPubKeyCalldata65(bytes calldata)` remplace le lecteur de pointeurs. Le
+  format plat d'ADR-005 est conservé : 36 polynômes `[32][32 mots]` puis `tr`,
+  38 112 octets, parcourus par arithmétique.
+- `js/mldsa65.js` : `encodePublicKey65` remplace `encodePublicKeyBlob65` et rend
+  la clé seule ; `BLOB_BYTES65` et consorts remplacés par `KEY_POLYS65` et
+  `KEY_BYTES65`.
+- `test/KAT/mldsa65_kat0.json` : `blob0`..`blob3` retirés, `blob` conservé
+  (régénérer avec `node js/gen_test_vectors65.js 10`).
+- `test/dilithium65_key.t.sol` (ex `dilithium65_calldata.t.sol`, 6 tests) :
+  identité de `setKey`, KAT NIST, entrée ISigVerifier, 28 vecteurs ACVP, rejets,
+  clés malformées, et le coût d'une transaction avec le contrôle du plancher
+  EIP-7623.
+- `test/dilithium65_core_packed.t.sol` : `test_readPubKeyCalldata65` remplace le
+  test du lecteur de pointeurs, mêmes cas de rejet transposés à la clé plate.
+
+### Added
+- `make test_kat100` : les 100 vecteurs de `PQCsignKAT_Dilithium3.rsp` en une
+  fois (le fichier commité en garde 10). La cible régénère à 100, lance
+  `test/dilithium65_vectors.t.sol` sous le profil `kat100`, puis restaure le
+  fichier commité, y compris en cas d'échec. Environ 25 s et un fichier
+  temporaire de 10,7 Mo, chaque vecteur portant sa clé étendue de 38 112
+  octets. Le profil relève le gas et la mémoire : la seule expansion mémoire
+  d'un appel dépasse la limite par défaut de 2^30 et sort en `MemoryOOG`.
+
+### Tests
+100/100, et 118 vecteurs sous `make test_kat100`.
+
+## [unreleased] — 2026-10-20 (2) — ML-DSA-65 : variante à clé publique en calldata
+
+### Measured (`forge test --match-path test/dilithium65_calldata.t.sol -vv`)
+| | pointeurs SSTORE2 | **clé en calldata** |
+|---|---:|---:|
+| exécution du vérifieur | 1 543 311 | 1 546 030 |
+| calldata de l'appel | 55 744 | 538 132 |
+| **total transaction** | **1 620 055** | **2 105 162** |
+| installation de la clé, aujourd'hui | 8 513 784 | 0 |
+| installation de la clé, après EIP-8037 | 59 202 744 | 0 |
+| runtime size (marge EIP-170) | 24 385 (191) | 23 712 (864) |
+
+Les deux vérifieurs coûtent presque la même chose à exécuter : atteindre quatre
+contrats de blob froids et copier leur code vaut à peu près ce que coûte la
+copie des mêmes octets depuis le calldata. Toute la différence est le calldata,
+485 107 de plus par vérification, contre une installation qui disparaît.
+**Seuil de bascule : 17 vérifications par clé aujourd'hui, 122 après EIP-8037.**
+En dessous, la variante calldata ; au-dessus, ZKNOX_dilithium65. Le plancher
+EIP-7623 (1 366 170) reste sous le coût standard, donc sans effet.
+
+### Added
+- `src/ZKNOX_dilithium65_calldata.sol` — ML-DSA-65 avec la clé étendue passée
+  dans le calldata de chaque vérification. Aucun état : `setKey` contrôle la
+  longueur et rend son argument, l'appelant garde ces octets comme `pk` et les
+  engage par keccak256 comme il le fait déjà d'un handle de pointeurs, si bien
+  que le lien clé-compte reste dans le compte. Mêmes noyaux et mêmes octets de
+  clé que `ZKNOX_dilithium65` : une clé passe d'un vérifieur à l'autre sans
+  réencodage.
+- `readPubKeyCalldata65(bytes calldata)` dans le noyau packé. La concaténation
+  des quatre blobs est déjà la suite plate que lit ce vérifieur — polynôme f à
+  l'offset f × 1 056, puis tr — donc l'argument accepté est exactement celui de
+  `setKey` côté SSTORE2.
+- `test/dilithium65_calldata.t.sol` (7 tests) : KAT NIST et 28 vecteurs ACVP par
+  le chemin calldata, rejets de signature, message et contexte, clés malformées
+  (longueur, mot de longueur d'un polynôme, mot de longueur de tr, coefficient
+  retourné, polynômes permutés), cohérence des constantes de forme, arbitrage de
+  gas avec le seuil de bascule, et contrôle du plancher EIP-7623. La mesure de
+  gas soustrait un appelé qui ne fait rien, pour retirer le coût que l'appelant
+  paie à construire les 38 Ko d'argument et que la colonne calldata compte déjà.
+
+### Tests
+103/103.
+
+## [unreleased] — 2026-10-20 — ML-DSA-65 : clé étendue en quatre blobs, déployable après Glamsterdam
+
+### Measured (`make bench`, via-IR, `optimizer_runs = 1000000`, solc 0.8.30)
+| Mesure | avant | après |
+|---|---:|---:|
+| `verify` (NIST KAT, 33 octets, ctx vide) | 1 536 544 | **1 535 454** |
+| runtime size (marge EIP-170) | 24 272 (304) | **24 385 (191)** |
+| dépôt d'un blob, aujourd'hui | 2 x ~4 470 000 | **4 x 2 143 998** |
+| dépôt d'un blob, après EIP-8037 | 2 x ~31 283 000 | **4 x 14 911 998** |
+| plus gros blob (octets) | 20 160 | **9 600** |
+
+Le plafond par transaction d'EIP-7825 (2²⁴ = 16 777 216 gas, actif depuis
+Fusaka) et le passage du dépôt de code de 200 à 1 530 gas/octet par EIP-8037
+rendaient les deux moitiés de 20 160 octets indéployables : 31,3 M par moitié,
+60 M pour la clé entière. Les quatre blobs tiennent à 89 % du plafond. Les
+colonnes « avant » du dépôt sont calculées avec le modèle de
+`test/dilithium65_deploy.t.sol` ; les colonnes « après » sont mesurées.
+ML-DSA-44 et ETH inchangés (1 189 532 / 840 309).
+
+### Changed
+- `readPubKeyPacked65(address[4])` remplace `readPubKeyPacked65(address, address)` :
+  quatre blobs de neuf polynômes en indices plats (f < 30 → A[f / 5][f % 5],
+  f ≥ 30 → t1[f − 30]), `tr` dans le dernier. Les blobs n'ont plus
+  d'encadrement ABI : suite brute de polynômes `[32][32 mots]`, parcourue par
+  arithmétique, contrôlée par la taille de code exacte et les mots de longueur.
+  Voir DECISIONS.md ADR-005.
+- `ZKNOX_dilithium65.setKey` écrit quatre contrats au lieu de deux et rend un
+  `pk` de 80 octets ; l'argument est la clé entière (38 112 octets).
+- `js/mldsa65.js` : `encodePublicKeyBlob65` rend `{ blobs: [4], setKeyData }`,
+  `encodeKeyHalf65` et `HALF_BYTES` remplacés par `flattenKeyPolys65`,
+  `BLOB_BYTES65`, `LAST_BLOB_BYTES65`, `KEY_BYTES65`.
+- `test/KAT/mldsa65_kat0.json` : `half0`/`half1` remplacés par
+  `blob0`..`blob3` (régénérer avec `node js/gen_test_vectors65.js 10`).
+- `script/DeployDilithium65.s.sol` dépose la clé du KAT blob par blob ;
+  `KEY_ONE_SHOT=true` revient à `setKey` sur une chaîne qui tarife encore à 200.
+
+### Added
+- `ZKNOX_dilithium65.storeBlob(blob)` : un blob par transaction, le seul chemin
+  qui passe après EIP-8037 ; `packKey(address[4])` assemble le `pk`.
+- `test/dilithium65_deploy.t.sol` (3 tests) : dépôt blob par blob suivi d'une
+  vérification, `setKey` en un coup, tailles refusées, rang du dernier blob, et
+  le budget de gas contrôlé contre le plafond EIP-7825 — le test échoue si une
+  évolution repasse au-dessus.
+
+### Tests
+96/96 (22 sur ML-DSA-65, dont les 15 vecteurs ACVP sigVer et les 10 du
+PQCsignKAT_Dilithium3.rsp, plus les 3 nouveaux du dépôt).
+
+## [2026-09-16] — ML-DSA-65 (FIPS 204 category 3): verifier, js signer, NIST KATs
 
 ### Measured (`make bench`, via-IR, `optimizer_runs = 1000000`, solc 0.8.30)
 | Mesure | ML-DSA-44 | **ML-DSA-65** |

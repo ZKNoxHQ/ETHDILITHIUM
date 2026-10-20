@@ -12,7 +12,7 @@
 //     each with the on-chain public key blob, read by
 //     test/dilithium65_vectors.t.sol.
 import fs from 'fs';
-import { expandPublicKey65, encodePublicKeyBlob65, hexToBytes, bytesToHex, keygen, sign, verify, PARAMS } from './mldsa65.js';
+import { expandPublicKey65, encodePublicKey65, hexToBytes, bytesToHex, keygen, sign, verify, PARAMS } from './mldsa65.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { parseRsp } from './kat_rsp.js';
 
@@ -37,7 +37,6 @@ function literalTest(v) {
   s += 'import {Test, console} from "forge-std/Test.sol";\n';
   s += 'import {ZKNOX_dilithium65} from "../src/ZKNOX_dilithium65.sol";\n';
   s += 'import {F1600Helper} from "./F1600Helper.sol";\n';
-  s += 'import {SSTORE2} from "sstore2/SSTORE2.sol";\n\n';
   s += 'contract KATDilithium65Test is Test {\n';
   s += '    ZKNOX_dilithium65 dilithium;\n\n';
   s += '    function setUp() public {\n';
@@ -70,20 +69,13 @@ function literalTest(v) {
       s += `        t1[${i}][${m}] = uint256(${word(t1Hat[i][m])});\n`;
     }
   }
-  s += '\n        // two SSTORE2 halves (rows 0..2 / 3..5 of A, t1[0..2] / t1[3..5], tr in both)\n';
-  s += '        pk = new bytes(40);\n';
-  s += '        for (uint256 h = 0; h < 2; h++) {\n';
-  s += '            uint256[][][] memory rows = new uint256[][][](3);\n';
-  s += '            uint256[][] memory t1Half = new uint256[][](3);\n';
-  s += '            for (uint256 i = 0; i < 3; i++) {\n';
-  s += '                rows[i] = aHat[3 * h + i];\n';
-  s += '                t1Half[i] = t1[3 * h + i];\n';
-  s += '            }\n';
-  s += '            address pointer = SSTORE2.write(abi.encode(abi.encode(rows), tr, abi.encode(t1Half)));\n';
-  s += '            assembly {\n';
-  s += '                mstore(add(add(pk, 32), mul(h, 20)), shl(96, pointer))\n';
-  s += '            }\n';
+  s += '\n        // the expanded key as the verifier takes it: the 36 polynomials in\n';
+  s += '        // reading order (flat index f < 30 is A[f / 5][f % 5], f >= 30 is t1[f - 30]), then tr\n';
+  s += '        pk = "";\n';
+  s += '        for (uint256 f = 0; f < 36; f++) {\n';
+  s += '            pk = abi.encodePacked(pk, uint256(32), f < 30 ? aHat[f / 5][f % 5] : t1[f - 30]);\n';
   s += '        }\n';
+  s += '        pk = abi.encodePacked(pk, uint256(64), tr);\n';
   s += '    }\n\n';
   s += '    function _signature() internal pure returns (bytes memory) {\n';
   s += `        // sm = signature (${PARAMS.SIG_BYTES} bytes) || message\n`;
@@ -139,7 +131,7 @@ for (const g of sigVer.testGroups) {
       source: 'usnistgov/ACVP-Server gen-val/json-files/ML-DSA-sigVer-FIPS204/internalProjection.json',
       tcId: t.tcId,
       pk: bytesToHex(pk),
-      blob: encodePublicKeyBlob65(expandPublicKey65(pk)).setKeyData,
+      blob: encodePublicKey65(expandPublicKey65(pk)),
       msg: '0x' + t.message.toLowerCase(),
       ctx: '0x' + t.context.toLowerCase(),
       sig: '0x' + t.signature.toLowerCase(),
@@ -154,7 +146,7 @@ for (const v of rsp.slice(0, rspCounts)) {
     source: 'pq-crystals/dilithium ref/nistkat/PQCgenKAT_sign (FIPS 204 ML-DSA-65)',
     tcId: v.count,
     pk: bytesToHex(v.pk),
-    blob: encodePublicKeyBlob65(expandPublicKey65(v.pk)).setKeyData,
+    blob: encodePublicKey65(expandPublicKey65(v.pk)),
     msg: bytesToHex(v.msg),
     ctx: '0x',
     sig: bytesToHex(v.sm.slice(0, PARAMS.SIG_BYTES)),
@@ -167,7 +159,7 @@ for (const v of rsp.slice(0, rspCounts)) {
   const { publicKey, secretKey } = keygen(hexToBytes('0x' + 'deadbeef'.repeat(8)));
   const msg = new TextEncoder().encode('ETHDILITHIUM ML-DSA-65 js signer test message');
   const ctx = hexToBytes('0x5a4b4e4f58'); // "ZKNOX"
-  const blob = encodePublicKeyBlob65(expandPublicKey65(publicKey)).setKeyData;
+  const blob = encodePublicKey65(expandPublicKey65(publicKey));
   const det = sign(msg, secretKey, { context: ctx });
   const hedged = sign(msg, secretKey, { context: ctx, rnd: hexToBytes('0x' + '01'.repeat(32)) });
   if (!verify(det, msg, publicKey, ctx) || !verify(hedged, msg, publicKey, ctx)) throw new Error('js signer self-check failed');
@@ -209,13 +201,10 @@ fs.writeFileSync(`${KAT}/mldsa65_vectors.json`, JSON.stringify({ count: vectors.
 {
   const v = rsp[0];
   const { aHat, t1Hat, tr } = expandPublicKey65(v.pk);
-  const { halves, setKeyData } = encodePublicKeyBlob65({ aHat, t1Hat, tr });
   const kat0 = {
     source: 'PQCsignKAT_Dilithium3.rsp count 0',
     pk: bytesToHex(v.pk),
-    blob: setKeyData,
-    half0: halves[0],
-    half1: halves[1],
+    blob: encodePublicKey65({ aHat, t1Hat, tr }),
     tr: bytesToHex(tr),
     msg: bytesToHex(v.msg),
     sig: bytesToHex(v.sm.slice(0, PARAMS.SIG_BYTES)),

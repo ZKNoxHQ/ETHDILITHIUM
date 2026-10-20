@@ -16,6 +16,9 @@ RPC="wss://ethereum-sepolia-rpc.publicnode.com"
 # ZKNOX_dilithium65 binds it by code hash at construction (the same helper as
 # ZKNOX_dilithium). test/KAT/mldsa65_kat0.json (js/gen_test_vectors65.js) is
 # read for the on-chain KAT check; export KAT_CHECK=false to skip it.
+#
+# Nothing is installed per key: the expanded key travels in the calldata of
+# every verification (38,112 bytes), so the deployment is the verifier alone.
 : "${F1600_HELPER:?set F1600_HELPER to the deployed Keccak-f[1600] helper address}"
 
 # Deploy to network

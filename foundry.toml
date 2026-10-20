@@ -21,3 +21,12 @@ solc_version = "0.8.30"
 evm_version = "cancun"
 via_ir = true
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+# All 100 vectors of PQCsignKAT_Dilithium3.rsp at once (make test_kat100). Each
+# vector carries its 38,112-byte expanded key, so the vectors file reaches about
+# 10.7 MB and one test call expands EVM memory far past the defaults: the
+# default gas limit of 2**30 is hit by memory expansion alone and reported as
+# MemoryOOG.
+[profile.kat100]
+gas_limit = 9223372036854775807
+memory_limit = 8589934592
