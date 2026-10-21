@@ -80,9 +80,8 @@ contract BenchmarksTest is Test {
     }
 
     function testMLDSA() public {
-        // Public key contract
-        DeployPKContract deployPkContract = new DeployPKContract();
-        address mldsaAddress = deployPkContract.run();
+        // the expanded key in the calldata layout of the verifier
+        bytes memory key = new DeployPKContract().flatKey();
 
         string memory data = "0x1111222233334444111122223333444411112222333344441111222233334444";
         bytes memory dataBytes = hex"1111222233334444111122223333444411112222333344441111222233334444";
@@ -93,7 +92,7 @@ contract BenchmarksTest is Test {
 
         // MESSAGE
         uint256 gasStart = gasleft();
-        bool ver = dilithium.verify(abi.encodePacked(mldsaAddress), dataBytes, sig, "");
+        bool ver = dilithium.verify(key, dataBytes, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);

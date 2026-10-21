@@ -23,6 +23,10 @@ error HelperCallFailed();
 error BatchUnsupported();
 
 uint256 constant _M64_170 = 0xffffffffffffffff;
+// _packBallCodes: 1 + 2^72 + 2^144 + 2^216, 0xff per lane, 1 per lane
+uint256 constant _BALLK = 0x0000000001000000000000000001000000000000000001000000000000000001;
+uint256 constant _BALLFF = 0x00000000000000ff00000000000000ff00000000000000ff00000000000000ff;
+uint256 constant _BALL1 = 0x0000000000000001000000000000000100000000000000010000000000000001;
 uint256 constant _RATE_FAST = 136;
 
 /// @notice Keccak-f[1600] permutation, in place on `st` (25 words, lane i = x + 5*y).
@@ -219,82 +223,30 @@ function shake256Any(bytes memory input, uint256 outLen, address helper) view re
 /// @notice SampleInBall (FIPS 204 Alg. 29, tau = 39) over the helper-backed
 ///         SHAKE256, output PACKED (64 words of four 64-bit lanes, coefficient
 ///         4w + j in lane j of word w): exactly 39 coefficients in {1, q - 1},
-///         the rest 0. Same polynomial as sampleInBallNist(cTilde, 39, q): the
-///         first 8 squeezed bytes are the signs (little-endian), then one byte
-///         per draw, rejected while > i. Expected 8 + 44 bytes: the second block
-///         is squeezed only if the first is exhausted.
+///         the rest 0. Same polynomial as sampleInBallNist(cTilde, 39, q):
+///         sampleInBallFastTau with tau = 39 (expected 8 + 44 bytes of the
+///         first block; the second block is squeezed only if the first is
+///         exhausted).
 function sampleInBallFast(bytes memory cTilde, address helper) view returns (uint256[] memory c) {
-    // the first 136 squeezed bytes in one batched call (c~ is 32 bytes, never 800)
-    bytes memory blk = shake256Batch(cTilde, 136, helper);
-    c = new uint256[](64);
-    uint256 i;
-    uint256 pos;
-    uint256 signs;
+    return sampleInBallFastTau(cTilde, 39, helper);
+}
+
+/// @dev the 256 coefficient codes of SampleInBall (0, 1 for +1, 2 for -1), one
+///      byte each at `codes`, to the packed layout at `c` (64 words): lane
+///      j of word w = coefficient 4w + j, 2 -> q - 1. The four codes of a word
+///      are spread to their lanes by one multiply (the other copies of the
+///      bytes land on bytes that are masked out, see the 44-byte-lane argument
+///      in VERSION.md), then 2 -> 2 + (q - 3).
+function _packBallCodes(uint256 codes, uint256[] memory c) pure {
     assembly ("memory-safe") {
-        let blkPtr := add(blk, 32)
-        // sign bits: the first 8 bytes, little-endian
-        for { let b := 0 } lt(b, 8) { b := add(b, 1) } {
-            signs := or(signs, shl(shl(3, b), byte(0, mload(add(blkPtr, b)))))
-        }
-        pos := 8
-        let base := add(c, 32)
-        for { i := 217 } lt(i, 256) { i := add(i, 1) } {
-            // draw bytes until one is <= i; leave to the fallback if the block runs out
-            let j := 256
-            for {} and(gt(j, i), lt(pos, 136)) {} {
-                j := byte(0, mload(add(blkPtr, pos)))
-                pos := add(pos, 1)
-            }
-            if gt(j, i) { break }
-            // lane j -> lane i, then lane j := +-1
-            let pj := add(base, shl(5, shr(2, j)))
-            let shj := shl(6, and(j, 3))
-            let vj := and(shr(shj, mload(pj)), 0xffffffffffffffff)
-            let pi := add(base, shl(5, shr(2, i)))
-            let shi := shl(6, and(i, 3))
-            mstore(pi, or(and(mload(pi), not(shl(shi, 0xffffffffffffffff))), shl(shi, vj)))
-            let v := 1
-            if and(signs, 1) { v := 8380416 }
-            mstore(pj, or(and(mload(pj), not(shl(shj, 0xffffffffffffffff))), shl(shj, v)))
-            signs := shr(1, signs)
-        }
-    }
-    if (i < 256) {
-        // first block exhausted (probability ~2^-40): rebuild the sponge state
-        // incrementally and continue with the next blocks
-        uint256[25] memory st;
-        _absorbFast170(st, cTilde, helper);
-        uint256 blkPtr;
-        assembly ("memory-safe") {
-            blkPtr := add(blk, 32)
-        }
-        for (; i < 256; i++) {
-            uint256 j;
-            while (true) {
-                if (pos == 136) {
-                    f1600Fast170(st, helper);
-                    _squeezeBlockFast170(st, blkPtr);
-                    pos = 0;
-                }
-                assembly ("memory-safe") {
-                    j := byte(0, mload(add(blkPtr, pos)))
-                }
-                pos++;
-                if (j <= i) break;
-            }
-            assembly ("memory-safe") {
-                let base := add(c, 32)
-                let pj := add(base, shl(5, shr(2, j)))
-                let shj := shl(6, and(j, 3))
-                let vj := and(shr(shj, mload(pj)), 0xffffffffffffffff)
-                let pi := add(base, shl(5, shr(2, i)))
-                let shi := shl(6, and(i, 3))
-                mstore(pi, or(and(mload(pi), not(shl(shi, 0xffffffffffffffff))), shl(shi, vj)))
-                let v := 1
-                if and(signs, 1) { v := 8380416 }
-                mstore(pj, or(and(mload(pj), not(shl(shj, 0xffffffffffffffff))), shl(shj, v)))
-                signs := shr(1, signs)
-            }
+        let d := add(c, 32)
+        for { let e := add(d, 0x800) } lt(d, e) { d := add(d, 64) } {
+            // the top seven bytes of the word at codes: c[4w] at bits 48..55 down to c[4w + 3] at 24..31
+            let v := and(shr(48, mul(shr(200, mload(codes)), _BALLK)), _BALLFF)
+            mstore(d, add(v, mul(and(shr(1, v), _BALL1), 8380414)))
+            v := and(shr(48, mul(shr(200, mload(add(codes, 4))), _BALLK)), _BALLFF)
+            mstore(add(d, 32), add(v, mul(and(shr(1, v), _BALL1), 8380414)))
+            codes := add(codes, 8)
         }
     }
 }
@@ -308,42 +260,47 @@ function sampleInBallFast(bytes memory cTilde, address helper) view returns (uin
 ///         while > i. ML-DSA-65 uses tau = 49 on a 48-byte c~ (expected
 ///         8 + 56 bytes of the first block); the second block is squeezed only
 ///         if the first is exhausted. tau <= 64 (the sign word has 64 bits).
+///         The draws run on a 256-byte scratch of coefficient codes (0, 1, 2
+///         for -1: one byte read and two mstore8 per draw), packed once at the end.
 function sampleInBallFastTau(bytes memory cTilde, uint256 tau, address helper) view returns (uint256[] memory c) {
     if (tau > 64) revert BatchUnsupported();
     // the first 136 squeezed bytes in one batched call (c~ is 32..64 bytes, never 800)
     bytes memory blk = shake256Batch(cTilde, 136, helper);
     c = new uint256[](64);
+    uint256 codes;
     uint256 i;
     uint256 pos;
     uint256 signs;
     assembly ("memory-safe") {
+        // the draws of one squeezed block, one loop over its bytes: returns
+        // where it stopped (i < 256 iff the block ran out)
+        function draws(blkPtr, cd, i0, pos0, signs0) -> i1, pos1, signs1 {
+            i1 := i0
+            pos1 := pos0
+            signs1 := signs0
+            for {} lt(pos1, 136) {} {
+                let j := byte(0, mload(add(blkPtr, pos1)))
+                pos1 := add(pos1, 1)
+                // rejected while > i
+                if gt(j, i1) { continue }
+                // c[i] := c[j], c[j] := +-1
+                mstore8(add(cd, i1), byte(0, mload(add(cd, j))))
+                mstore8(add(cd, j), add(1, and(signs1, 1)))
+                signs1 := shr(1, signs1)
+                i1 := add(i1, 1)
+                if eq(i1, 256) { break }
+            }
+        }
+        // 256 zero bytes of codes
+        codes := mload(0x40)
+        mstore(0x40, add(codes, 256))
+        calldatacopy(codes, calldatasize(), 256)
         let blkPtr := add(blk, 32)
         // sign bits: the first 8 bytes, little-endian
         for { let b := 0 } lt(b, 8) { b := add(b, 1) } {
             signs := or(signs, shl(shl(3, b), byte(0, mload(add(blkPtr, b)))))
         }
-        pos := 8
-        let base := add(c, 32)
-        for { i := sub(256, tau) } lt(i, 256) { i := add(i, 1) } {
-            // draw bytes until one is <= i; leave to the fallback if the block runs out
-            let j := 256
-            for {} and(gt(j, i), lt(pos, 136)) {} {
-                j := byte(0, mload(add(blkPtr, pos)))
-                pos := add(pos, 1)
-            }
-            if gt(j, i) { break }
-            // lane j -> lane i, then lane j := +-1
-            let pj := add(base, shl(5, shr(2, j)))
-            let shj := shl(6, and(j, 3))
-            let vj := and(shr(shj, mload(pj)), 0xffffffffffffffff)
-            let pi := add(base, shl(5, shr(2, i)))
-            let shi := shl(6, and(i, 3))
-            mstore(pi, or(and(mload(pi), not(shl(shi, 0xffffffffffffffff))), shl(shi, vj)))
-            let v := 1
-            if and(signs, 1) { v := 8380416 }
-            mstore(pj, or(and(mload(pj), not(shl(shj, 0xffffffffffffffff))), shl(shj, v)))
-            signs := shr(1, signs)
-        }
+        i, pos, signs := draws(blkPtr, codes, sub(256, tau), 8, signs)
     }
     if (i < 256) {
         // first block exhausted (probability ~2^-40 for tau = 39, ~2^-30 for
@@ -370,18 +327,11 @@ function sampleInBallFastTau(bytes memory cTilde, uint256 tau, address helper) v
                 if (j <= i) break;
             }
             assembly ("memory-safe") {
-                let base := add(c, 32)
-                let pj := add(base, shl(5, shr(2, j)))
-                let shj := shl(6, and(j, 3))
-                let vj := and(shr(shj, mload(pj)), 0xffffffffffffffff)
-                let pi := add(base, shl(5, shr(2, i)))
-                let shi := shl(6, and(i, 3))
-                mstore(pi, or(and(mload(pi), not(shl(shi, 0xffffffffffffffff))), shl(shi, vj)))
-                let v := 1
-                if and(signs, 1) { v := 8380416 }
-                mstore(pj, or(and(mload(pj), not(shl(shj, 0xffffffffffffffff))), shl(shj, v)))
+                mstore8(add(codes, i), byte(0, mload(add(codes, j))))
+                mstore8(add(codes, j), add(1, and(signs, 1)))
                 signs := shr(1, signs)
             }
         }
     }
+    _packBallCodes(codes, c);
 }

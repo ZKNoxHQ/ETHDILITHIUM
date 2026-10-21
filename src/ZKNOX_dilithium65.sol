@@ -8,10 +8,15 @@ pragma solidity ^0.8.25;
 
 import {
     dilithiumCore1Packed65,
+    dilithiumCore1PackedCalldata65,
     dilithiumCore2Packed65,
-    readPubKeyCalldata65,
-    KEY_BYTES65
+    dilithiumCore2Calldata65,
+    checkPubKeyCalldata65,
+    KEY_BYTES65,
+    KEY_POLYS65,
+    POLY_BYTES65
 } from "./ZKNOX_dilithium65_core_packed.sol";
+import {BadPubKeyBlob} from "./ZKNOX_dilithium_core_packed.sol";
 import {shake256Any, sampleInBallFastTau} from "./ZKNOX_shake_fast.sol";
 import {PubKey, Signature} from "./ZKNOX_dilithium_utils.sol";
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
@@ -88,12 +93,12 @@ contract ZKNOX_dilithium65 is ISigVerifier {
         if (signature.length != 3309) revert InvalidSignatureLength();
         if (f1600Helper.codehash != F1600_CODEHASH) revert BadHelper();
 
-        PubKey memory publicKey = readPubKeyCalldata65(pk);
+        if (!checkPubKeyCalldata65(pk)) revert BadPubKeyBlob();
 
         if (ctx.length > 255) revert ContextTooLong();
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(uint8(ctx.length)), ctx, m);
 
-        return verifyInternal(publicKey, mPrime, _parseSignature(signature));
+        return verifyInternal(pk, mPrime, signature);
     }
 
     /**
@@ -110,25 +115,57 @@ contract ZKNOX_dilithium65 is ISigVerifier {
         }
         if (f1600Helper.codehash != F1600_CODEHASH) revert BadHelper();
 
-        PubKey memory publicKey = readPubKeyCalldata65(pk);
+        if (!checkPubKeyCalldata65(pk)) revert BadPubKeyBlob();
 
         bytes memory mPrime = abi.encodePacked(bytes1(0), bytes1(0), m);
 
-        if (verifyInternal(publicKey, mPrime, _parseSignature(signature))) {
+        if (verifyInternal(pk, mPrime, signature)) {
             return ISigVerifier.verify.selector;
         }
         return 0xFFFFFFFF;
     }
 
     /**
-     * @notice Splits the 3309-byte encoding into c~ (48) || z (3200) || h (61).
+     * @notice Splits the 3309-byte encoding into c~ (48) || z (3200) || h (61)
+     *         (reference form, for the memory path below).
      */
     function _parseSignature(bytes calldata signature) internal pure returns (Signature memory) {
         return Signature({cTilde: signature[0:48], z: signature[48:3248], h: signature[3248:3309]});
     }
 
     /**
-     * @notice Core ML-DSA-65 verification (FIPS 204 Alg. 8) on the decoded key.
+     * @notice Core ML-DSA-65 verification (FIPS 204 Alg. 8) on the key and the
+     *         signature left in the calldata (key shape checked by
+     *         checkPubKeyCalldata65, signature length by the caller): the
+     *         38,112 bytes of the key are never copied, the matvec reads A and
+     *         t1 in place and tr is sliced for mu; z is decoded in place too
+     *         (dilithiumCore1PackedCalldata65), only c~ and h are copied.
+     */
+    function verifyInternal(bytes calldata pk, bytes memory mPrime, bytes calldata signature)
+        internal
+        view
+        returns (bool)
+    {
+        (bool ok, uint256[][] memory z, uint256[6] memory hintMasks) = dilithiumCore1PackedCalldata65(signature);
+        if (!ok) {
+            return false;
+        }
+
+        uint256[] memory cNtt = sampleInBallFastTau(signature[0:48], 49, f1600Helper);
+
+        bytes memory wPrimeBytes = dilithiumCore2Calldata65(pk, z, cNtt, hintMasks);
+
+        bytes memory mu =
+            shake256Any(abi.encodePacked(pk[KEY_POLYS65 * POLY_BYTES65 + 32:KEY_BYTES65], mPrime), 64, f1600Helper);
+        bytes memory finalHash = shake256Any(abi.encodePacked(mu, wPrimeBytes), 48, f1600Helper);
+
+        return keccak256(finalHash) == keccak256(signature[0:48]);
+    }
+
+    /**
+     * @notice Core ML-DSA-65 verification (FIPS 204 Alg. 8) on a decoded key
+     *         (readPubKeyCalldata65); the calldata form above is the one the
+     *         entry points use.
      */
     function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal

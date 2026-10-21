@@ -1,0 +1,11 @@
+{
+  "lib/InterfaceVerifier": {
+    "rev": "5ec0596c7fad2fcdde8bdb2dd50565858c84007c"
+  },
+  "lib/forge-std": {
+    "rev": "8ba9031ffcbe25aa0d1224d3ca263a995026e477"
+  },
+  "lib/sstore2": {
+    "rev": "0a28fe61b6e81de9a05b462a24b9f4ba8c70d5b7"
+  }
+}

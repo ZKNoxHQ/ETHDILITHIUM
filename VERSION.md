@@ -1,5 +1,277 @@
 # VERSION.md — changelog
 
+## [unreleased] — 2026-10-21 (4) — ML-DSA-44 en calldata, passe intra-mot inverse repliée dans le matvec, table recomposée, signature lue en place
+
+### Measured (`make bench`, profil par défaut, 113/113 tests, profil lite 113/113, `make test_kat100` 2/2)
+| | fcfc3fe | 2026-10-21 (3) | **après** | delta total |
+|---|---:|---:|---:|---:|
+| `ZKNOX_dilithium.verify` (NIST, ML-DSA-44, exécution) | 1 189 532 | 1 047 209 | **1 006 093** | −15,4 % |
+| `ZKNOX_ethdilithium.verify` (ETH) | 840 309 | 701 975 | **679 733** | −19,1 % |
+| `ZKNOX_dilithium65.verify` (ML-DSA-65, exécution) | 1 549 610 | 1 241 421 | **1 198 467** | −22,7 % |
+| runtime size 44 / 65 / ETH (marge EIP-170) | 24 383 (193) / 23 712 (864) / 20 278 | 24 225 (351) / 22 609 (1 967) / 20 149 | **22 787 (1 789) / 23 642 (934) / 20 444** | |
+
+Le chiffre du 44 est désormais, comme celui du 65, de l'exécution seule : sa
+clé (21 216 octets) voyage dans le calldata de chaque vérification, 269 328
+gas de calldata pour la clé, 309 468 avec la signature (`test/dilithium_key.t.sol`,
+total transaction 1 332 382, plancher EIP-7623 794 510). Le 65 : 538 132 de
+calldata, inchangés.
+
+### Changed
+- **ML-DSA-44 : clé en calldata, contrat sans état** (DECISIONS.md ADR-010).
+  `ZKNOX_dilithium` prend la forme de `ZKNOX_dilithium65` : `setKey(bytes)`
+  vérifie la longueur et rend la clé, `verify(pk, m, sig, ctx)` et
+  `verify(pk, bytes32, sig)` prennent les 21 216 octets et les lisent en
+  place (`checkPubKeyCalldata`, `dilithiumCore2Calldata`). Même layout plat que
+  le 65 : 20 polynômes `[32][32 mots]` (A[i][j] en (4i+j)·1056, t1[i] en
+  (16+i)·1056) puis tr `[64][64 octets]` ; `encodePubKeyFlat` le construit à
+  partir des trois tableaux, `pythonref/prepare_pk_for_deployment.py … flat`
+  à partir d'une graine (le mode `abi` garde le blob SSTORE2 de
+  `ZKNOX_ethdilithium`). Le dépôt SSTORE2 disparaît du 44 ; l'ETH le garde.
+- **Passe intra-mot de la NTT inverse repliée dans le matvec** (ADR-011) :
+  les deux accumulateurs d'un mot (lanes 0-2 et 1-3) sont ses quatre lanes
+  brutes, la passe t = 1, 2 les prend sur la pile au lieu de relire un mot
+  stocké, forme sommes et différences décalées sur les deux moitiés d'un
+  coup, et le reste de l'inverse (`nttInvMontPackedTailTb`, passes B' et A')
+  part des mots écrits. Noyaux `_matvecRowInvCCalldata` / `…65` (clé en
+  calldata) et `_matvecRowInvCSplit` (clé en mémoire, ETH) ; deux mots de
+  clé (quatre mots de sortie) par corps de boucle, twiddles à décalages
+  constants.
+- **Sorties de la passe intra-mot produites en place** : le twiddle est
+  déplacé au bit 64 (128) et le module est q·2^64 (q·2^128, q·2^192), si bien
+  que `mulmod` / `addmod` rendent la lane là où elle va — plus aucun `shl`
+  de sortie. Appliqué au premier bloc de `nttInvMontPackedRawFusedTb` aussi.
+- **Table de twiddles recomposée** (`_TW_MONT`) : les mots 0..7 de chaque
+  moitié portent les sept twiddles de la seconde passe composés par bloc (le
+  mot que les noyaux assemblaient à chaque bloc à partir des mots 1..7, qu'ils
+  ne lisaient pas autrement) : −9 à −12 k ; dans la moitié inverse, les deux
+  moitiés des mots t = 2 sont permutées (mot j au champ j ^ 4), de sorte que
+  les quatre twiddles d'un corps de boucle sont le haut d'une lecture non
+  alignée à pas de 16 octets.
+- **Signature lue en place** : `dilithiumCore1PackedCalldata` / `…65` décodent
+  z depuis le calldata (`_unpackZPackedLazyCalldata*`, mêmes décodeurs,
+  `calldataload` pour `mload`) ; seuls c~ et h sont copiés : −1,5 k.
+- **UseHint 65** : quatre mots par itération, un `mstore` de 8 octets (les
+  copies parasites de l'empaquetage restent sous le bit 192) : −6,7 k.
+- Boucles des passes B / B' bornées par le pointeur avec un pointeur de table
+  courant ; test d'indices de hints sans branchement.
+
+### Où en est le profil (65, 1 198 467)
+Neuf permutations Keccak 385 k (32 %) ; six NTT directes 242 k ; six matvec
+avec passe intra-mot repliée 298 k (dont ~190 k de produits : 10 opérations par
+produit, plancher) ; six queues d'inverse 133 k ; unpackZ 69 k ; SampleInBall
+61 k dont 43 k de permutation ; UseHint 47 k ; mu 43 k ; hints 5 k ; table
+1,5 k ; expansion mémoire ~12 k (57 Ko). 44 (1 006 093) : cinq NTT 201 k,
+quatre matvec 179 k, queues 89 k, UseHint 62 k (80 hints), unpackZ 55 k.
+
+### Tried and discarded (mesuré)
+- Passe intra-mot directe en Montgomery packé (deux `mul` par mot au lieu de
+  quatre `mulmod`, table t = 2 / t = 1 en forme de Montgomery et paires à
+  64 bits) : +1,2 k par transformée et +1 Ko par contrat. `mulmod` à 8 gas
+  bat la réduction de Montgomery (treize opérations) ; le gain de lanes se
+  perd en masques et repositionnements.
+- Corps de boucle du matvec à quatre mots de clé (huit mots de sortie,
+  twiddles sans pré-décalage) : −2,9 k (44) / −4,4 k (65) mais +2,3 Ko, au-delà
+  d'EIP-170 sur les deux contrats.
+- UseHint 44 à quatre mots par itération : −0,6 k pour +1,1 Ko (l'empaquetage
+  6 bits reste à deux mots par `mstore`, ses copies montent au bit 196).
+- Formulations de la passe repliée (lanes scalaires, sommes d'abord, sans
+  réaffectation) : ±0,5 k par ligne, la forme à moitiés packées gardée.
+- Boucles bornées par pointeur dans les passes A et C des noyaux NTT : +1 à
+  +3 k selon le contrat, seule la passe B gagne.
+
+## [unreleased] — 2026-10-21 (3) — gas, fin de série : hints par mot, borne de z accumulée, forme de la clé déroulée, empaquetage SampleInBall
+
+### Measured (`make bench`, profil par défaut, 106/106 tests, profil lite 106/106, `make test_kat100` 2/2)
+| | fcfc3fe | 2026-10-21 (2) | **après** | delta total |
+|---|---:|---:|---:|---:|
+| `ZKNOX_dilithium.verify` (NIST, ML-DSA-44) | 1 189 532 | 1 057 611 | **1 047 209** | −12,0 % |
+| `ZKNOX_ethdilithium.verify` (ETH) | 840 309 | 711 817 | **701 975** | −16,5 % |
+| `ZKNOX_dilithium65.verify` (ML-DSA-65, exécution) | 1 549 610 | 1 252 837 | **1 241 421** | −19,9 % |
+| runtime size 44 / 65 / ETH (marge EIP-170) | 24 383 (193) / 23 712 (864) / 20 278 | 24 054 (522) / 22 406 / 20 090 | **24 225 (351) / 22 609 (1 967) / 20 149** | |
+
+### Changed
+- **UseHint** : dans une paire de mots à hint, seul le mot qui en porte est
+  ajusté (deux tests de quartet sous le test de la paire) : −4,8 k (65),
+  −6,2 k (44).
+- **unpackZ** : la borne de norme s'accumule par `and` des deux termes
+  (bit 24 par lane) et se teste une fois en sortie, au lieu d'un `xor` et
+  d'un `or` par groupe : −5 k (65), −3 k (44).
+- **checkPubKeyCalldata65** : les 36 mots de longueur sont contrôlés quatre
+  par itération, en un seul `or` de différences : −1,5 k.
+- **SampleInBall** : empaquetage des codes deux mots par itération : −0,8 k.
+
+### Où en est le profil (65, 1 241 421)
+Neuf permutations Keccak 385 k (31 %, fixées par FIPS 204 et le helper) ;
+douze NTT ~505 k (41 % ; dans chaque transformée les deux étages intra-mot
+scalaires pèsent 45 à 48 %, et la version packée de ces étages reste plus
+chère) ; matvec 197 k (983 gas par mot de clé contre un plancher
+d'instructions d'environ 860) ; unpackZ ~68 k (dont 150 par paire de groupes
+pour l'inversion d'octets) ; SampleInBall 62 k dont 43 k de permutation ;
+UseHint ~51 k ; mu 43 k ; le reste (~12 k) est de la glu. Ce qui subsiste
+au-dessus des planchers d'instructions est l'ordonnancement de pile du
+pipeline IR (15 à 30 % selon la boucle), que l'écriture des noyaux ne
+contrôle que partiellement.
+
+### Tried and discarded (mesuré)
+- Boucle de tirages de SampleInBall sortie de l'inlining par un auto-appel
+  jamais pris : −0,7 k (44) / +0,2 k (65) ; retirée. La boucle inlinée n'est
+  pas celle aux longues chaînes de swaps (c'est la boucle de secours, jamais
+  exécutée).
+- Clé 65 en champs de 23 bits (hors règle, évalué seulement) : le format
+  actuel coûte 482 k de calldata parce qu'un octet sur quatre est nul (4 gas) ;
+  compacté, 425 k, soit −57 k pour un dépaquetage on-chain d'environ 90 k.
+  Non rentable.
+
+## [unreleased] — 2026-10-21 (2) — gas, suite : z lazy, lignes dans les tableaux de z, un pointeur de clé par ligne, sommes lazy de la première passe inverse, parseur de hints
+
+### Measured (`make bench`, profil par défaut, 106/106 tests, profil lite 106/106, `make test_kat100` 2/2)
+| | fcfc3fe | 2026-10-21 (1) | **après** | delta total |
+|---|---:|---:|---:|---:|
+| `ZKNOX_dilithium.verify` (NIST, ML-DSA-44) | 1 189 532 | 1 081 811 | **1 057 611** | −11,1 % |
+| `ZKNOX_ethdilithium.verify` (ETH) | 840 309 | 735 767 | **711 817** | −15,3 % |
+| `ZKNOX_dilithium65.verify` (ML-DSA-65, exécution) | 1 549 610 | 1 284 828 | **1 252 837** | −19,2 % |
+| runtime size 44 / 65 / ETH (marge EIP-170) | 24 383 (193) / 23 712 (864) / 20 278 | 24 127 (449) / 22 556 / 20 163 | **24 054 (522) / 22 406 (2 170) / 20 090** | |
+
+Profil du 65 après (exécution) : hachage final 292 k, six NTT directes
+248 k (scission et expansion mémoire comprises), six inverses 260 k, matvec
+197 k, unpackZ 74 k, SampleInBall 62 k (42,8 k de permutation), UseHint 56 k,
+mu 43 k, hints 5 k, forme de la clé 2,7 k, glue ~5 k.
+
+### Changed
+- **z en lanes lazy** : `unpackZPackedLazy` / `unpackZPackedLazy65` écrivent
+  q + γ1 − f dans (0, 2q) sans la soustraction conditionnelle de q ;
+  `dilithiumCore1Packed` / `dilithiumCore1Packed65` les utilisent. La NTT
+  directe accepte des lanes < 2q (chaque biais des couches packées est 2q,
+  produits < 2^50), sa borne de sortie passe de 16q à 17q, la borne documentée
+  du matvec. `unpackZPacked` / `unpackZPacked65` (canoniques, référence des
+  tests) sont inchangées, les trois partagent un décodeur à drapeau. −9,7 k
+  (44, ETH), −12,2 k (65). Test ajouté : le noyau scindé sur des lanes x + q.
+- **Lignes du matvec dans les tableaux de z** : `_matvecRowSplit` et
+  `_matvecRowCalldata65` prennent le tableau de destination ; les cores
+  écrivent les lignes dans les z (et c) packés, morts depuis la scission, au
+  lieu d'allouer 2 Ko par ligne. −6 k (65), −4,6 k (44) d'expansion mémoire.
+- **Un pointeur de clé par ligne** : les polynômes de la ligne sont lus à
+  `pa + j·1056` et t1 à `pa + dt` (format du blob et de la clé calldata) au
+  lieu de six pointeurs incrémentés ; `_matvecRowSplit` vérifie la contiguïté
+  et recopie la ligne dans ce format sinon (lignes de test non contiguës).
+  −5 k (65), −2 k (44).
+- **Première passe inverse** (`nttInvMontPackedRawFusedTb`) : les deux sommes
+  de la couche t = 1 restent brutes (`add` pour `addmod`, < q·2^31), la
+  différence de la couche t = 2 prend un décalage q·2^31 ; −1 k par
+  transformée. Le noyau non fusionné de référence est inchangé.
+- **Parseur de hints** : la stricte croissance des indices est le test
+  « nouveau bit au-dessus du masque » (`gt(shl(idx, 1), m)`), les octets
+  d'index inutilisés sont contrôlés un mot à la fois ; −2,5 k (65), −3,3 k (44).
+
+### Tried and discarded (mesuré)
+- UseHint à quatre mots par itération (un store de 8 octets) : +1,8 k sur le
+  65 (pression de pile et constantes) ; deux mots gardés.
+- SampleInBall : tirages dans une fonction Solidity séparée à deux appelants,
+  puis deux octets par itération : +0,4 k et +0,9 k (la boucle est de toute
+  façon inlinée dans `verifyInternal`, avec ses chaînes de swaps) ; version
+  à fonction Yul conservée.
+- Séquence d'optimisation Yul explicite dans `foundry.toml` : l'IR ne compile
+  plus (« too deep in the stack » dans SampleInBall) ; profil ADR-004 inchangé.
+- Pour mémoire, les pistes évaluées sans suite : transposition 4×4 avant les
+  étages intra-mot (deux transpositions par transformée annulent le gain),
+  trois produits par `mul` dans le matvec (impossible avec des champs de clé
+  espacés de 32 bits, recherche exhaustive), mise à l'échelle n⁻¹ déplacée
+  vers z et c (même nombre de polynômes), réduction de Shoup à la place de
+  Montgomery (même coût).
+
+## [unreleased] — 2026-10-21 — gas : matvec à deux produits par multiplication, clé 65 lue en calldata, UseHint et SampleInBall sans boucles de lanes
+
+### Measured (`make bench`, profil par défaut, 104/104 tests, `make test_kat100` 2/2)
+| | avant | **après** | delta |
+|---|---:|---:|---:|
+| `ZKNOX_dilithium.verify` (NIST, ML-DSA-44) | 1 189 532 | **1 081 811** | −9,1 % |
+| `ZKNOX_ethdilithium.verify` (ETH) | 840 309 | **735 767** | −12,4 % |
+| `ZKNOX_dilithium65.verify` (ML-DSA-65, exécution) | 1 549 610 | **1 284 828** | −17,1 % |
+| `ZKNOX_dilithium65.verify`, transaction (calldata 538 132 inclus) | ~2 108 000 | **~1 844 000** | −12,5 % |
+| runtime size 44 / 65 / ETH (marge EIP-170) | 24 383 (193) / 23 712 (864) / 20 278 | **24 127 (449) / 22 556 (2 020) / 20 163** | |
+
+Profil du 65 après (exécution, `verify(pk, m, sig, "")`) : hachage final
+292 k (7 permutations, fixé par FIPS 204), six NTT directes 236 k, six
+inverses 267 k, matvec 210 k, unpackZ 86 k, SampleInBall 63 k (dont 42,7 k
+de permutation), UseHint 57 k, mu 43 k, hints 7,5 k, contrôle de forme de la
+clé 2,7 k. Plancher des neuf permutations : 385 k.
+
+Référence Fireblocks ML-DSA-44 : 1 224 368 ; le 44 est maintenant 142 557 en
+dessous.
+
+### Changed
+- **Matvec à deux produits par `mul`** (`_matvecRowSplit` / `_matvecRowSplit65`,
+  DECISIONS.md ADR-008). Les z transformés et c sont écrits en « lanes
+  scindées » : pour quatre coefficients, un mot pair (c0 en 0, c2 en 64) et un
+  mot impair (c1 en 32, c3 en 96). Contre le mot de clé masqué à ses champs
+  pairs (f0 en 0, f2 en 64) ou impairs (f1 en 32, f3 en 96), une
+  multiplication donne deux produits voulus sur des lanes de 64 bits et deux
+  produits croisés sur d'autres lanes ; deux accumulateurs (pair : lanes 0 et
+  2, impair : lanes 1 et 3) sont fusionnés par masques. 24 `mul` par mot de
+  clé au lieu de 48, aucune extraction de champ côté clé (un masque par
+  produit, un décalage de 128 par mot pour les quatre champs hauts), aucune
+  côté z. Bornes : lanes voulues inchangées (< q·2^30, celle de la première
+  passe inverse), lanes croisées < 2^54 avec un décalage de 2^60 à la place de
+  q·2^28 pour que la soustraction de c·t1 n'emprunte jamais, puis masquées.
+  Matvec du 65 : 428 657 → 210 505 ; du 44 : −~100 k.
+- **Scission écrite par la NTT directe** : `nttFwMontPackedFusedTbSplit(A, tb, d)`
+  (copie du noyau fusionné dont la dernière passe écrit les deux mots scindés
+  au lieu du mot packé), donc aucune passe de scission ; `dilithiumCore2Packed`
+  et `dilithiumCore2Packed65` l'appellent sur les z et sur c, qui ne sont plus
+  « transformés en place » mais laissés dans l'état des deux premières passes.
+  `_splitLanes` / `_splitLanes65` restent la forme de référence (tests), et
+  `_matvecRowPacked` / `_matvecRowPacked65` gardent leur signature (scission
+  puis noyau).
+- **ML-DSA-65 : la clé reste dans le calldata.** `checkPubKeyCalldata65`
+  contrôle la forme (même règle que `readPubKeyCalldata65`), puis
+  `dilithiumCore2Calldata65` lit A et t1 par `calldataload`
+  (`_matvecRowCalldata65`) et `tr` est tranché pour mu : plus de copie des
+  38 112 octets, −29 k (copie et expansion mémoire quadratique de tout ce qui
+  suivait). `readPubKeyCalldata65` et le `verifyInternal(PubKey memory, …)`
+  restent (forme de référence, tests), une surcharge `verifyInternal(bytes
+  calldata, …)` sert les deux `verify`.
+- **UseHint** (`useHintPacked`, `useHintPacked65`) :
+  a1 = ⌊(r + γ2 − 1) / 2γ2⌋ par une multiplication par ⌈2^48 / 2γ2⌉ et un
+  décalage (exact pour tout r < q, vérifié exhaustivement, produits de lane
+  < 2^54), à la place de la double approximation ; empaquetage des quatre
+  valeurs d'un mot vers leurs octets big-endian par multiplication (une pour
+  le 65 : lane k → bits 248, 252, 240, 244 ; deux pour le 44 après
+  séparation des bits qui restent dans leur octet et de ceux qui changent
+  d'octet), les autres copies tombant sous les bits gardés ; deux mots par
+  itération, un store de 4 (65) ou 6 (44) octets. Pour le 65, l'ajustement
+  des lanes à hint est désormais lane-parallèle (comme le 44) au lieu d'une
+  boucle scalaire par lane : 110 k → 57 k (signature du KAT). 44 : 89 k →
+  73 k (80 hints aléatoires).
+- **SampleInBall** (`sampleInBallFastTau`, `sampleInBallFast` = tau 39) : les
+  tirages opèrent sur un tableau de 256 codes d'un octet (0, 1, 2 pour −1 :
+  une lecture d'octet et deux `mstore8` par tirage, un seul parcours des
+  octets du bloc avec `continue`), empaqueté une fois à la fin
+  (`_packBallCodes` : quatre codes par mot vers leurs lanes par une
+  multiplication, 2 → q − 1). 69,5 k → 63 k. Même flux d'octets, même
+  polynôme.
+- **unpackZ** : contrôle de borne combiné (bit 24 de (f + 2^24 − lo) ET de
+  (2^24 + hi − f)), masque de groupe fondu dans les masques de champs, second
+  groupe écrit à `dst + 32` : 65 : 90,8 k → 85,7 k (avec le masque de
+  groupe retiré) ; 44 : 84 k → 81 k.
+- Vérification de forme de `dilithiumCore2Packed` (44) portée dans la fonction
+  (elle venait de `_matvecRowPacked`).
+
+### Added
+- `test/NTT_dilithium_mont.t.sol` : `testFuzz_fw_split_matches_packed_split`
+  et `test_fw_split_saturated` (le noyau à sortie scindée égale, mot pour
+  mot, le noyau packé suivi de `_splitLanes`).
+
+### Tried and discarded (mesuré)
+- Passe intra-mot de la NTT directe en Montgomery packé (lanes 2-3 puis 1-3
+  multipliées par leurs twiddles en forme de Montgomery, une réduction par
+  paire, papillons sur demi-mots, table de 24 mots en plus) : +2,9 k par
+  transformée et +2,5 Ko de code par contrat contre les `mulmod` scalaires ;
+  retirée.
+- Twiddles pré-multipliés par QINV dans les passes packées : coût identique
+  (le `and(t, m32)` économisé est remplacé par le PUSH de la constante).
+- Scission en deux mots compacts de 32 bits par mot packé (moitié de
+  mémoire) : +6 par `mul` dans le noyau, gain nul.
+
 ## [unreleased] — 2026-10-20 (4) — compatibilité avec le signer Ledger ecml-signer
 
 ### Added

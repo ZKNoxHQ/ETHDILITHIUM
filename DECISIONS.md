@@ -408,3 +408,204 @@ calldata sans réencodage, et il reste le format du vérifieur.
   Safe, ne sont pas concernés.
 - Revenir en arrière est possible : ADR-005 et ADR-006 restent dans l'historique
   git, et le format de clé est inchangé.
+
+## ADR-008 — Matvec à deux produits par multiplication sur des lanes scindées, clé 65 lue dans le calldata
+
+**Contexte**
+
+Après ADR-007 le profil du 65 (1 549 610 d'exécution) était : neuf
+permutations Keccak 385 k (plancher fixé par FIPS 204 et le helper), douze
+NTT 510 k, matvec 429 k, UseHint 110 k, unpackZ 91 k, SampleInBall 69 k,
+copie de la clé 22 k. Le matvec était le premier poste hors permutations :
+48 produits par mot de clé, chacun payant l'isolement d'une lane de z
+(`and` sur un masque de 32 octets) et l'extraction d'un champ de clé
+(`shr` puis `and`), soit environ 46 gas par produit mesurés.
+
+**Décision**
+
+1. *Deux produits par `mul`.* La clé reste dans son format (huit champs de 32
+   bits par mot, coefficient 8m+f en champ f). Les z transformés et c sont
+   écrits par la NTT directe en lanes scindées : pour quatre coefficients, un
+   mot pair (c0 en 0, c2 en 64) et un mot impair (c1 en 32, c3 en 96). Contre
+   le mot de clé masqué à ses champs pairs (f0 en 0, f2 en 64) ou impairs (f1
+   en 32, f3 en 96), une multiplication place c0·f0 en 0 et c2·f2 en 128
+   (pair) ou c1·f1 en 64 et c3·f3 en 192 (impair), et les produits croisés
+   sur les lanes 1 ou 2. Deux accumulateurs, lanes 0-2 pour l'un, 1-3 pour
+   l'autre, fusionnés par masques ; les lanes croisées reçoivent 2^60 à la
+   place de q·2^28 pour que la soustraction de c·t1 n'y emprunte jamais
+   (douze produits croisés < 2^54), et sont masquées. Les lanes voulues
+   gardent exactement la borne de l'ancien noyau (< q·2^30, celle de la
+   première passe inverse). 24 `mul` au lieu de 48, un `and` par produit au
+   lieu de quatre opérations : 1 094 gas par mot de clé contre 2 230.
+2. *La scission est écrite par la dernière passe de la NTT directe*
+   (`nttFwMontPackedFusedTbSplit`), qui reconstruit de toute façon le mot
+   packé à partir de ses quatre lanes scalaires : écrire les deux mots
+   scindés coûte un `mstore` de plus et une passe de scission de moins
+   (66 k pour les six polynômes du 65).
+3. *La clé du 65 reste dans le calldata.* `calldataload` coûte ce que coûte
+   `mload` ; la copie des 38 112 octets et l'expansion quadratique de toute
+   la mémoire qui la suivait coûtaient 29 k. `checkPubKeyCalldata65` applique
+   la règle de forme de `readPubKeyCalldata65`, puis `dilithiumCore2Calldata65`
+   lit A et t1 en place.
+4. Dans le même mouvement, `UseHint` passe à un `mul` pour Decompose (exact
+   pour tout r < q, vérifié exhaustivement) et un `mul` pour l'empaquetage,
+   et `SampleInBall` tire sur un tableau d'octets (`mstore8`) empaqueté une
+   fois à la fin. Détail et mesures dans VERSION.md.
+
+**Alternatives écartées**
+
+- *Garder la représentation packée et pré-extraire les champs de clé.* La
+  clé est lue une fois par ligne, il n'y a rien à amortir ; l'extraction par
+  champ (deux opérations et deux constantes) est le coût que la scission
+  supprime.
+- *Scission en lanes séparées (un mot par lane).* Déjà mesurée en septembre
+  (+26 k sur le 44) : un `mload` à adresse calculée coûte plus qu'un masque.
+- *Passe intra-mot de la NTT en Montgomery packé* (deux produits par `mul`
+  là aussi) : +2,9 k par transformée et +2,5 Ko par contrat contre les
+  `mulmod` scalaires, à cause des constantes de 32 octets ; retirée.
+- *Changer le format de clé* (champs de 64 bits, ou colonnes transposées pour
+  un produit scalaire par `mul`) : le format est une entrée du contrat, hors
+  périmètre, et doublerait le calldata du 65.
+
+**Conséquences**
+
+- `make bench` : 44 NIST 1 189 532 → 1 081 811, ETH 840 309 → 735 767, 65
+  1 549 610 → 1 284 828 (+538 132 de calldata inchangés), puis, avec la suite
+  du même jour (z lazy, lignes dans les tableaux de z, un pointeur de clé par
+  ligne, hints par mot, borne de z accumulée, VERSION.md), 1 047 209 /
+  701 975 / 1 241 421. Tailles 24 383 → 24 225 (marge EIP-170 193 → 351),
+  20 278 → 20 149, 23 712 → 22 609 (marge 864 → 1 967).
+- Signatures des fonctions conservées : `_matvecRowPacked` /
+  `_matvecRowPacked65` (forme de référence : scission puis noyau),
+  `readPubKeyCalldata65`, `dilithiumCore2Packed65`, `useHintPacked65`,
+  `sampleInBallFast` et `sampleInBallFastTau` rendent les mêmes valeurs ;
+  les deux `verify` et `setKey` du 65 sont inchangés. Nouvelles fonctions
+  internes : `_splitLanes`, `_matvecRowSplit`, `_matvecRowCalldata65`,
+  `checkPubKeyCalldata65`, `dilithiumCore2Calldata65`, `_packBallCodes`,
+  `nttFwMontPackedFusedTbSplit`.
+- `dilithiumCore2Packed` / `dilithiumCore2Packed65` ne transforment plus z et
+  c « en place » : les tableaux servent de brouillon aux deux premières
+  passes, puis reçoivent les lignes du matvec et leur transformée inverse.
+  Aucun appelant ne les relisait. Les lanes de z que `dilithiumCore1Packed*`
+  passe au second étage sont lazy (dans (0, 2q)) ; les décodeurs canoniques
+  restent la référence des tests.
+- La passe intra-mot scalaire et la table de twiddles restent telles quelles ;
+  la place EIP-170 regagnée sur le 44 vient du noyau plus court, malgré les
+  constantes de l'empaquetage de UseHint.
+
+## ADR-010 — ML-DSA-44 : clé en calldata seule, même forme que le 65
+
+**Contexte**
+
+Depuis ADR-007 le 65 ne connaît qu'une clé passée dans le calldata de chaque
+vérification ; le 44 gardait le pointeur SSTORE2 (ADR-002/003) : une
+installation de 4 759 850 gas par clé (blob ABI de 22 401 octets), puis une
+copie à chaque vérification. Deux formes de clé pour le même code, et le
+dépôt de code que l'EIP-8037 propose de porter à 1 530 gas par octet
+(≈ 34,7 M pour cette clé) ne laisse au SSTORE2 qu'une niche.
+
+**Décision**
+
+`ZKNOX_dilithium` prend la forme exacte de `ZKNOX_dilithium65` : aucun état,
+`setKey(bytes calldata) returns (bytes)` contrôle la longueur et rend la clé,
+les deux `verify` prennent les 21 216 octets, en vérifient la forme
+(`checkPubKeyCalldata` : vingt mots de longueur à 32 puis un à 64) et lisent
+A et t1 en place (`dilithiumCore2Calldata`, `calldataload` dans le noyau de
+ligne), tr tranché pour mu. Layout plat identique à celui du 65 : polynôme f
+en f·1056 (A[i][j] pour f = 4i + j, t1[i] pour f = 16 + i), `[32][32 mots]`
+chacun, puis tr `[64][64 octets]` ; `encodePubKeyFlat(aHat, tr, t1)` en
+Solidity, `prepare_pk_for_deployment.py … flat` en Python (le keccak des deux
+sorties coïncide), `readPubKeyCalldata` est la lecture de référence des tests.
+`ZKNOX_ethdilithium` garde son blob SSTORE2 et `readPubKeyPacked`, que
+`Deploy_MLDSA_PK.s.sol` continue de déployer (`run()`) à côté de `flatKey()`.
+
+**Alternatives écartées**
+
+- *Deux chemins dans le même contrat* : déjà écarté pour le 65 (ADR-006) ;
+  la marge EIP-170 du 44 (351 octets avant) l'interdisait de toute façon.
+- *Compacter la clé pour le calldata* : hors règle (format d'entrée), et
+  non rentable (VERSION.md 2026-10-21 (3)).
+
+**Conséquences**
+
+- Par vérification, 269 328 gas de calldata pour la clé (309 468 avec la
+  signature, total transaction 1 332 382, plancher EIP-7623 794 510) contre une
+  copie d'environ 22 k dans l'ancienne forme : le point mort face au SSTORE2
+  est d'environ 19 vérifications par clé aujourd'hui, 140 après EIP-8037.
+  L'exécution passe de 1 047 209 à 1 032 792 par la seule conversion (copie
+  et expansion mémoire en moins), 1 006 093 avec ADR-011.
+- API : `verify(bytes pk, bytes m, bytes sig, bytes ctx)` et
+  `verify(bytes pk, bytes32 m, bytes sig)` ont les mêmes signatures, `pk`
+  étant la clé et non plus l'ABI-encodage d'un pointeur ; `setKey` rend la
+  clé au lieu de déployer. Erreurs : `BadKeyLength`, `BadPubKeyBlob` (forme),
+  `InvalidSignatureLength`, `ContextTooLong`, `BadHelper`.
+- Tests : `test/dilithium_key.t.sol` (forme de la clé, identité de `setKey`,
+  encodeur réciproque du lecteur, égalité avec le blob, rejets, coût d'une
+  transaction) ; `dilithium.t.sol`, `dilithiumKATS.t.sol`, `benchmarks.t.sol`
+  et `DeployDilithiumInternal.s.sol` passent par `encodePubKeyFlat`.
+
+## ADR-011 — Passe intra-mot inverse repliée dans le matvec, table de twiddles recomposée, sorties en place par modules décalés
+
+**Contexte**
+
+Après ADR-008 chaque ligne du second étage coûtait un noyau de matvec (32 k,
+dont la fusion des deux accumulateurs et l'écriture de 64 mots) suivi de
+l'inverse complète (43 k, dont 20 k pour le premier bloc, la passe intra-mot
+t = 1, 2 qui relit chaque mot, en extrait quatre lanes, fait quatre
+`mulmod`, deux `addmod`, trois `shl` et trois `or`). Les noyaux NTT
+assemblaient en outre, à chaque bloc de huit mots de la seconde passe, un mot
+de sept twiddles à partir de trois sections de la table (25 opérations), et
+la passe repliée aurait eu besoin, par corps de boucle, de la moitié d'un mot
+de la section t = 2.
+
+**Décision**
+
+1. *Repli.* Les deux accumulateurs d'un mot (lanes 0-2 dans le pair, 1-3 dans
+   l'impair) sont ses quatre lanes brutes : la passe intra-mot les prend sur
+   la pile, forme `s = e + o` et `d = e + q·2^30 − o` sur les deux moitiés
+   (128 bits d'écart) d'un coup, puis les quatre résultats, et écrit le mot
+   une fois. Le reste de l'inverse (`nttInvMontPackedTailTb`, les passes B'
+   et A' du noyau complet, inchangées) part des mots écrits. Trois noyaux :
+   `_matvecRowInvCCalldata`, `_matvecRowInvCCalldata65` (clé en calldata),
+   `_matvecRowInvCSplit` (clé en mémoire, ETH), engendrés par le même
+   script ; `_matvecRowSplit*` et `nttInvMontPackedRawFusedTb` restent la
+   forme de référence (`dilithiumCore2Packed65`, tests).
+2. *Sorties en place.* Pour un `mulmod(x, w·2^k, q·2^k)` le résultat est
+   `(x·w mod q)·2^k` : le twiddle extrait au bit 64 (bit 128) avec le module
+   q·2^64 (q·2^128, q·2^192 pour la lane 3, produit des différences déjà au
+   bit 64 par le twiddle au bit 128) livre la lane là où elle va, `addmod`
+   de même ; le mot est trois `or`. Les modules sont des constantes de 11,
+   19 et 27 octets.
+3. *Table.* Les mots 0..7 de chaque moitié de `_TW_MONT` reçoivent les mots
+   composés de la seconde passe (t = 16 au bit 0, t = 8 en 32 et 64, t = 4 en
+   96..192), que les noyaux ne lisaient pas autrement (la première passe a
+   ses twiddles en littéraux) : un `mload` par bloc. Dans la moitié inverse,
+   les mots t = 2 ont leurs moitiés permutées (mot j au champ j ^ 4) : les
+   quatre twiddles d'un corps de boucle de la passe repliée (deux mots de
+   clé, quatre mots de sortie) sont le haut des 32 octets lus à l'octet 16k
+   de la section, une lecture non alignée et un pas de 16 octets ; le premier
+   bloc du noyau complet change ses décalages constants en conséquence. Les
+   tables mémoire des noyaux de référence (`_fwTableMont`, `_invTableMont`)
+   ne bougent pas.
+
+**Alternatives écartées**
+
+- *Passe intra-mot en Montgomery packé* (directe) : +1,2 k par transformée,
+  +1 Ko ; `mulmod` à 8 gas est imbattable par treize opérations de réduction.
+- *Corps de boucle à quatre mots de clé* : −3 / −4,4 k mais +2,3 Ko, hors
+  EIP-170.
+- *Section t = 2 dupliquée à quatre twiddles par mot* : +1 Ko de table par
+  contrat pour le même effet que la permutation des moitiés.
+
+**Conséquences**
+
+- `make bench` : 44 1 032 792 → 1 006 093, 65 1 241 421 → 1 198 467, ETH
+  701 975 → 679 733 ; tailles 22 787 (marge 1 789), 23 642 (marge 934), 20 444.
+- Bornes : les lanes brutes des accumulateurs restent < q·2^30 (ADR-008) ;
+  les décalages de sortie ne changent pas les valeurs, qui restent
+  canoniques. `test/NTT_dilithium_mont.t.sol` compare les noyaux Tb au noyau
+  packé et aux formes scalaires ; les vérifications complètes (KAT, ACVP,
+  ecml-signer) couvrent les tables.
+- Le format de `_TW_MONT` est propre aux noyaux `…Tb` ; tout nouveau lecteur
+  de la table doit prendre les mots 0..7 composés et la permutation t = 2 de
+  la moitié inverse (voir le commentaire de la constante).

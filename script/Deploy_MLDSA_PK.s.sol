@@ -4,13 +4,41 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {BaseScript} from "./BaseScript.sol";
+import {encodePubKeyFlat} from "../src/ZKNOX_dilithium_core_packed.sol";
 
+/// The example ML-DSA-44 public key of the test vectors (pythonref, seed
+/// test/seed.sol, NIST mode), as its three expanded parts.
+///
+/// `flatKey()` is the form the verifier takes: the 21,216-byte flat layout
+/// passed in the calldata of every verification (ZKNOX_dilithium, ADR-010).
+/// `run()` still deploys the former ABI-encoded blob through SSTORE2, the form
+/// readPubKeyPacked (ZKNOX_ethdilithium) reads; it is kept for those callers.
 contract DeployPKContract is BaseScript {
+    /// @notice the expanded key in the calldata layout of ZKNOX_dilithium
+    function flatKey() public pure returns (bytes memory) {
+        (uint256[][][] memory A_hat, bytes memory tr, uint256[][] memory t1) = parts();
+        return encodePubKeyFlat(A_hat, tr, t1);
+    }
+
     function run() external returns (address) {
         vm.startBroadcast();
+        (uint256[][][] memory A_hat, bytes memory tr, uint256[][] memory t1) = parts();
 
+        // Combine into single bytes parameter
+        bytes memory publicKeyData = abi.encode(abi.encode(A_hat), tr, abi.encode(t1));
+
+        // Store via SSTORE2
+        address pk = SSTORE2.write(publicKeyData);
+        console.log("Deployed PK at:", pk);
+
+        vm.stopBroadcast();
+        return pk;
+    }
+
+    /// @notice the three parts of the expanded key: A_hat (4 x 4 x 32), tr (64 bytes), t1 (4 x 32)
+    function parts() public pure returns (uint256[][][] memory A_hat, bytes memory tr, uint256[][] memory t1) {
         // Example of public key
-        uint256[][][] memory A_hat = new uint256[][][](4);
+        A_hat = new uint256[][][](4);
         for (uint256 i = 0; i < 4; i++) {
             A_hat[i] = new uint256[][](4);
             for (uint256 j = 0; j < 4; j++) {
@@ -530,9 +558,9 @@ contract DeployPKContract is BaseScript {
         A_hat[3][3][29] = uint256(77847439157515212214936791878339898917035948854848167930572244771279773425);
         A_hat[3][3][30] = uint256(56911126422861199078392844097407577642941468572958463844861594403902232806);
         A_hat[3][3][31] = uint256(108751599048789315637851218334243792768266049591821586677966605275921628193);
-        bytes memory tr =
+        tr =
             hex"b7f71ab32ea3537e391f64f4c2ae6bf7998f8009838175d4f85291235407df0a13187ffeef41937f08d6bb77a0808ad7014a1b4da73335eb7053466d933a270c";
-        uint256[][] memory t1 = new uint256[][](4);
+        t1 = new uint256[][](4);
         for (uint256 i = 0; i < 4; i++) {
             t1[i] = new uint256[](32);
         }
@@ -664,15 +692,5 @@ contract DeployPKContract is BaseScript {
         t1[3][29] = uint256(0x00133d870017957e0030598a0058ffcf00183f420008500b0043eb6e00516a68);
         t1[3][30] = uint256(0x0038fb870069ab11005be705007604510066d30200297eec003ba79e001cdc55);
         t1[3][31] = uint256(0x00b1cef0066840d003a479e006d1381003ff24700266e9f0077e3e0007a3395);
-
-        // Combine into single bytes parameter
-        bytes memory publicKeyData = abi.encode(abi.encode(A_hat), tr, abi.encode(t1));
-
-        // Store via SSTORE2
-        address pk = SSTORE2.write(publicKeyData);
-        console.log("Deployed PK at:", pk);
-
-        vm.stopBroadcast();
-        return pk;
     }
 }

@@ -61,6 +61,35 @@ def prepare_public_key_for_deployment(
     
     return public_key_data
 
+def flat_public_key(
+    A_hat_compact: List[List[List[int]]],
+    tr_bytes: bytes,
+    t1_compact: List[List[int]]
+) -> bytes:
+    """
+    The expanded ML-DSA-44 public key in the calldata layout of ZKNOX_dilithium
+    (DECISIONS.md ADR-010, the layout of the ML-DSA-65 key): 20 polynomials,
+    each a 32-byte length word of 32 then its 32 words (A[i][j] at (4i + j) *
+    1056, t1[i] at (16 + i) * 1056), then tr as a length word of 64 and its 64
+    bytes. 21,216 bytes. This is what setKey takes and what every verification
+    carries; encodePubKeyFlat (ZKNOX_dilithium_core_packed.sol) builds the same
+    bytes from the three arrays.
+    """
+    if len(tr_bytes) != 64:
+        raise ValueError(f'tr must be exactly 64 bytes, got {len(tr_bytes)} bytes')
+    polys = [A_hat_compact[i][j] for i in range(4) for j in range(4)] + list(t1_compact)
+    if len(polys) != 20 or any(len(p) != 32 for p in polys):
+        raise ValueError('expected 16 + 4 polynomials of 32 words')
+    out = bytearray()
+    for poly in polys:
+        out += (32).to_bytes(32, 'big')
+        for w in poly:
+            out += int(w).to_bytes(32, 'big')
+    out += (64).to_bytes(32, 'big') + tr_bytes
+    assert len(out) == 20 * 1056 + 96
+    return bytes(out)
+
+
 if sys.argv[1] == 'ETH':
     xof = Keccak256PRNG
     xof2 = Keccak256PRNG
@@ -82,9 +111,14 @@ A_hat_compact = A_hat.compact_256(32)
 t1_compact_raw = t1.compact_256(32)
 t1_compact = [row[0] for row in t1_compact_raw]
 
-expanded_pk_bytes = prepare_public_key_for_deployment(
-    A_hat_compact, tr.hex(), t1_compact
-)
-
-print(expanded_pk_bytes.hex())
+# output format: `flat` (the calldata key of ZKNOX_dilithium, default in NIST
+# mode) or `abi` (the ABI-encoded SSTORE2 blob of ZKNOX_ethdilithium, default
+# in ETH mode)
+fmt = sys.argv[3] if len(sys.argv) > 3 else ('abi' if sys.argv[1] == 'ETH' else 'flat')
+if fmt == 'flat':
+    print(flat_public_key(A_hat_compact, tr, t1_compact).hex())
+elif fmt == 'abi':
+    print(prepare_public_key_for_deployment(A_hat_compact, tr.hex(), t1_compact).hex())
+else:
+    raise SystemExit(f'unknown format {fmt!r}: flat or abi')
 

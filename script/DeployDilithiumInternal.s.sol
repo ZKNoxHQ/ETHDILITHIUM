@@ -6,7 +6,7 @@ import "../test/dilithium_internal.sol";
 import "../src/ZKNOX_dilithium.sol";
 
 import {console} from "forge-std/Test.sol";
-import {SSTORE2} from "sstore2/SSTORE2.sol";
+import {encodePubKeyFlat} from "../src/ZKNOX_dilithium_core_packed.sol";
 
 contract Script_Deploy_Dilithium_Internal is BaseScript {
     // SPDX-License-Identifier: MIT
@@ -692,10 +692,12 @@ contract Script_Deploy_Dilithium_Internal is BaseScript {
         bytes memory msgs = "We are ZKNox.";
         bytes memory m_prime = abi.encodePacked(bytes1(0), bytes1(0), msgs);
 
-        // VERIFICATION: the key goes through an SSTORE2 blob and the public
-        // verify (m_prime = 0x00 || len(ctx) || ctx || m is rebuilt inside)
-        address pkPointer = SSTORE2.write(abi.encode(abi.encode(pk.aHat), pk.tr, abi.encode(pk.t1)));
-        bool ver = DILITHIUM.verify(abi.encodePacked(pkPointer), msgs, sigbytes, "");
+        // VERIFICATION: the expanded key goes in the calldata of the public
+        // verify (m_prime = 0x00 || len(ctx) || ctx || m is rebuilt inside),
+        // nothing is installed per key (ADR-010)
+        bytes memory key = encodePubKeyFlat(pk.aHat, pk.tr, pk.t1);
+        bool ver = DILITHIUM.verify(key, msgs, sigbytes, "");
+        console.log("key bytes passed per verification:", key.length);
         m_prime;
         sig;
         console.log(ver);
