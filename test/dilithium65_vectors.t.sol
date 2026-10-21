@@ -4,7 +4,6 @@ pragma solidity ^0.8.25;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKNOX_dilithium65} from "../src/ZKNOX_dilithium65.sol";
 import {F1600Helper} from "./F1600Helper.sol";
-import {SSTORE2} from "sstore2/SSTORE2.sol";
 import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 
 /// NIST vectors through ZKNOX_dilithium65, from test/KAT/mldsa65_vectors.json

@@ -1,5 +1,31 @@
 # VERSION.md — changelog
 
+## [unreleased] — 2026-10-20 (4) — compatibilité avec le signer Ledger ecml-signer
+
+### Added
+- `test/ecml_signer_compat.t.sol` (2 tests) et `test/KAT/ecml_device_vectors.json` :
+  trois signatures ML-DSA-65 du binaire release d'ecml-signer v2.4.0
+  (`build/nanos2/bin/app.elf`, e2fee68, SDK v27.1.2) exécuté sous speculos,
+  seed speculos par défaut, chemin m/44'/60'/0'/0/0 : deux `HYBRID_SIGN_HASH`
+  (0x16) et un `SIGN_TX_MLDSA` (0x08), P2 = ML-DSA-65. Clé publique de 1952
+  octets du device étendue par `publicKeyToBlob65`, puis `verify(pk, bytes32, sig)`
+  et `verify(pk, m, sig, "")` acceptés ; autre digest, contexte non vide et
+  bit retourné dans c~, z ou h rejetés. `verify` 1 546 129 à 1 552 243 gas
+  (exécution, hors intrinsèque).
+
+### Changed (documentation seule)
+- Doc du 65 alignée sur ADR-007 (clé en calldata, plus de SSTORE2) :
+  natspec de `ZKNOX_dilithium65.sol`, `README.md` (section ML-DSA-65, chiffres
+  `make bench` 1 549 610 plus 538 132 de calldata, taille 23 712), `js/README.md`,
+  en-têtes de `js/mldsa65.js` et `js/sign65.js` (`encodePublicKey65` /
+  `publicKeyToBlob65`, clé de 38 112 octets). Section signer hardware
+  ecml-signer ajoutée aux deux README.
+- Imports `SSTORE2` inutilisés retirés de `test/dilithium65_core_packed.t.sol`
+  et `test/dilithium65_vectors.t.sol`.
+- Code de `ZKNOX_dilithium65` inchangé (23 712 octets identiques), mais la
+  natspec entre dans le hash de métadonnées : le bytecode final change, donc
+  l'adresse CREATE2 du sel `ZKNOX_MLDSA65_v0.1` aussi.
+
 ## [unreleased] — 2026-10-20 (3) — ML-DSA-65 : clé en calldata seule, chemin SSTORE2 retiré
 
 ### Measured

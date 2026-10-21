@@ -4,18 +4,17 @@
 // Description: ML-DSA-65 (FIPS 204, security category 3) signer for the
 // ZKNOX_dilithium65 verifier: key generation and signing through
 // @noble/post-quantum, and the expansion of a FIPS 204 public key into the
-// on-chain form the verifier reads in place from its SSTORE2 blobs:
+// on-chain form the verifier reads from the calldata of every verification:
 //
 //     aHat[i][j] = ExpandA(rho)[i][j]  (NTT domain, as produced by RejNTTPoly)
 //     t1[i]      = NTT(t1_i * 2^13)    (NTT domain)
 //     tr         = SHAKE256(pk, 64)
 //   each polynomial is 32 words of eight 32-bit fields (coefficient 8m + f in
-//   field f of word m). The 36 polynomials are above the EIP-170 size of one
-//   SSTORE2 contract, so the key is two halves of the same shape,
-//     half_h = abi.encode(abi.encode(uint256[3][5][32] aHat[3h..3h+2]), bytes tr,
-//                         abi.encode(uint256[3][32] t1[3h..3h+2]))     (20,160 bytes)
-//   ZKNOX_dilithium65.setKey(half0 || half1) writes both and returns the two
-//   pointer addresses (40 bytes), the `pk` argument of verify.
+//   field f of word m) behind a length word of 32. The key is one flat run of
+//   38,112 bytes: polynomial f < 30 is aHat[f / 5][f % 5], f >= 30 is
+//   t1[f - 30], then a length word of 64 and tr (encodePublicKey65).
+//   ZKNOX_dilithium65.setKey(key) checks the length and returns it unchanged:
+//   it is the `pk` argument of verify, nothing is stored on chain.
 //
 // The signature handed to the verifier is the plain 3309-byte FIPS 204
 // encoding c~ (48) || z (3200) || h (61), exactly as returned by noble.

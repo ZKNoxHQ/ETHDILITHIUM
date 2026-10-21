@@ -19,32 +19,29 @@ import {ISigVerifier} from "InterfaceVerifier/IVerifier.sol";
 /**
  * @title ZKNOX_dilithium65
  * @notice ML-DSA-65 (FIPS 204, category 3) with the expanded public key passed
- *         in the calldata of every verification, where ZKNOX_dilithium65 reads
- *         it from four SSTORE2 contracts. Same kernels, same key bytes: the
- *         38,112-byte key is the setKey argument of the SSTORE2 verifier, so a
- *         key moves between the two without re-encoding.
+ *         in the calldata of every verification (DECISIONS.md ADR-007).
  *
- *         This contract holds no state at all. `setKey` returns its argument,
- *         which is what the caller keeps as `pk` and commits to with
- *         keccak256 as it already does for a pointer handle: the binding of a
- *         key to an account stays where it belongs, in the account. The
- *         verifier never trusts the bytes, it only checks their shape
- *         (readPubKeyCalldata65).
+ *         This contract holds no state at all. `setKey` checks the length of
+ *         the 38,112-byte expanded key and returns it; the caller keeps those
+ *         bytes as `pk` and commits to them with keccak256, so the binding of a
+ *         key to an account stays in the account. The verifier never trusts the
+ *         bytes beyond their shape (readPubKeyCalldata65).
  *
- *         Which of the two to deploy is a gas question, not a security one.
- *         The two run for nearly the same gas: reaching four cold blob
- *         contracts and copying their code costs about what copying the same
- *         bytes out of the calldata does. The whole difference is the calldata,
- *         538k against 56k, so a verification here costs some 485k more and
- *         nothing to install, where the SSTORE2 key costs 8.5M to deposit today
- *         and about 59.2M once EIP-8037 prices code deposit at 1,530 gas/byte.
- *         Break-even is near 17 verifications per key today and 122 after
- *         EIP-8037 (test/dilithium65_calldata.t.sol keeps the figures current).
- *         Below that, this contract; above it, ZKNOX_dilithium65.
+ *         A verification costs about 1.55M of execution plus some 538k of
+ *         calldata for the key and the signature, and there is nothing to
+ *         install per key. An SSTORE2 key would cost 8.5M to deposit today and
+ *         about 59.2M once EIP-8037 prices code deposit at 1,530 gas/byte, for
+ *         a break-even near 17 verifications per key today and 122 after
+ *         (ADR-007, test/dilithium65_key.t.sol).
+ *
+ *         The ECML-Signer Ledger app (ZKNoxHQ/ecml-signer) signs a 32-byte hash
+ *         in pure mode with an empty context, which is what
+ *         verify(pk, bytes32, sig) checks; its 1952-byte public key becomes `pk`
+ *         through js/mldsa65.js publicKeyToBlob65 (test/ecml_signer_compat.t.sol).
  */
 contract ZKNOX_dilithium65 is ISigVerifier {
     /// @notice keccak256 of the expected Keccak-f[1600] helper RUNTIME, as in
-    ///         ZKNOX_dilithium65 (test/f1600_170.hex, fireblocks-labs at cca262b).
+    ///         ZKNOX_dilithium (test/f1600_170.hex, fireblocks-labs at cca262b).
     bytes32 internal constant F1600_CODEHASH = 0x4afb4435879cdf8e50474c7aab2bc3a679caed432550ad6dba64f509309a817b;
 
     /// @notice the bound Keccak-f[1600] helper
@@ -63,12 +60,11 @@ contract ZKNOX_dilithium65 is ISigVerifier {
     /**
      * @notice Normalizes a public key: here the expanded key is already its own
      *         handle, so this only checks its length and gives it back.
-     * @dev Nothing is written: no SSTORE2, no storage, no deposit. The caller
-     *      keeps the returned bytes and passes them as `pk` to verify; binding
-     *      them to an account is the caller's keccak256, the same commitment it
-     *      stores for a pointer handle.
+     * @dev Nothing is written: no storage, no deposit. The caller keeps the
+     *      returned bytes and passes them as `pk` to verify; binding them to an
+     *      account is the caller's keccak256.
      * @param pubkey The expanded public key, 38,112 bytes
-     *        (js/mldsa65.js encodePublicKeyBlob65, setKeyData).
+     *        (js/mldsa65.js publicKeyToBlob65).
      * @return pk The same bytes.
      */
     function setKey(bytes calldata pubkey) external pure returns (bytes memory pk) {
@@ -132,8 +128,7 @@ contract ZKNOX_dilithium65 is ISigVerifier {
     }
 
     /**
-     * @notice Core ML-DSA-65 verification, identical to ZKNOX_dilithium65:
-     *         only where the key came from differs.
+     * @notice Core ML-DSA-65 verification (FIPS 204 Alg. 8) on the decoded key.
      */
     function verifyInternal(PubKey memory pk, bytes memory mPrime, Signature memory signature)
         internal

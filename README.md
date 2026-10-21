@@ -40,11 +40,12 @@ make bench
 |-|-|-|
 |Dilithium (ML-DSA-44)|1.19M (was 8.1M)| :white_check_mark: (NIST MLDSA KAT pass)|
 |ETHDilithium|0.84M (was 4.9M)| :white_check_mark: (MLDSAETH KAT pass)|
-|Dilithium65 (ML-DSA-65)|1.54M| :white_check_mark: (NIST ML-DSA-65 KAT and ACVP sigVer vectors pass)|
+|Dilithium65 (ML-DSA-65)|1.55M + 0.54M calldata| :white_check_mark: (NIST ML-DSA-65 KAT and ACVP sigVer vectors pass)|
 
 Exact figures (`make bench`, solc 0.8.30 via-IR, `optimizer_runs = 1000000`,
-see DECISIONS.md ADR-004): 1,189,532, 840,309 and 1,536,544 (1,544,360 in
-`test/dilithium65KATS.t.sol`, where the key pointers are cold).
+see DECISIONS.md ADR-004): 1,189,532, 840,309 and 1,549,610. The ML-DSA-65
+figure is execution only: its 38,112-byte key travels in the calldata of every
+verification with the signature, 538,132 more per transaction (ADR-007).
 
 |NTT kernel (256 coefficients) | Gas cost|
 |-|-|
@@ -70,21 +71,30 @@ ETHDilithium is an alternative version with a cheaper hash function. Precomputat
 `src/ZKNOX_dilithium65.sol` verifies ML-DSA-65 (FIPS 204, k = 6, l = 5, tau = 49,
 gamma1 = 2^19, gamma2 = (q-1)/32, omega = 55, 3309-byte signatures) with the
 same machinery as the ML-DSA-44 verifier: the same NTT kernels and packed
-4x64-bit-lane layout, the same SHAKE256 helper binding, the same key blob
-format read in place. What is specific to the parameter set is in
+4x64-bit-lane layout, the same SHAKE256 helper binding. What is specific to
+the parameter set is in
 `src/ZKNOX_dilithium65_core_packed.sol` (20-bit z decode, five-column matvec,
 61-byte hints, 4-bit w1 with the gamma2 = (q-1)/32 Decompose) and
 `src/ZKNOX_shake_fast.sol` (`sampleInBallFastTau`); the scalar references the
 kernels are tested against are in `src/ZKNOX_dilithium65_core.sol`.
 
-* **Key**: the expanded key (A_hat = ExpandA(rho), t1 = NTT(t1 * 2^13), tr) is
-  above the EIP-170 size of one SSTORE2 contract, so `setKey(half0 || half1)`
-  writes two halves (rows 0..2 / 3..5 of A with t1[0..2] / t1[3..5], 20,160
-  bytes each) and returns the two pointer addresses (40 bytes) as `pk`.
-  `js/mldsa65.js` produces the halves from a FIPS 204 public key.
-* **Signer**: JavaScript only, `js/mldsa65.js` / `node js/sign65.js` on
+* **Key**: the expanded key (A_hat = ExpandA(rho), t1 = NTT(t1 * 2^13), tr),
+  38,112 bytes, is passed in the calldata of every verification: 36
+  polynomials of `[32][32 words]` (A row by row, then t1), then tr. Nothing is
+  stored on chain; `setKey` checks the length and returns the key, which the
+  caller binds to an account with keccak256 (DECISIONS.md ADR-007).
+  `js/mldsa65.js` `publicKeyToBlob65` produces it from a 1952-byte FIPS 204
+  public key.
+* **Signer**: JavaScript, `js/mldsa65.js` / `node js/sign65.js` on
   `@noble/post-quantum` (see [js/README.md](js/README.md)); the NIST vectors
   of `test/KAT/` are replayed by `make test_signer65`.
+* **Hardware signer**: the ECML-Signer Ledger app
+  ([ZKNoxHQ/ecml-signer](https://github.com/ZKNoxHQ/ecml-signer), P2 = `0x01`)
+  signs a 32-byte hash in pure mode with an empty context, which is what
+  `verify(pk, bytes32 hash, sig)` checks; its public key goes through
+  `publicKeyToBlob65` like any other. `test/ecml_signer_compat.t.sol` verifies
+  signatures of its v2.4.0 release binary (`HYBRID_SIGN_HASH`,
+  `SIGN_TX_MLDSA`): `forge test --match-contract EcmlSignerCompatTest`.
 * **KATs** (`test/KAT/`, as given by NIST): `PQCsignKAT_Dilithium3.rsp`
   (100 vectors of the reference implementation's `PQCgenKAT_sign`, pq-crystals/dilithium
   d35ba3f, FIPS 204 ML-DSA-65; count 0 is `test/dilithium65KATS.t.sol`, the
@@ -97,7 +107,8 @@ kernels are tested against are in `src/ZKNOX_dilithium65_core.sol`.
   NIST vectors), `make bench` includes `MLDSA65`.
 * **Deployment**: `script/deploy_dilithium65.sh` / `DeployDilithium65.s.sol`
   (needs `F1600_HELPER`, the same Keccak-f[1600] helper as ML-DSA-44; checks
-  the NIST KAT on the deployed verifier). Runtime size 24,272 bytes.
+  the NIST KAT on the deployed verifier). One contract per chain, nothing to
+  install per key. Runtime size 23,712 bytes.
 
 ## EXAMPLE 
 An example of key generation, signature and verification in python is provided in the directory `pythonref/`.

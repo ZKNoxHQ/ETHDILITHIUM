@@ -32,7 +32,6 @@ import {nttFwMontPacked, nttInvMontPackedRaw} from "../src/ZKNOX_NTT_dilithium_m
 import {sampleInBallNist} from "../src/ZKNOX_SampleInBall.sol";
 import {sampleInBallFastTau} from "../src/ZKNOX_shake_fast.sol";
 import {F1600Helper} from "./F1600Helper.sol";
-import {SSTORE2} from "sstore2/SSTORE2.sol";
 
 /// external wrapper so that vm.expectRevert can observe readPubKeyCalldata65's revert
 contract PkReader65 {

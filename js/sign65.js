@@ -9,8 +9,8 @@
 //   node js/sign65.js pubkey <secretKeyHex>
 //       -> the public key of a secret key
 //   node js/sign65.js setkey <publicKeyHex>
-//       -> {"setKeyData"} : the argument of ZKNOX_dilithium65.setKey (the two
-//          expanded halves, 40,320 bytes), plus the halves themselves
+//       -> {"setKeyData"} : the expanded key, 38,112 bytes, the `pk` argument
+//          of ZKNOX_dilithium65.verify (setKey returns it unchanged)
 //   node js/sign65.js sign <secretKeyHex> <messageHex> [ctxHex] [--hedged]
 //       -> {"signature"} : 3309 bytes, deterministic unless --hedged
 //   node js/sign65.js sign-hash <secretKeyHex> <hash32Hex>

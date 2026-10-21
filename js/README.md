@@ -26,23 +26,28 @@ on `@noble/post-quantum` (`ml_dsa65`). No Python needed.
   (deterministic by default), `verify(sig, msg, publicKey, context)`,
   `expandPublicKey65(publicKey)` (A_hat = ExpandA(rho), t1 = NTT(t1 * 2^13)
   with the FIPS 204 NTT of `js/ntt_mldsa.js`, tr = SHAKE256(pk, 64)),
-  `encodePublicKeyBlob65(expanded)` → `{halves, setKeyData}`,
-  `publicKeyToBlob65(publicKey)` → the `setKey` argument.
+  `encodePublicKey65(expanded)` → the 38,112-byte on-chain key (hex),
+  `publicKeyToBlob65(publicKey)` → the same, from a 1952-byte public key.
 * **Command line** — `js/sign65.js`:
   ```
   node js/sign65.js keygen [seedHex]                 # {publicKey, secretKey}
-  node js/sign65.js setkey <publicKeyHex>            # {setKeyData, half0, half1}
+  node js/sign65.js setkey <publicKeyHex>            # {setKeyData}: the pk of verify
   node js/sign65.js sign <skHex> <msgHex> [ctxHex] [--hedged]
   node js/sign65.js sign-hash <skHex> <hash32Hex>    # for verify(pk, bytes32, sig)
   node js/sign65.js verify <pkHex> <msgHex> <sigHex> [ctxHex]
   ```
-* **On-chain key**: the expanded ML-DSA-65 key (30 + 6 polynomials, 36,864
-  bytes of words) is above the EIP-170 size of one SSTORE2 contract, so it is
-  two halves of the same shape (rows 0..2 / 3..5 of A, t1[0..2] / t1[3..5],
-  tr in both, 20,160 bytes each). `ZKNOX_dilithium65.setKey(half0 || half1)`
-  writes both (~8.7M gas) and returns the two pointer addresses (40 bytes),
-  the `pk` argument of `verify`. The signature is the plain 3309-byte FIPS 204
-  encoding returned by `sign`.
+* **On-chain key**: the expanded ML-DSA-65 key is passed in the calldata of
+  every verification, 38,112 bytes: the 30 + 6 polynomials (A row by row, then
+  t1), each a length word of 32 and 32 words of eight 32-bit fields, then a
+  length word of 64 and tr. Nothing is deployed per key;
+  `ZKNOX_dilithium65.setKey(key)` checks the length and returns `key`, the `pk`
+  argument of `verify`, which the caller binds to an account with keccak256.
+  The signature is the plain 3309-byte FIPS 204 encoding returned by `sign`.
+* **Hardware signer** — the public key returned by the ECML-Signer Ledger app
+  (ZKNoxHQ/ecml-signer, ML-DSA-65 with P2 = `0x01`) goes through
+  `publicKeyToBlob65` (or `node js/sign65.js setkey`) like any other; its
+  signatures of a 32-byte hash are checked by `verify(pk, bytes32, sig)`
+  as they come.
 * **Checks** — `node js/test_mldsa65.js` (from the repository root) replays the
   NIST vectors of `test/KAT/`: ACVP keyGen (25), sigGen external/pure (30,
   deterministic and hedged), sigVer external/pure (15), and the 100 signatures
