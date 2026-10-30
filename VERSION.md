@@ -1,5 +1,78 @@
 # VERSION.md — changelog
 
+## [unreleased] — 2026-10-30 — ML-DSA-87 (branche `mldsa87`, sur `mldsa65-calldata` ccdc874)
+
+### Measured (`make bench` et `test/dilithium*_key.t.sol`, profil par défaut ; 142/142 tests sur les deux profils, `make test_kat100_87` 2/2)
+| | ML-DSA-65 | **ML-DSA-87** |
+|---|---:|---:|
+| `verify` (exécution, `make bench`) | 1 198 467 | **1 633 524** (+36 %) |
+| calldata d'une vérification (clé + signature) | 538 132 | **934 400** (dont 858 840 pour la clé) |
+| transaction complète sur le KAT (33 octets de message) | 1 756 537 | **2 584 979** (+47 %) |
+| plancher EIP-7623 de cette transaction | 1 366 170 | 2 356 840 |
+| calldata (octets) | 41 760 | **72 640** (geth : 128 Ko par transaction) |
+| runtime size (marge EIP-170) | 23 642 (934) | **23 803 (773)** |
+
+44, ETH et 65 inchangés (aucun fichier source touché) : 1 006 093 / 679 733 /
+1 198 467, tailles 22 787 / 20 444 / 23 642.
+
+### Added
+- **`ZKNOX_dilithium87`** (DECISIONS.md ADR-012) : ML-DSA-87 (FIPS 204,
+  catégorie 5, k = 8, l = 7, τ = 60, β = 120, ω = 75, λ = 256) dans la forme du
+  65 : contrat sans état, `setKey(bytes)` vérifie la longueur et rend la clé,
+  `verify(pk, m, sig, ctx)` et `verify(pk, bytes32, sig)` (ISigVerifier) lisent
+  la clé étendue de 67 680 octets en place dans le calldata, signature de 4 627
+  octets décodée en place (seuls c~ et h sont copiés). Même helper
+  Keccak-f[1600] lié par code hash que le 44 et le 65.
+- **`ZKNOX_dilithium87_core_packed.sol`** : décodeur de z (sept polynômes,
+  bornes β = 120 : f ∈ [121, 1 048 455]), parseur de hints (83 octets, huit
+  masques), noyau de matvec à sept colonnes avec la passe intra-mot inverse
+  repliée (`_matvecRowInvCCalldata87`), UseHint/w1Encode sur huit polynômes
+  (1 024 octets), contrôle de forme de la clé (64 polynômes, quatre par
+  itération). Constantes dépendant de γ1 / γ2 importées du fichier 65 (mêmes
+  γ1 = 2^19, γ2 = (q−1)/32).
+- **Décalages q·2^31 / q·2^32** dans la passe repliée du 87 (au lieu de
+  q·2^30 / q·2^31) : sept colonnes portent les lanes brutes jusqu'à
+  119 q² + q·2^28 = 1,061·10^16, au-dessus de q·2^30 = 9,0·10^15 (ADR-012).
+  Coût nul, la queue de l'inverse et les tables restent partagées.
+- **`ZKNOX_dilithium87_core.sol`** (références scalaires : HintBitUnpack,
+  BitUnpack de z, norme, w1Encode, second étage complet ; UseHint repris du
+  65) et **`ZKNOX_dilithium87_utils.sol`** (paramètres et tailles).
+- **Signer JS** : `js/mldsa87.js`, `js/sign87.js` (`@noble/post-quantum`
+  `ml_dsa87`), `js/test_mldsa87.js` (ACVP keyGen 25, sigGen 30, sigVer 15,
+  `PQCsignKAT_Dilithium5.rsp` 100 : tout passe), `js/gen_test_vectors87.js`.
+- **Vecteurs** (`test/KAT/`) : groupes ML-DSA-87 de
+  `ML-DSA-{keyGen,sigGen,sigVer}-FIPS204/internalProjection.json`
+  (usnistgov/ACVP-Server master, extraits à l'identique : les groupes 65 du
+  même fichier sont octet pour octet ceux déjà présents),
+  `PQCsignKAT_Dilithium5.rsp` (copie de `pythonref/assets/`, FIPS 204
+  ML-DSA-87, vérifié par noble), `mldsa87_vectors.json` (15 ACVP sigVer
+  external/pure, 10 counts du .rsp, 3 vecteurs du signer JS, hash32),
+  `mldsa87_kat0.json`.
+- **Tests** : `test/dilithium87_core_packed.t.sol` (18, dont 6 fuzz :
+  lecture de clé, décodeur de z mémoire et calldata, hints, matvec mémoire et
+  noyau replié contre le scalaire, quatre pires cas de bornes, UseHint,
+  SampleInBall τ = 60 sur c~ de 64 octets, second étage packé / calldata /
+  scalaire sur le KAT), `test/dilithium87_key.t.sol` (6), 
+  `test/dilithium87_vectors.t.sol` (2), `test/dilithium87KATS.t.sol` (2,
+  généré, clé et signature en littéraux hex), `testMLDSA87` dans
+  `test/benchmarks.t.sol`.
+- `script/DeployDilithium87.s.sol`, `script/deploy_dilithium87.sh` ;
+  cibles `make gen_test_vectors87`, `test_signer87`, `test_verifier87`,
+  `test_kat100_87`.
+
+### Où en est le profil (87, 1 633 524)
+Keccak 482 k (30 %) : hachage final 375 k (mu ‖ w1 = 1 088 octets, neuf
+permutations), mu 43 k, SampleInBall 64 k ; huit NTT directes 322 k (20 %) ;
+huit lignes de matvec avec passe repliée 481 k (29 %, 56 polynômes de clé) ;
+huit queues d'inverse 177 k (11 %) ; z et hints 105 k ; UseHint 64 k ; forme de
+la clé 2,3 k ; tables 1,5 k.
+
+### Vérifié
+- Mutation : remettre q·2^30 sur les différences de lanes, ou q·2^31 sur les
+  différences de sommes, fait échouer `test_matvec_row87_saturated` alors que
+  le KAT, les vecteurs ACVP et le fuzz aléatoire passent encore ; les deux
+  décalages relevés sont donc nécessaires et ce test est le seul à le voir.
+
 ## [unreleased] — 2026-10-21 (4) — ML-DSA-44 en calldata, passe intra-mot inverse repliée dans le matvec, table recomposée, signature lue en place
 
 ### Measured (`make bench`, profil par défaut, 113/113 tests, profil lite 113/113, `make test_kat100` 2/2)

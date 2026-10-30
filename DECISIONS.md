@@ -609,3 +609,77 @@ de la section t = 2.
 - Le format de `_TW_MONT` est propre aux noyaux `…Tb` ; tout nouveau lecteur
   de la table doit prendre les mots 0..7 composés et la permutation t = 2 de
   la moitié inverse (voir le commentaire de la constante).
+
+## ADR-012 — ML-DSA-87 : vérifieur séparé à clé en calldata, décalages q·2^31 / q·2^32 dans la passe inverse repliée
+
+**Contexte**
+
+ML-DSA-87 (catégorie 5) est demandé sur une branche dédiée, à partir de
+`mldsa65-calldata` (ccdc874). Il partage γ1 = 2^19 et γ2 = (q−1)/32 avec
+ML-DSA-65 : décodage de z sur 20 bits, Decompose / UseHint et w1Encode sur
+4 bits sont identiques. Changent (k, l) = (8, 7), τ = 60, β = 120, ω = 75,
+λ = 256 (c~ de 64 octets), la clé étendue (56 + 8 polynômes, 67 680 octets) et
+la signature (4 627 octets).
+
+Le noyau de matvec du 65 garde ses lanes brutes sous q·2^30 :
+5·(17q)·q + q·2^28 < 8,22·10^15 < q·2^30 = 9,00·10^15. Sept colonnes portent
+la borne à 119 q² + q·2^28 = 1,061·10^16. La passe intra-mot repliée forme
+`e + q·2^30 − o` sur les paires de lanes (4m, 4m+1) et (4m+2, 4m+3), puis
+`o + q·2^31 − s` sur leurs sommes : un écart de 8·(17q−1)(q−1) = 9,55·10^15
+entre deux lanes voisines (A à q−1 sur l'une, t1 à q−1 sur l'autre) suffit à
+emprunter. Aucun KAT ni fuzz aléatoire n'atteint ces écarts.
+
+**Décision**
+
+1. Contrat séparé `ZKNOX_dilithium87`, forme du 65 (ADR-007) : sans état,
+   `setKey` rend la clé, clé lue en place dans le calldata, z décodé en place.
+   Pas de chemin SSTORE2 : les 67 680 octets coûtent 13,5 M de dépôt de code
+   aujourd'hui et 103,6 M après EIP-8037, sur trois contrats au moins
+   (EIP-170) et, après EIP-8037, au moins sept transactions sous le plafond
+   EIP-7825 ; rapporté au calldata de la clé (858 840 par vérification), le
+   dépôt seul s'amortit en 15 vérifications aujourd'hui et 120 après.
+2. Décalages de la passe repliée relevés dans `_matvecRowInvCCalldata87` :
+   q·2^31 pour les différences de lanes (`_Q31X2`), q·2^32 pour les
+   différences de sommes (sommes < 2,13·10^16 < q·2^32 = 3,6·10^16). Tout
+   reste sous 2^56 dans une lane de 64 bits. Les sorties sont réduites mod q
+   comme dans le 65 : la queue de l'inverse (`nttInvMontPackedTailTb`) et
+   `_TW_MONT` servent telles quelles. Coût nul, ce sont des constantes.
+3. Le chemin de référence en mémoire (`dilithiumCore2Packed87`, tests
+   seulement, absent du bytecode) passe par le noyau complet partagé
+   `nttInvMontPackedRawFusedTb`, qui garde son décalage q·2^30 : les lignes y
+   sont réduites mod q avant (`_reduceLanes87`).
+4. Les constantes qui dépendent de γ1 / γ2 sont importées de
+   `ZKNOX_dilithium65_core_packed.sol` ; seules les bornes de z (`_ZLO87`,
+   `_ZHI87`) et `_Q31X2` sont propres au 87. Aucun fichier du 44, du 65 ou de
+   l'ETH n'est modifié.
+5. `test_matvec_row87_saturated` couvre quatre pires cas (toutes les lanes
+   au maximum ; soustraction c·t1 maximale ; écart maximal sur les paires ;
+   écart maximal sur les sommes) pour la première et la dernière ligne. Remis
+   à q·2^30 ou à q·2^31, chacun des deux décalages le fait échouer alors que
+   KAT, ACVP et fuzz aléatoire passent.
+
+**Alternatives écartées**
+
+- Ramener les lanes sous q·2^30 avant la passe (soustraction conditionnelle
+  par lane) : quelques opérations par mot sur 512 mots par vérification,
+  pour un résultat que les décalages donnent gratuitement (non mesuré).
+- Accumuler chaque ligne en deux moitiés (4 + 3 colonnes) : écritures
+  doublées, même remarque (non mesuré).
+- Paramétrer les noyaux du 65 par le nombre de colonnes : les déroulements à
+  colonnes fixes et les décalages en littéraux font la performance, et la
+  marge EIP-170 du 65 (934 octets) ne laisse pas de place à une indirection.
+- Clé SSTORE2 : voir le point 1.
+
+**Conséquences**
+
+- `make bench` : 1 633 524 (exécution, +36 % sur le 65) ; calldata 934 400 ;
+  transaction complète sur le KAT 2 584 979, au-dessus du plancher EIP-7623
+  (2 356 840) ; 72 640 octets de calldata, sous les 128 Ko de geth ; runtime
+  23 803 octets, marge EIP-170 773.
+- Signature de 4 627 octets et clé de 67 680 octets dans un UserOperation
+  ERC-4337 : les politiques de bundler sont la limite, comme pour le 65 ; pas
+  de limite de consensus.
+- Une clé malformée (champs ≥ q) ne lèse que le compte qui s'y est engagé
+  par keccak256, comme pour le 65 : le vérifieur ne contrôle que la forme.
+- Tout futur noyau à plus de cinq colonnes sur ce layout doit reprendre ces
+  décalages ou refaire le calcul de borne.

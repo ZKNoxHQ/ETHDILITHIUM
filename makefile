@@ -23,6 +23,10 @@ gen_test_vectors:
 gen_test_vectors65:
 	node js/gen_test_vectors65.js 10
 
+# ML-DSA-87: likewise (PQCsignKAT_Dilithium5.rsp, ACVP ML-DSA-87 groups)
+gen_test_vectors87:
+	node js/gen_test_vectors87.js 10
+
 
 # TESTS
 
@@ -41,6 +45,14 @@ test_signer65:
 test_verifier65:
 	FOUNDRY_PROFILE=lite forge test -j$(CORES) -vv --match-path "test/dilithium65*"
 
+# ML-DSA-87 js signer against the NIST vectors (ACVP keyGen/sigGen/sigVer, PQCsignKAT_Dilithium5.rsp)
+test_signer87:
+	node js/test_mldsa87.js
+
+# ML-DSA-87 verifier: NIST KAT, NIST ACVP sigVer vectors, kernels (saturated lane bounds included)
+test_verifier87:
+	FOUNDRY_PROFILE=lite forge test -j$(CORES) -vv --match-path "test/dilithium87*"
+
 # ML-DSA-65 verifier against all 100 vectors of PQCsignKAT_Dilithium3.rsp
 # (the committed vectors file holds 10; this regenerates it at 100, runs, and
 # restores the committed one). About 25 s and a 10.7 MB temporary file.
@@ -49,6 +61,14 @@ test_kat100:
 	FOUNDRY_PROFILE=kat100 forge test -vv --match-path "test/dilithium65_vectors.t.sol" \
 		|| ( node js/gen_test_vectors65.js 10 ; exit 1 )
 	node js/gen_test_vectors65.js 10
+
+# ML-DSA-87 verifier against all 100 vectors of PQCsignKAT_Dilithium5.rsp (each
+# vector carries its 67,680-byte key: a 17 MB temporary file, same profile)
+test_kat100_87:
+	node js/gen_test_vectors87.js 100
+	FOUNDRY_PROFILE=kat100 forge test -vv --match-path "test/dilithium87_vectors.t.sol" \
+		|| ( node js/gen_test_vectors87.js 10 ; exit 1 )
+	node js/gen_test_vectors87.js 10
 
 test_verifier:
 	FOUNDRY_PROFILE=lite forge test -j$(CORES) -vv

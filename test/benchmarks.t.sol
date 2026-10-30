@@ -14,16 +14,19 @@ import {ZKNOX_dilithium} from "../src/ZKNOX_dilithium.sol";
 import {F1600Helper} from "./F1600Helper.sol";
 import {ZKNOX_ethdilithium} from "../src/ZKNOX_ethdilithium.sol";
 import {ZKNOX_dilithium65} from "../src/ZKNOX_dilithium65.sol";
+import {ZKNOX_dilithium87} from "../src/ZKNOX_dilithium87.sol";
 import {PythonSigner} from "../src/ZKNOX_PythonSigner.sol";
 
 contract BenchmarksTest is Test {
     ZKNOX_dilithium dilithium;
     ZKNOX_dilithium65 dilithium65;
+    ZKNOX_dilithium87 dilithium87;
 
     function setUp() public {
         address helper = F1600Helper.deploy(vm);
         dilithium = new ZKNOX_dilithium(helper);
         dilithium65 = new ZKNOX_dilithium65(helper);
+        dilithium87 = new ZKNOX_dilithium87(helper);
     }
     ZKNOX_ethdilithium ethdilithium = new ZKNOX_ethdilithium();
     PythonSigner pythonSigner = new PythonSigner();
@@ -128,6 +131,21 @@ contract BenchmarksTest is Test {
 
         uint256 gasStart = gasleft();
         bool ver = dilithium65.verify(pk, msgs, sig, "");
+        uint256 gasUsed = gasStart - gasleft();
+        console.log("Gas used:", gasUsed);
+        assertTrue(ver);
+    }
+
+    /// ML-DSA-87 on the NIST KAT (count 0 of test/KAT/PQCsignKAT_Dilithium5.rsp,
+    /// 33-byte message, empty context; key blob expanded by js/mldsa87.js)
+    function testMLDSA87() public {
+        string memory kat = vm.readFile("test/KAT/mldsa87_kat0.json");
+        bytes memory pk = dilithium87.setKey(vm.parseJsonBytes(kat, ".blob"));
+        bytes memory sig = vm.parseJsonBytes(kat, ".sig");
+        bytes memory msgs = vm.parseJsonBytes(kat, ".msg");
+
+        uint256 gasStart = gasleft();
+        bool ver = dilithium87.verify(pk, msgs, sig, "");
         uint256 gasUsed = gasStart - gasleft();
         console.log("Gas used:", gasUsed);
         assertTrue(ver);

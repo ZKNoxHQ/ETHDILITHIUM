@@ -7,7 +7,7 @@ ETHDILITHIUM gathers experiments around DILITHIUM adaptations for the ETHEREUM e
 The repo implements two version of DILITHIUM: one follows the NIST released implementation, and another is tunned for Ethereum Virtual Machine constraints. 
 TODO write specifications (help with #Issue7).
 
-Two NIST parameter sets are provided: ML-DSA-44 (`src/ZKNOX_dilithium.sol`, security category 2) and ML-DSA-65 (`src/ZKNOX_dilithium65.sol`, category 3), see [ML-DSA-65](#ml-dsa-65) below.
+Three NIST parameter sets are provided: ML-DSA-44 (`src/ZKNOX_dilithium.sol`, security category 2), ML-DSA-65 (`src/ZKNOX_dilithium65.sol`, category 3) and ML-DSA-87 (`src/ZKNOX_dilithium87.sol`, category 5), see [ML-DSA-65](#ml-dsa-65) and [ML-DSA-87](#ml-dsa-87) below.
 
 ## INSTALLATION
 **This is an experimental work, not audited: DO NOT USE IN PRODUCTION, LOSS OF FUND WILL OCCUR**
@@ -41,14 +41,16 @@ make bench
 |Dilithium (ML-DSA-44)|1.01M + 0.31M calldata (was 8.1M)| :white_check_mark: (NIST MLDSA KAT pass)|
 |ETHDilithium|0.68M (was 4.9M)| :white_check_mark: (MLDSAETH KAT pass)|
 |Dilithium65 (ML-DSA-65)|1.20M + 0.54M calldata| :white_check_mark: (NIST ML-DSA-65 KAT and ACVP sigVer vectors pass)|
+|Dilithium87 (ML-DSA-87)|1.63M + 0.93M calldata| :white_check_mark: (NIST ML-DSA-87 KAT and ACVP sigVer vectors pass)|
 
 Exact figures (`make bench`, solc 0.8.30 via-IR, `optimizer_runs = 1000000`,
-see DECISIONS.md ADR-004): 1,006,093, 679,733 and 1,198,467. The two NIST
-figures are execution only: the expanded key travels in the calldata of every
-verification with the signature and is read in place from there, 21,216 bytes
-for ML-DSA-44 (309,468 of calldata per transaction with the signature,
-ADR-010) and 38,112 bytes for ML-DSA-65 (538,132, ADR-007/008). ETHDilithium
-keeps its key in an SSTORE2 blob.
+see DECISIONS.md ADR-004): 1,006,093, 679,733, 1,198,467 and 1,633,524. The
+three NIST figures are execution only: the expanded key travels in the calldata
+of every verification with the signature and is read in place from there,
+21,216 bytes for ML-DSA-44 (309,468 of calldata per transaction with the
+signature, ADR-010), 38,112 bytes for ML-DSA-65 (538,132, ADR-007/008) and
+67,680 bytes for ML-DSA-87 (934,400, ADR-012). ETHDilithium keeps its key in an
+SSTORE2 blob.
 
 |NTT kernel (256 coefficients) | Gas cost|
 |-|-|
@@ -126,6 +128,43 @@ kernels are tested against are in `src/ZKNOX_dilithium65_core.sol`.
   (needs `F1600_HELPER`, the same Keccak-f[1600] helper as ML-DSA-44; checks
   the NIST KAT on the deployed verifier). One contract per chain, nothing to
   install per key. Runtime size 23,642 bytes.
+
+## ML-DSA-87
+`src/ZKNOX_dilithium87.sol` verifies ML-DSA-87 (FIPS 204, k = 8, l = 7,
+tau = 60, beta = 120, omega = 75, 4627-byte signatures) in the form of the
+ML-DSA-65 verifier. ML-DSA-87 has the gamma1 = 2^19 and gamma2 = (q-1)/32 of
+ML-DSA-65, so the z decoder, UseHint and the 4-bit w1 encoding are those of
+`src/ZKNOX_dilithium65_core_packed.sol`; what is specific is in
+`src/ZKNOX_dilithium87_core_packed.sol` (seven z polynomials with the
+beta = 120 bound, seven-column matvec, 83-byte hints, eight-row w1) and the
+scalar references in `src/ZKNOX_dilithium87_core.sol`.
+
+* **Lane bound**: seven columns take the raw matvec lanes up to
+  119 q^2 + q*2^28, above the q*2^30 offset of the folded first inverse pass
+  of ML-DSA-44 / -65. The ML-DSA-87 kernel uses q*2^31 and q*2^32 instead
+  (DECISIONS.md ADR-012); `test_matvec_row87_saturated` exercises the four
+  worst cases and fails with either of the old offsets.
+* **Key**: 67,680 bytes passed in the calldata of every verification, 64
+  polynomials of `[32][32 words]` (A row by row, seven per row, then t1), then
+  tr. Nothing is stored on chain; `setKey` checks the length and returns the
+  key. `js/mldsa87.js` `publicKeyToBlob87` produces it from a 2592-byte FIPS
+  204 public key.
+* **Signer**: `js/mldsa87.js` / `node js/sign87.js` on `@noble/post-quantum`;
+  `make test_signer87` replays the NIST vectors of `test/KAT/`.
+* **KATs** (`test/KAT/`, as given by NIST): `PQCsignKAT_Dilithium5.rsp`
+  (100 vectors, FIPS 204 ML-DSA-87; count 0 is `test/dilithium87KATS.t.sol`,
+  the first 10 counts go through `test/dilithium87_vectors.t.sol`, all 100
+  through `make test_kat100_87`) and the ACVP `ML-DSA-87` groups of
+  `ML-DSA-{keyGen,sigGen,sigVer}-FIPS204/internalProjection.json`
+  (usnistgov/ACVP-Server); the 15 sigVer vectors of the external / pure
+  interface are checked on-chain with NIST's expected verdicts.
+* **Cost**: 1,633,524 of execution, 934,400 of calldata (858,840 for the
+  key), 2,584,979 for the whole transaction on the KAT, 72,640 bytes of
+  calldata (`test/dilithium87_key.t.sol`).
+* **Tests**: `make test_verifier87`; `make bench` includes `MLDSA87`.
+* **Deployment**: `script/deploy_dilithium87.sh` / `DeployDilithium87.s.sol`
+  (needs `F1600_HELPER`, the same Keccak-f[1600] helper; checks the NIST KAT
+  on the deployed verifier). Runtime size 23,803 bytes.
 
 ## EXAMPLE 
 An example of key generation, signature and verification in python is provided in the directory `pythonref/`.
